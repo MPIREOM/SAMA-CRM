@@ -76,6 +76,8 @@ export async function sendWhatsAppText(
  * Pre-approved template message — required OUTSIDE the 24h window.
  * `templateName` must exist and be APPROVED in WhatsApp Manager.
  * `bodyParams` fill the template's {{1}}, {{2}}, … placeholders in order.
+ * Meta rejects text parameters containing newlines/tabs or 4+ consecutive
+ * spaces, so params are collapsed to single-spaced text before sending.
  */
 export async function sendWhatsAppTemplate(
   phone: string,
@@ -83,6 +85,7 @@ export async function sendWhatsAppTemplate(
   langCode: string, // e.g. "ar" | "en" | "en_US"
   bodyParams: string[] = []
 ): Promise<WaSendResult> {
+  bodyParams = bodyParams.map((p) => p.replace(/\s+/g, " ").trim());
   return waPost({
     messaging_product: "whatsapp",
     recipient_type: "individual",

@@ -43,19 +43,37 @@ interface WaPayload {
   entry?: { changes?: { value?: WaValue }[] }[];
 }
 
-// Keywords that revoke marketing consent (case-insensitive, trimmed).
+// Keywords that revoke marketing consent. Matching is tolerant: the inbound
+// text is lowercased, stripped of punctuation/quotes and Arabic hamza
+// variants normalized, then short messages (≤ 5 words) match if they CONTAIN
+// a keyword as a standalone word — so "Stop.", "\"إلغاء\"" and
+// "الغاء الرسائل" all opt out, per the instructions in our own templates.
 const OPT_OUT_KEYWORDS = [
   "stop",
   "unsubscribe",
   "cancel",
-  "إلغاء",
   "الغاء",
   "ايقاف",
-  "إيقاف",
-  "الغاء الاشتراك",
-  "إلغاء الاشتراك",
   "توقف",
 ];
+
+function isOptOut(body: string): boolean {
+  const normalized = body
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا") // unify alef/hamza forms (إلغاء -> الغاء)
+    .replace(/[.,!?؟،؛;:'"«»()\[\]_\-*]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return false;
+  const words = normalized.split(" ");
+  if (words.length > 5) return false; // only short, deliberate messages
+  return OPT_OUT_KEYWORDS.some((k) => words.includes(k));
+}
+
+/** "YOUR_" anywhere marks a .env.example placeholder value. */
+function isPlaceholder(value: string | undefined): boolean {
+  return !value || value.includes("YOUR_");
+}
 
 const RECEIPT_STATUSES = ["sent", "delivered", "read", "failed"];
 
@@ -68,7 +86,11 @@ export async function GET(req: Request) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+  if (
+    mode === "subscribe" &&
+    !isPlaceholder(process.env.WHATSAPP_VERIFY_TOKEN) &&
+    token === process.env.WHATSAPP_VERIFY_TOKEN
+  ) {
     return new Response(challenge ?? "", { status: 200 });
   }
   return new Response("Forbidden", { status: 403 });
@@ -80,18 +102,23 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const raw = await req.text();
 
-  // Optional signature verification (skipped when the secret is unset or a
-  // placeholder, so local/dev setups keep working).
+  // Signature verification is MANDATORY: this public endpoint mutates consent
+  // and the 24h window with the service role, so it fails closed when
+  // WHATSAPP_APP_SECRET is missing rather than accepting forged payloads.
   const secret = process.env.WHATSAPP_APP_SECRET;
-  if (secret && !secret.startsWith("YOUR_")) {
-    const header = req.headers.get("x-hub-signature-256") ?? "";
-    const expected =
-      "sha256=" + createHmac("sha256", secret).update(raw).digest("hex");
-    const a = Buffer.from(header);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
-    }
+  if (isPlaceholder(secret)) {
+    return NextResponse.json(
+      { error: "webhook_not_configured (WHATSAPP_APP_SECRET)" },
+      { status: 503 }
+    );
+  }
+  const header = req.headers.get("x-hub-signature-256") ?? "";
+  const expected =
+    "sha256=" + createHmac("sha256", secret!).update(raw).digest("hex");
+  const a = Buffer.from(header);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
   let payload: WaPayload | null = null;
@@ -115,14 +142,21 @@ export async function POST(req: Request) {
           await handleInboundMessage(admin, value, msg);
         }
 
-        // ---- b) Delivery receipts → patch message status in place.
+        // ---- b) Delivery receipts → patch message statuses, grouped so a
+        // receipt batch costs at most one UPDATE per status value.
+        const byStatus = new Map<string, string[]>();
         for (const s of value.statuses ?? []) {
           const status = s?.status;
           if (!s?.id || !status || !RECEIPT_STATUSES.includes(status)) continue;
+          const ids = byStatus.get(status) ?? [];
+          ids.push(s.id);
+          byStatus.set(status, ids);
+        }
+        for (const [status, ids] of Array.from(byStatus.entries())) {
           await admin
             .from("messages")
             .update({ status })
-            .eq("provider_msg_id", s.id);
+            .in("provider_msg_id", ids);
         }
       }
     }
@@ -141,6 +175,17 @@ async function handleInboundMessage(
 ): Promise<void> {
   const phone = fromWaId(msg.from ?? "");
   if (!phone) return;
+
+  // Meta retries deliveries — the same message id must never be stored twice.
+  if (msg.id) {
+    const { data: dup } = await admin
+      .from("messages")
+      .select("id")
+      .eq("provider_msg_id", msg.id)
+      .limit(1)
+      .maybeSingle();
+    if (dup) return;
+  }
 
   const now = new Date().toISOString();
 
@@ -173,10 +218,24 @@ async function handleInboundMessage(
       })
       .select("id")
       .single();
-    if (insErr || !inserted) {
+    if (insErr?.code === "23505") {
+      // Lost a concurrent-create race (phone is unique) — reuse the winner.
+      const { data: winner } = await admin
+        .from("contacts")
+        .select("id")
+        .eq("phone", phone)
+        .single();
+      if (!winner) throw insErr;
+      contactId = winner.id;
+      await admin
+        .from("contacts")
+        .update({ last_inbound_at: now })
+        .eq("id", contactId);
+    } else if (insErr || !inserted) {
       throw insErr ?? new Error("contact_insert_failed");
+    } else {
+      contactId = inserted.id;
     }
-    contactId = inserted.id;
   }
 
   // Extract a text body for the supported message types.
@@ -213,8 +272,7 @@ async function handleInboundMessage(
   });
 
   // Opt-out keywords revoke marketing consent immediately.
-  const t = body.trim().toLowerCase();
-  if (OPT_OUT_KEYWORDS.includes(t)) {
+  if (isOptOut(body)) {
     await admin
       .from("contacts")
       .update({

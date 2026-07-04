@@ -53,15 +53,18 @@ export default async function DashboardPage() {
     supabase
       .from("bookings")
       .select("*", { count: "exact", head: true })
-      .gte("check_in", today),
+      .gte("check_in", today)
+      .or("status.is.null,status.neq.Cancelled"),
     supabase
       .from("bookings")
       .select("*", { count: "exact", head: true })
-      .eq("check_in", today),
+      .eq("check_in", today)
+      .or("status.is.null,status.neq.Cancelled"),
     supabase
       .from("bookings")
       .select("*", { count: "exact", head: true })
-      .eq("check_out", today),
+      .eq("check_out", today)
+      .or("status.is.null,status.neq.Cancelled"),
     supabase
       .from("messages")
       .select("*", { count: "exact", head: true })

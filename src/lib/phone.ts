@@ -48,12 +48,27 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   if (s.startsWith("00")) s = "+" + s.slice(2);
   if (!s.startsWith("+")) {
     // wa_id / bare numbers: assume the country code is already included when
-    // long enough, otherwise treat as an Omani local number.
-    const digits = s.replace(/\D/g, "");
+    // long enough, otherwise treat as an Omani local number. A national
+    // number written with a trunk '0' (e.g. 0501234567) is ambiguous — we
+    // can't know the country — so reject it and let the caller pick a code.
+    let digits = s.replace(/\D/g, "");
     if (!digits) return null;
+    if (digits.startsWith("0")) {
+      digits = digits.replace(/^0+/, "");
+      if (digits.length > 8) return null; // ambiguous national format
+    }
     s = digits.length <= 8 ? "+968" + digits : "+" + digits;
   }
-  const digits = s.slice(1).replace(/\D/g, "");
+  let digits = s.slice(1).replace(/\D/g, "");
+  // Strip a trunk '0' typed after the country code (e.g. +966 0501234567 —
+  // Meta's wa_id format has no trunk zero).
+  for (const { code } of COUNTRY_CODES) {
+    const cc = code.slice(1);
+    if (digits.startsWith(cc + "0")) {
+      digits = cc + digits.slice(cc.length).replace(/^0+/, "");
+      break;
+    }
+  }
   if (digits.length < 7 || digits.length > 15) return null;
   return "+" + digits;
 }

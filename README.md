@@ -142,6 +142,9 @@ The daily automation runner lives at `supabase/functions/automation-runner`. It 
 
 ### Deploy
 
+> **Already deployed** to the live project and verified with a real invocation
+> (returns the per-trigger JSON summary). Re-deploy after code changes with:
+
 ```bash
 supabase functions deploy automation-runner --project-ref vsxesrhoovabgsmvodvh
 ```
@@ -163,6 +166,10 @@ supabase secrets set --project-ref vsxesrhoovabgsmvodvh \
 Missing secrets never crash the run — affected attempts are logged to `messages` as `failed` with a clear error note.
 
 ### Schedule (pg_cron)
+
+> **Already scheduled** on the live project (`cron.schedule` job
+> `sama-automation-runner-daily`, `0 5 * * *`). Nothing to do unless you set up
+> a fresh project.
 
 `supabase/migrations/0002_schedule_automation_runner.sql` already contains this block with the project's (publishable) anon key filled in; run it once in the SQL Editor if you are setting up a fresh project:
 
@@ -221,3 +228,63 @@ These rules are enforced centrally in `src/lib/send-service.ts` (app) and mirror
 - **Utility messages** (booking confirmation, pre-arrival, post-stay) are transactional and not consent-gated, but still respect channel rules and per-automation market targeting.
 - **24-hour window** — free-form WhatsApp text is only sent within 24 hours of the guest's last inbound message; outside the window only the approved `WHATSAPP_REENGAGE_TEMPLATE` is used.
 - **Full audit trail** — every outbound attempt (sent or failed) is logged to the `messages` table, which doubles as the automations' idempotency ledger.
+
+---
+
+## ✅ Already done for you (no action needed)
+
+- Database migrations 0001–0004 applied to the live project `vsxesrhoovabgsmvodvh`: `profiles` + role trigger (first user = super_admin), RLS on every table, the 5 seeded bilingual automations, Realtime on `messages`, indexes, and security hardening.
+- Edge Function `automation-runner` deployed (v2) and verified with a live run.
+- Daily cron scheduled (`0 5 * * *` = 09:00 Muscat) via pg_cron + pg_net.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are real, publishable values already filled into `.env.example`.
+
+## 🚨 ACTION REQUIRED FROM YOU
+
+Do these in order — everything else is finished. Each `KEY` goes into Vercel env vars **and** your local `.env.local`.
+
+**1. Supabase (~5 min)**
+1. Create **your admin account first**: Dashboard → Authentication → Users → *Add user* (email + password). The first user automatically becomes `super_admin`; do this before sharing anything.
+2. Add reservation-desk staff the same way (they default to `reservation_desk`).
+3. Disable public sign-ups: Authentication → Sign In / Providers → turn **off** "Allow new users to sign up" (staff are created from the dashboard only).
+4. Copy the **service_role** key (Project Settings → API) → `SUPABASE_SERVICE_ROLE_KEY`.
+
+**2. Repo & local run (~5 min)**
+1. Merge branch `claude/hotel-crm-nextjs-obex8g` into `main` (or deploy the branch directly).
+2. `cp .env.example .env.local`, fill values as you collect them, then `npm install && npm run dev`.
+
+**3. Vercel (~10 min)**
+1. Import the GitHub repo → framework preset *Next.js*, default build.
+2. Add every variable from `.env.example` (with real values) to Project → Settings → Environment Variables.
+3. Deploy → note the production URL → set `NEXT_PUBLIC_APP_URL` and create a terms page → `TERMS_LINK`.
+
+**4. Meta / WhatsApp Cloud API (~30–45 min)**
+1. Create a **Business** app at developers.facebook.com and add the *WhatsApp* product.
+2. From API Setup: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_ACCOUNT_ID`.
+3. Business Settings → System Users → create + generate a **permanent** token (`whatsapp_business_messaging`, `whatsapp_business_management`) → `WHATSAPP_ACCESS_TOKEN`.
+4. App Settings → Basic → **App Secret** → `WHATSAPP_APP_SECRET` (the webhook refuses unsigned traffic without it).
+5. Invent a random string → `WHATSAPP_VERIFY_TOKEN` (set it in Vercel *first*).
+6. WhatsApp → Configuration → Webhook: URL `https://<your-domain>/api/webhooks/whatsapp`, verify token from step 5, then subscribe to the **messages** field.
+7. WhatsApp Manager → create a **utility** template (suggested name `sama_update`) whose body is exactly `{{1}}`, language Arabic; submit for approval → once approved: `WHATSAPP_REENGAGE_TEMPLATE=sama_update`. Without it, nothing can be sent outside the 24-hour window.
+
+**5. Resend (~10 min + DNS wait)**
+1. Add + verify your domain (DKIM/SPF records) → API key → `RESEND_API_KEY`.
+2. `EMAIL_FROM="Sama Hotel <noreply@your-domain>"` (must be on the verified domain).
+
+**6. Edge Function secrets (~5 min, after steps 4–5)**
+```bash
+supabase secrets set --project-ref vsxesrhoovabgsmvodvh \
+  WHATSAPP_ACCESS_TOKEN=... WHATSAPP_PHONE_NUMBER_ID=... \
+  WHATSAPP_REENGAGE_TEMPLATE=sama_update RESEND_API_KEY=... \
+  EMAIL_FROM="Sama Hotel <noreply@your-domain>" TERMS_LINK=https://your-domain/terms
+```
+(or Dashboard → Edge Functions → automation-runner → Secrets — the function and its daily cron are already deployed.)
+
+**7. Kiosk (~5 min)**
+1. Choose a 4–8 digit PIN → `KIOSK_EXIT_PIN` in Vercel.
+2. Open `https://<your-domain>/checkin` on the lobby tablet, fullscreen, and lock it (iPad Guided Access / Android app pinning). Staff exit = 5 taps in the top-left corner + PIN.
+
+**8. Verify (~10 min)**
+1. Sign in → create a test booking with your own +968 number → WhatsApp confirmation arrives (after step 4).
+2. Message the business number from your phone → it appears in the Inbox live → reply.
+3. Send `STOP` → the contact's consent flips off.
+4. Submit the kiosk form → contact appears with `checkin_kiosk` consent source.

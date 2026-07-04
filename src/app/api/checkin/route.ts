@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/phone";
+import { isIsoDate } from "@/lib/utils";
 
 // Public kiosk submit — the kiosk device is unauthenticated, so this route
 // performs its own validation and uses the service-role client. It NEVER
 // echoes contact data back to the kiosk.
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function isIsoDate(value: string): boolean {
-  return (
-    DATE_RE.test(value) &&
-    !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
-  );
-}
 
 export async function POST(req: Request) {
   try {
@@ -69,12 +62,22 @@ export async function POST(req: Request) {
 
     const { data: existing, error: findErr } = await admin
       .from("contacts")
-      .select("id")
+      .select("id, consent, consent_source")
       .eq("phone", phone)
       .maybeSingle();
     if (findErr) throw findErr;
 
     if (existing) {
+      // Consent rules for RETURNING guests on this unauthenticated endpoint:
+      //  - never revoke: an unticked box is not an explicit opt-out, and a
+      //    forged request must not be able to silently unsubscribe a guest;
+      //  - never override a WhatsApp STOP: that opt-out is authoritative and
+      //    only staff may reverse it after speaking with the guest.
+      const grantConsent =
+        consent &&
+        existing.consent !== true &&
+        existing.consent_source !== "whatsapp_stop";
+
       const { error: updErr } = await admin
         .from("contacts")
         .update({
@@ -83,9 +86,13 @@ export async function POST(req: Request) {
           ...(birthday ? { birthday } : {}),
           ...(nationality ? { nationality } : {}),
           ...(lang ? { lang } : {}),
-          consent,
-          consent_source: "checkin_kiosk",
-          consent_at: consentAt,
+          ...(grantConsent
+            ? {
+                consent: true,
+                consent_source: "checkin_kiosk",
+                consent_at: consentAt,
+              }
+            : {}),
         })
         .eq("id", existing.id);
       if (updErr) throw updErr;

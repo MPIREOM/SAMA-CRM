@@ -40,14 +40,25 @@ export function InboxClient() {
   const [loading, setLoading] = useState(true);
 
   // Ref mirror so realtime callbacks can check contacts without re-subscribing.
+  // The ref is updated synchronously with every state write (via
+  // updateContacts) so it is never stale between a state update and the next
+  // commit — burst realtime inserts and sendMessage read it directly.
   const contactsRef = useRef<Record<string, Contact>>({});
-  useEffect(() => {
-    contactsRef.current = contactsById;
-  }, [contactsById]);
 
-  const mergeContact = useCallback((contact: Contact) => {
-    setContactsById((prev) => ({ ...prev, [contact.id]: contact }));
-  }, []);
+  const updateContacts = useCallback(
+    (updater: (prev: Record<string, Contact>) => Record<string, Contact>) => {
+      contactsRef.current = updater(contactsRef.current);
+      setContactsById(contactsRef.current);
+    },
+    []
+  );
+
+  const mergeContact = useCallback(
+    (contact: Contact) => {
+      updateContacts((prev) => ({ ...prev, [contact.id]: contact }));
+    },
+    [updateContacts]
+  );
 
   // ---- Initial load: recent messages + their contacts in one pass ---------
   useEffect(() => {
@@ -80,14 +91,14 @@ export function InboxClient() {
 
       if (cancelled) return;
       setMessages(recent);
-      setContactsById((prev) => ({ ...map, ...prev }));
+      updateContacts((prev) => ({ ...map, ...prev }));
       setLoading(false);
     }
     void load();
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, [supabase, updateContacts]);
 
   // ---- Deep link: /inbox?contact=<id> --------------------------------------
   useEffect(() => {
@@ -132,7 +143,7 @@ export function InboxClient() {
 
           if (msg.direction === "inbound") {
             // Refresh the 24h window locally.
-            setContactsById((prev) => {
+            updateContacts((prev) => {
               const existing = prev[cid];
               if (!existing) return prev;
               return {
@@ -175,7 +186,7 @@ export function InboxClient() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [supabase, mergeContact]);
+  }, [supabase, mergeContact, updateContacts]);
 
   // ---- Optimistic send -------------------------------------------------------
   const sendMessage = useCallback(
@@ -220,11 +231,9 @@ export function InboxClient() {
         } | null;
 
         if (!res.ok) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === tempId ? { ...m, status: "failed" } : m
-            )
-          );
+          // The API logs a real failed row that arrives via realtime INSERT —
+          // drop the temp bubble so the thread doesn't show the message twice.
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
           return { ok: false, code: "failed" };
         }
 
@@ -244,9 +253,9 @@ export function InboxClient() {
         }
         return { ok: true, code: "sent" };
       } catch {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, status: "failed" } : m))
-        );
+        // Same dedupe as above — if the API logged a failed row it arrives
+        // via realtime; the error notice is the user-facing signal here.
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         return { ok: false, code: "failed" };
       }
     },

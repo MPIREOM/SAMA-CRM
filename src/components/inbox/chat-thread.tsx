@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { type Localized, type Strings } from "@/lib/i18n";
-import { cn, formatDateTime, isWithin24h } from "@/lib/utils";
+import { cn, formatDateTime, isWithin24h, WHATSAPP_WINDOW_MS } from "@/lib/utils";
 import type { Contact, Message } from "@/lib/database.types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,7 @@ const STATUS_LABELS: Record<string, Localized> = {
 
 function remainingWindowHours(lastInboundAt: string): number {
   const elapsed = Date.now() - new Date(lastInboundAt).getTime();
-  return Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - elapsed) / 3_600_000));
+  return Math.max(1, Math.ceil((WHATSAPP_WINDOW_MS - elapsed) / 3_600_000));
 }
 
 export function ChatThread({

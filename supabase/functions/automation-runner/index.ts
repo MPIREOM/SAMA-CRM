@@ -6,15 +6,21 @@
 // time-based automations plus a 48h catch-up for missed booking confirmations:
 //
 //   booking_created  → catch-up for Confirmed bookings created in the last 48h
-//   pre_arrival      → check_in  = today + offset_days (default 2)
-//   post_stay        → check_out = today - offset_days (default 1); also
+//   pre_arrival      → check_in between today+1 and today+offset_days
+//                      (default 2) — a window, so a missed daily run cannot
+//                      skip a cohort (offset 0 keeps the exact-today match)
+//   post_stay        → check_out between today-(offset_days+2) and
+//                      today-offset_days (default 1; 3-day look-back); also
 //                      stamps contact.last_stay / room_type (powers win_back)
 //   birthday         → contact birthday month-day == today (once per year)
-//   win_back         → contact last_stay = today - offset_days (default 335)
+//   win_back         → contact last_stay between today-(offset_days+3) and
+//                      today-offset_days (default 335; 4-day look-back)
 //
 // IDEMPOTENT: the `messages` table is the dedupe ledger — every attempt
 // (sent or failed) inserts a row keyed by automation_id + booking_id or
-// automation_id + contact_id, and each trigger checks it before sending.
+// automation_id + contact_id, but only SUCCESSFUL sends (status='sent') are
+// treated as "already done" by the dedupe checks, so failed attempts are
+// retried on later runs within each trigger's date window.
 //
 // This file is self-contained (the Edge runtime cannot import from src/), but
 // the send pipeline mirrors the app's @/lib/send-service compliance gates,
@@ -40,13 +46,15 @@ const ENV = {
   termsLink: Deno.env.get("TERMS_LINK") ?? "",
 };
 
-/** A value is usable when present and not a YOUR_* placeholder. */
+/** A value is usable when present and free of YOUR_* placeholders (anywhere
+ * in the string — e.g. `https://YOUR_DOMAIN/terms`, `noreply@YOUR_DOMAIN`). */
 function configured(value: string): boolean {
-  return value.length > 0 && !value.startsWith("YOUR_");
+  return value.length > 0 && !value.includes("YOUR_");
 }
 
 const GRAPH_VERSION = "v20.0";
 const BATCH_CAP = 200; // max sends per automation per run
+const CONCURRENCY = 5; // parallel deliveries per chunk (same as the app's campaign route)
 const CONTACT_COLS =
   "id, name, phone, email, market, consent, last_inbound_at, last_stay, room_type, birthday";
 const BOOKING_COLS =
@@ -216,6 +224,10 @@ function sendWhatsAppTemplate(
   templateName: string,
   body: string
 ): Promise<ProviderResult> {
+  // Meta's Cloud API rejects template body parameters containing newlines,
+  // tabs, or 4+ consecutive spaces — collapse all whitespace to single spaces.
+  // (Free-form sendWhatsAppText is NOT sanitized: newlines are fine there.)
+  const paramText = body.replace(/\s+/g, " ").trim();
   return waPost({
     messaging_product: "whatsapp",
     recipient_type: "individual",
@@ -225,7 +237,7 @@ function sendWhatsAppTemplate(
       name: templateName,
       language: { code: "ar" },
       components: [
-        { type: "body", parameters: [{ type: "text", text: body }] },
+        { type: "body", parameters: [{ type: "text", text: paramText }] },
       ],
     },
   });
@@ -234,9 +246,11 @@ function sendWhatsAppTemplate(
 // ----------------------------------------------------------------------------
 // Resend email — mirrors @/lib/email (RTL-aware bilingual wrapper)
 // ----------------------------------------------------------------------------
-/** Split a bilingual template (Arabic ⸻ divider ⸻ English) into halves. */
+/** Split a bilingual template (Arabic ⸻ divider ⸻ English) into halves.
+ * The divider is a line consisting solely of one or more dash characters —
+ * the composer UI tells authors to use a single ⸻ on its own line. */
 function splitBilingual(template: string): { ar: string; en: string } {
-  const parts = template.split(/\n?[⸻—-]{3,}\n?/);
+  const parts = template.split(/\n\s*[⸻—–-]+\s*\n/);
   if (parts.length >= 2) {
     return { ar: parts[0].trim(), en: parts.slice(1).join("\n").trim() };
   }
@@ -281,6 +295,9 @@ async function sendResendEmail(
       messageId: null,
       error: "Resend is not configured (RESEND_API_KEY)",
     };
+  }
+  if (!configured(ENV.emailFrom)) {
+    return { ok: false, messageId: null, error: "EMAIL_FROM is not configured" };
   }
   const { ar, en } = splitBilingual(bilingualBody);
   try {
@@ -485,12 +502,24 @@ async function processBookingAutomation(
     const cutoff = new Date(Date.now() - 48 * 3600e3).toISOString();
     query = query.gte("created_at", cutoff).eq("status", "Confirmed");
   } else if (kind === "pre_arrival") {
-    query = query
-      .eq("check_in", addDays(muscatToday, a.offset_days ?? 2))
-      .eq("status", "Confirmed");
+    // Date WINDOW (today+1 .. today+offset), not an exact date, so a single
+    // missed daily run cannot skip a whole cohort; the (automation_id,
+    // booking_id) dedupe below prevents resends within the window.
+    const offset = a.offset_days ?? 2;
+    query = query.eq("status", "Confirmed");
+    query =
+      offset >= 1
+        ? query
+            .gte("check_in", addDays(muscatToday, 1))
+            .lte("check_in", addDays(muscatToday, offset))
+        : query.eq("check_in", muscatToday);
   } else {
+    // post_stay: 3-day look-back window (today-(offset+2) .. today-offset)
+    // for the same missed-run resilience.
+    const offset = a.offset_days ?? 1;
     query = query
-      .eq("check_out", addDays(muscatToday, -(a.offset_days ?? 1)))
+      .gte("check_out", addDays(muscatToday, -(offset + 2)))
+      .lte("check_out", addDays(muscatToday, -offset))
       .or("status.is.null,status.neq.Cancelled");
   }
 
@@ -500,13 +529,16 @@ async function processBookingAutomation(
   bucket.matched += bookings.length;
   if (bookings.length === 0) return;
 
-  // Dedupe ledger: any prior messages row for (automation_id, booking_id).
+  // Dedupe ledger: a prior SUCCESSFUL send for (automation_id, booking_id).
+  // Failed attempts (e.g. /api/bookings logging a failed confirmation) must
+  // NOT block retries — the date windows naturally bound how long we retry.
   const already = new Set<string>();
   for (const ids of chunk(bookings.map((b) => b.id), 100)) {
     const { data: prior, error: dupErr } = await db
       .from("messages")
       .select("booking_id")
       .eq("automation_id", a.id)
+      .eq("status", "sent")
       .in("booking_id", ids);
     if (dupErr) throw new Error(`dedupe query failed: ${dupErr.message}`);
     for (const m of (prior ?? []) as { booking_id: string | null }[]) {
@@ -514,7 +546,7 @@ async function processBookingAutomation(
     }
   }
 
-  // Resolve contacts by contact_id in bulk; fall back to phone per booking.
+  // Resolve contacts by contact_id in bulk.
   const contactsById = new Map<string, ContactRow>();
   const contactIds = [
     ...new Set(bookings.map((b) => b.contact_id).filter((v): v is string => Boolean(v))),
@@ -528,29 +560,31 @@ async function processBookingAutomation(
     for (const c of (rows ?? []) as ContactRow[]) contactsById.set(c.id, c);
   }
 
-  for (const booking of bookings) {
-    if (already.has(booking.id)) {
-      count(bucket, "skipped", "already_sent");
-      continue;
+  // Phone fallback, bulk-prefetched (no per-booking query): distinct phones of
+  // bookings whose contact_id is missing or didn't resolve above.
+  const contactsByPhone = new Map<string, ContactRow>();
+  const fallbackPhones = [
+    ...new Set(
+      bookings
+        .filter((b) => !b.contact_id || !contactsById.has(b.contact_id))
+        .map((b) => b.phone)
+        .filter((v): v is string => Boolean(v))
+    ),
+  ];
+  for (const phones of chunk(fallbackPhones, 100)) {
+    const { data: rows, error: pErr } = await db
+      .from("contacts")
+      .select(CONTACT_COLS)
+      .in("phone", phones);
+    if (pErr) throw new Error(`contacts-by-phone query failed: ${pErr.message}`);
+    for (const c of (rows ?? []) as ContactRow[]) {
+      if (!contactsByPhone.has(c.phone)) contactsByPhone.set(c.phone, c);
     }
+  }
 
-    let contact: ContactRow | null = booking.contact_id
-      ? contactsById.get(booking.contact_id) ?? null
-      : null;
-    if (!contact && booking.phone) {
-      const { data: row } = await db
-        .from("contacts")
-        .select(CONTACT_COLS)
-        .eq("phone", booking.phone)
-        .limit(1)
-        .maybeSingle();
-      contact = (row as ContactRow | null) ?? null;
-    }
-    if (!contact) {
-      count(bucket, "skipped", "no_contact");
-      continue;
-    }
-
+  // Render + deliver + count for one booking; post_stay also stamps the
+  // contact's stay facts. Runs CONCURRENCY-wide below.
+  const handleBooking = async (booking: BookingRow, contact: ContactRow): Promise<void> => {
     let outcome: Outcome;
     if (!a.template) {
       outcome = { status: "skipped", reason: "no_template" };
@@ -585,6 +619,31 @@ async function processBookingAutomation(
         }
       }
     }
+  };
+
+  // Cheap dedupe/contact checks stay synchronous; each surviving booking is
+  // counted exactly once inside handleBooking.
+  const dispatch: { booking: BookingRow; contact: ContactRow }[] = [];
+  for (const booking of bookings) {
+    if (already.has(booking.id)) {
+      count(bucket, "skipped", "already_sent");
+      continue;
+    }
+    let contact: ContactRow | null = booking.contact_id
+      ? contactsById.get(booking.contact_id) ?? null
+      : null;
+    if (!contact && booking.phone) {
+      contact = contactsByPhone.get(booking.phone) ?? null;
+    }
+    if (!contact) {
+      count(bucket, "skipped", "no_contact");
+      continue;
+    }
+    dispatch.push({ booking, contact });
+  }
+
+  for (const batch of chunk(dispatch, CONCURRENCY)) {
+    await Promise.all(batch.map((item) => handleBooking(item.booking, item.contact)));
   }
 }
 
@@ -622,13 +681,15 @@ async function processBirthdayAutomation(
   bucket.matched += list.length;
   if (list.length === 0) return;
 
-  // Dedupe: no (automation_id, contact_id) row since Jan 1 of the current year.
+  // Dedupe: no SUCCESSFUL (automation_id, contact_id) send since Jan 1 of the
+  // current year — failed attempts don't block a retry.
   const already = new Set<string>();
   for (const ids of chunk(list.map((c) => c.id), 100)) {
     const { data: prior, error: dupErr } = await db
       .from("messages")
       .select("contact_id")
       .eq("automation_id", a.id)
+      .eq("status", "sent")
       .in("contact_id", ids)
       .gte("sent_at", yearStart);
     if (dupErr) throw new Error(`dedupe query failed: ${dupErr.message}`);
@@ -637,6 +698,8 @@ async function processBirthdayAutomation(
     }
   }
 
+  // Cheap skip checks stay synchronous; deliveries run CONCURRENCY-wide.
+  const dispatch: ContactRow[] = [];
   for (const contact of list) {
     if (already.has(contact.id)) {
       count(bucket, "skipped", "already_sent");
@@ -646,17 +709,26 @@ async function processBirthdayAutomation(
       count(bucket, "skipped", "no_template");
       continue;
     }
-    const body = renderTemplate(a.template, {
+    dispatch.push(contact);
+  }
+
+  const handleContact = async (contact: ContactRow): Promise<void> => {
+    const body = renderTemplate(a.template ?? "", {
       name: contact.name,
       terms_link: termsLink(),
     });
     const outcome = await deliver(db, a, contact, body, null);
     count(bucket, outcome.status, outcome.reason);
+  };
+
+  for (const batch of chunk(dispatch, CONCURRENCY)) {
+    await Promise.all(batch.map(handleContact));
   }
 }
 
 // ----------------------------------------------------------------------------
-// win_back — last_stay was exactly offset_days ago (default 335 ≈ 11 months)
+// win_back — last_stay within (today-(offset+3) .. today-offset), default
+// offset 335 ≈ 11 months. The 4-day look-back window absorbs missed runs.
 // ----------------------------------------------------------------------------
 async function processWinBackAutomation(
   db: SupabaseClient,
@@ -664,33 +736,41 @@ async function processWinBackAutomation(
   muscatToday: string,
   bucket: Bucket
 ): Promise<void> {
-  const targetStay = addDays(muscatToday, -(a.offset_days ?? 335));
+  const offset = a.offset_days ?? 335;
+  const windowStart = addDays(muscatToday, -(offset + 3));
+  const windowEnd = addDays(muscatToday, -offset);
 
   const { data, error } = await db
     .from("contacts")
     .select(CONTACT_COLS)
-    .eq("last_stay", targetStay)
+    .gte("last_stay", windowStart)
+    .lte("last_stay", windowEnd)
     .limit(BATCH_CAP + 1);
   if (error) throw new Error(`contacts query failed: ${error.message}`);
   const list = capBatch((data ?? []) as ContactRow[], a.name ?? "win_back");
   bucket.matched += list.length;
   if (list.length === 0) return;
 
-  // Dedupe: any (automation_id, contact_id) row sent AFTER that stay.
+  // Dedupe: any SUCCESSFUL (automation_id, contact_id) send after the window
+  // START, so a contact matched anywhere in the window is messaged only once
+  // per stay cycle — failed attempts don't block a retry.
   const already = new Set<string>();
   for (const ids of chunk(list.map((c) => c.id), 100)) {
     const { data: prior, error: dupErr } = await db
       .from("messages")
       .select("contact_id")
       .eq("automation_id", a.id)
+      .eq("status", "sent")
       .in("contact_id", ids)
-      .gt("sent_at", targetStay);
+      .gt("sent_at", windowStart);
     if (dupErr) throw new Error(`dedupe query failed: ${dupErr.message}`);
     for (const m of (prior ?? []) as { contact_id: string | null }[]) {
       if (m.contact_id) already.add(m.contact_id);
     }
   }
 
+  // Cheap skip checks stay synchronous; deliveries run CONCURRENCY-wide.
+  const dispatch: ContactRow[] = [];
   for (const contact of list) {
     if (already.has(contact.id)) {
       count(bucket, "skipped", "already_sent");
@@ -700,13 +780,21 @@ async function processWinBackAutomation(
       count(bucket, "skipped", "no_template");
       continue;
     }
-    const body = renderTemplate(a.template, {
+    dispatch.push(contact);
+  }
+
+  const handleContact = async (contact: ContactRow): Promise<void> => {
+    const body = renderTemplate(a.template ?? "", {
       name: contact.name,
       room_type: contact.room_type ?? "-",
       terms_link: termsLink(),
     });
     const outcome = await deliver(db, a, contact, body, null);
     count(bucket, outcome.status, outcome.reason);
+  };
+
+  for (const batch of chunk(dispatch, CONCURRENCY)) {
+    await Promise.all(batch.map(handleContact));
   }
 }
 

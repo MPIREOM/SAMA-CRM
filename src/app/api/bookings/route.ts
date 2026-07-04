@@ -4,18 +4,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/phone";
 import { bookingVars, renderTemplate } from "@/lib/templates";
 import { sendToContact, type SendOutcome } from "@/lib/send-service";
+import { isIsoDate } from "@/lib/utils";
+// Shared with the booking form's Select so the two lists can't drift.
+import { SOURCES } from "@/components/bookings/booking-shared";
 import type { Contact } from "@/lib/database.types";
-
-const SOURCES = ["Website", "OTA", "Offline"] as const;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function isIsoDate(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    DATE_RE.test(value) &&
-    !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
-  );
-}
 
 export async function POST(req: Request) {
   try {

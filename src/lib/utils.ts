@@ -52,8 +52,22 @@ export function formatDateTime(value: string | null | undefined, lang: "en" | "a
   }
 }
 
+/** Meta's WhatsApp customer-service window. */
+export const WHATSAPP_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 /** True while the contact's 24-hour WhatsApp customer-service window is open. */
 export function isWithin24h(lastInboundAt: string | null | undefined): boolean {
   if (!lastInboundAt) return false;
-  return Date.now() - new Date(lastInboundAt).getTime() < 24 * 60 * 60 * 1000;
+  return Date.now() - new Date(lastInboundAt).getTime() < WHATSAPP_WINDOW_MS;
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Strict YYYY-MM-DD validation shared by the API routes. */
+export function isIsoDate(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    ISO_DATE_RE.test(value) &&
+    !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
+  );
 }

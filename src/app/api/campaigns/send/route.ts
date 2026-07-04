@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { renderTemplate } from "@/lib/templates";
+import { renderTemplate, configuredTermsLink } from "@/lib/templates";
 import { sendToContact, type SendOutcome } from "@/lib/send-service";
+// Single source of truth for the recipient rules — the SAME module the
+// composer uses for its live count, so preview and send can never diverge.
+import { campaignFilter, expandMarkets } from "@/components/campaigns/recipients";
 import type { Contact } from "@/lib/database.types";
 
 export const maxDuration = 60;
@@ -10,40 +13,15 @@ export const dynamic = "force-dynamic";
 
 const RECIPIENT_CAP = 5000;
 const CONCURRENCY = 5;
-
-/** Markets allowed to receive WhatsApp marketing (HARD RULE). */
-const WHATSAPP_MARKETING_MARKETS = ["Oman", "GCC"];
+const DEDUPE_CHUNK = 200;
+// A campaign stuck in 'sending' (serverless timeout mid-blast) may be resumed
+// after this long; the messages ledger dedupe makes resumes safe.
+const STALE_CLAIM_MS = 5 * 60 * 1000;
 
 type Recipient = Pick<
   Contact,
   "id" | "phone" | "email" | "name" | "market" | "consent" | "last_inbound_at"
 >;
-
-/**
- * Server-side mirror of the recipient rules in
- * src/components/campaigns/recipients.ts:
- * - "All" -> no market filter; "Oman+GCC" -> ["Oman","GCC"]; else [market].
- * - WhatsApp is ALWAYS intersected with ["Oman","GCC"] — International
- *   contacts are never included regardless of the stored selection.
- * Returns null for "no market filter"; [] means "matches nobody".
- */
-function expandMarkets(
-  channel: "whatsapp" | "email",
-  market: string
-): string[] | null {
-  let markets: string[] | null;
-  if (market === "All") markets = null;
-  else if (market === "Oman+GCC") markets = ["Oman", "GCC"];
-  else markets = [market];
-
-  if (channel === "whatsapp") {
-    markets =
-      markets === null
-        ? [...WHATSAPP_MARKETING_MARKETS]
-        : markets.filter((m) => WHATSAPP_MARKETING_MARKETS.includes(m));
-  }
-  return markets;
-}
 
 export async function POST(req: Request) {
   try {
@@ -87,26 +65,42 @@ export async function POST(req: Request) {
     if (!campaign) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
-    if (campaign.status === "sent" || campaign.status === "sending") {
+    if (campaign.status === "sent") {
       return NextResponse.json({ error: "already_sent" }, { status: 409 });
     }
 
-    const { error: markErr } = await admin
+    // ATOMIC claim — check-then-set would let two concurrent requests both
+    // blast the campaign. The conditional UPDATE only succeeds for one caller:
+    // drafts/failed claim freely; 'sending' rows may only be re-claimed once
+    // the previous claim (stamped into scheduled_for) has gone stale, which
+    // resumes campaigns killed by a serverless timeout.
+    const nowIso = new Date().toISOString();
+    const staleIso = new Date(Date.now() - STALE_CLAIM_MS).toISOString();
+    let claim = admin
       .from("campaigns")
-      .update({ status: "sending" })
+      .update({ status: "sending", scheduled_for: nowIso })
       .eq("id", campaign.id);
+    claim =
+      campaign.status === "sending"
+        ? claim
+            .eq("status", "sending")
+            .or(`scheduled_for.is.null,scheduled_for.lt.${staleIso}`)
+        : claim.or("status.is.null,status.in.(draft,failed)");
+    const { data: claimed, error: markErr } = await claim.select("id");
     if (markErr) throw markErr;
+    if (!claimed || claimed.length === 0) {
+      return NextResponse.json({ error: "already_sending" }, { status: 409 });
+    }
 
     let sentCount = 0;
     let skipped = 0;
     let failed = 0;
 
     try {
-      // --- Select recipients per the RECIPIENT RULES -------------------------
-      const channel: "whatsapp" | "email" =
-        campaign.channel === "email" ? "email" : "whatsapp";
-      const segment = campaign.segment ?? "All";
-      const markets = expandMarkets(channel, campaign.market ?? "All");
+      // --- Select recipients per the shared RECIPIENT RULES ------------------
+      const filter = campaignFilter(campaign);
+      const channel = filter.channel;
+      const markets = expandMarkets(filter);
 
       let recipients: Recipient[] = [];
       if (markets === null || markets.length > 0) {
@@ -114,7 +108,8 @@ export async function POST(req: Request) {
           .from("contacts")
           .select("id,phone,email,name,market,consent,last_inbound_at")
           .eq("consent", true);
-        if (segment !== "All") query = query.contains("tags", [segment]);
+        if (filter.segment !== "All")
+          query = query.contains("tags", [filter.segment]);
         if (markets !== null) query = query.in("market", markets);
         if (channel === "email") query = query.not("email", "is", null);
 
@@ -123,8 +118,25 @@ export async function POST(req: Request) {
         recipients = data ?? [];
       }
 
+      // --- Ledger dedupe: never message the same contact twice for one
+      // campaign, which makes resumed/retried sends safe ------------------------
+      const attempted = new Set<string>();
+      const ids = recipients.map((r) => r.id);
+      for (let i = 0; i < ids.length; i += DEDUPE_CHUNK) {
+        const { data: prior, error: dupErr } = await admin
+          .from("messages")
+          .select("contact_id")
+          .eq("campaign_id", campaign.id)
+          .in("contact_id", ids.slice(i, i + DEDUPE_CHUNK));
+        if (dupErr) throw dupErr;
+        for (const m of prior ?? []) {
+          if (m.contact_id) attempted.add(m.contact_id);
+        }
+      }
+      recipients = recipients.filter((r) => !attempted.has(r.id));
+
       // --- Send in chunks of 5 concurrent -------------------------------------
-      const termsLink = process.env.TERMS_LINK ?? "";
+      const termsLink = configuredTermsLink() ?? "";
       for (let i = 0; i < recipients.length; i += CONCURRENCY) {
         const chunk = recipients.slice(i, i + CONCURRENCY);
         const outcomes: SendOutcome[] = await Promise.all(
@@ -165,12 +177,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "send_failed" }, { status: 500 });
     }
 
-    // --- Finalize ---------------------------------------------------------------
+    // --- Finalize: `sent` comes from the ledger so resumed runs accumulate ----
+    const { count: totalSent } = await admin
+      .from("messages")
+      .select("id", { head: true, count: "exact" })
+      .eq("campaign_id", campaign.id)
+      .eq("status", "sent");
+
     const { error: finalErr } = await admin
       .from("campaigns")
       .update({
-        status: sentCount === 0 && failed > 0 ? "failed" : "sent",
-        sent: sentCount,
+        status: (totalSent ?? sentCount) === 0 && failed > 0 ? "failed" : "sent",
+        sent: totalSent ?? sentCount,
         scheduled_for: null,
       })
       .eq("id", campaign.id);

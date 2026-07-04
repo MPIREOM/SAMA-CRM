@@ -16,9 +16,10 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/components/providers/lang-provider";
-import { COMMON, marketLabel, type Localized, type Strings } from "@/lib/i18n";
+import { COMMON, marketLabel, type Strings } from "@/lib/i18n";
 import { formatDate, formatDateTime, nightsBetween } from "@/lib/utils";
 import type { Booking, Contact, Message } from "@/lib/database.types";
+import { sourceLabel, statusLabel } from "@/components/bookings/booking-shared";
 import { Badge, marketVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,12 +52,6 @@ const STR = {
   noTags: { en: "No tags yet", ar: "لا توجد وسوم بعد" },
   removeTag: { en: "Remove tag", ar: "إزالة الوسم" },
   updateFailed: { en: "Update failed — try again", ar: "فشل التحديث — حاول مجددًا" },
-  confirmed: { en: "Confirmed", ar: "مؤكد" },
-  cancelled: { en: "Cancelled", ar: "ملغي" },
-  completed: { en: "Completed", ar: "مكتمل" },
-  website: { en: "Website", ar: "الموقع" },
-  ota: { en: "OTA", ar: "منصة حجز" },
-  offline: { en: "Offline", ar: "مباشر" },
 } satisfies Strings;
 
 function statusVariant(status: string | null): "green" | "red" | "gold" | "gray" {
@@ -69,32 +64,6 @@ function statusVariant(status: string | null): "green" | "red" | "gold" | "gray"
       return "gold";
     default:
       return "gray";
-  }
-}
-
-function statusLabel(status: string | null): Localized | null {
-  switch (status) {
-    case "Confirmed":
-      return STR.confirmed;
-    case "Cancelled":
-      return STR.cancelled;
-    case "Completed":
-      return STR.completed;
-    default:
-      return null;
-  }
-}
-
-function sourceLabel(source: string | null): Localized | null {
-  switch (source) {
-    case "Website":
-      return STR.website;
-    case "OTA":
-      return STR.ota;
-    case "Offline":
-      return STR.offline;
-    default:
-      return null;
   }
 }
 
@@ -392,29 +361,25 @@ export default function ContactDetailPage() {
                   </TR>
                 </THead>
                 <TBody>
-                  {bookings.map((b) => {
-                    const src = sourceLabel(b.source);
-                    const st = statusLabel(b.status);
-                    return (
-                      <TR key={b.id}>
-                        <TD>
-                          <span dir="ltr" className="inline-block font-semibold text-maroon-900">
-                            {b.ref}
-                          </span>
-                        </TD>
-                        <TD>{formatDate(b.check_in, lang)}</TD>
-                        <TD>{formatDate(b.check_out, lang)}</TD>
-                        <TD>{nightsBetween(b.check_in, b.check_out)}</TD>
-                        <TD>{b.room_type || "—"}</TD>
-                        <TD>{src ? src[lang] : b.source || "—"}</TD>
-                        <TD>
-                          <Badge variant={statusVariant(b.status)}>
-                            {st ? st[lang] : b.status || "—"}
-                          </Badge>
-                        </TD>
-                      </TR>
-                    );
-                  })}
+                  {bookings.map((b) => (
+                    <TR key={b.id}>
+                      <TD>
+                        <span dir="ltr" className="inline-block font-semibold text-maroon-900">
+                          {b.ref}
+                        </span>
+                      </TD>
+                      <TD>{formatDate(b.check_in, lang)}</TD>
+                      <TD>{formatDate(b.check_out, lang)}</TD>
+                      <TD>{nightsBetween(b.check_in, b.check_out)}</TD>
+                      <TD>{b.room_type || "—"}</TD>
+                      <TD>{sourceLabel(b.source, lang)}</TD>
+                      <TD>
+                        <Badge variant={statusVariant(b.status)}>
+                          {statusLabel(b.status, lang)}
+                        </Badge>
+                      </TD>
+                    </TR>
+                  ))}
                 </TBody>
               </Table>
             )}

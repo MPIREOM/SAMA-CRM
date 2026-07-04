@@ -10,9 +10,14 @@ interface EmailResult {
   error: string | null;
 }
 
+/** "YOUR_" anywhere marks a .env.example placeholder (it can sit mid-string,
+ *  e.g. "Sama Hotel <noreply@YOUR_DOMAIN>"). */
+function isPlaceholder(value: string | undefined): boolean {
+  return !value || value.includes("YOUR_");
+}
+
 function emailConfigured(): boolean {
-  const key = process.env.RESEND_API_KEY;
-  return Boolean(key && !key.startsWith("YOUR_"));
+  return !isPlaceholder(process.env.RESEND_API_KEY);
 }
 
 /**
@@ -47,9 +52,11 @@ export function bilingualEmailHtml(arabicBody: string, englishBody: string): str
 </html>`;
 }
 
-/** Split a bilingual template (Arabic ⸻ divider ⸻ English) into halves. */
+/** Split a bilingual template (Arabic ⸻ divider ⸻ English) into halves.
+ *  The divider is a line consisting only of divider characters — a single ⸻
+ *  (what the composer UI suggests) works as well as ⸻⸻⸻. */
 export function splitBilingual(template: string): { ar: string; en: string } {
-  const parts = template.split(/\n?[⸻—-]{3,}\n?/);
+  const parts = template.split(/\n\s*[⸻—–-]+\s*\n/);
   if (parts.length >= 2) {
     return { ar: parts[0].trim(), en: parts.slice(1).join("\n").trim() };
   }
@@ -68,10 +75,17 @@ export async function sendEmail(
       error: "Resend is not configured (RESEND_API_KEY).",
     };
   }
+  if (isPlaceholder(process.env.EMAIL_FROM)) {
+    return {
+      ok: false,
+      messageId: null,
+      error: "EMAIL_FROM is not configured (must be a verified Resend sender).",
+    };
+  }
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? "Sama Hotel <noreply@example.com>",
+      from: process.env.EMAIL_FROM!,
       to,
       subject,
       html,

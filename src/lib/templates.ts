@@ -36,6 +36,16 @@ export function bookingVars(booking: {
     check_in: booking.check_in,
     check_out: booking.check_out,
     room_type: booking.room_type ?? "-",
-    terms_link: process.env.TERMS_LINK ?? "{{terms_link}}",
+    terms_link: configuredTermsLink(),
   };
+}
+
+/**
+ * TERMS_LINK, but only when it's a real value — the .env.example placeholder
+ * contains "YOUR_" mid-string (https://YOUR_DOMAIN/terms), which must never
+ * reach a guest. Returning null keeps {{terms_link}} visibly unrendered.
+ */
+export function configuredTermsLink(): string | null {
+  const link = process.env.TERMS_LINK;
+  return link && !link.includes("YOUR_") ? link : null;
 }

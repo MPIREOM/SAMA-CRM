@@ -23,7 +23,10 @@ const STR = {
   saveFailed: { en: "Could not save changes", ar: "تعذر حفظ التغييرات" },
 } satisfies Strings;
 
-const VARIABLES = [
+// Booking-driven triggers (booking_created / pre_arrival / post_stay)
+// substitute all six variables; contact-driven triggers only a subset —
+// anything else would be sent to the guest as literal {{...}} text.
+const ALL_VARIABLES = [
   "{{name}}",
   "{{ref}}",
   "{{check_in}}",
@@ -31,6 +34,15 @@ const VARIABLES = [
   "{{room_type}}",
   "{{terms_link}}",
 ];
+
+const VARIABLES_BY_TRIGGER: Record<string, string[]> = {
+  birthday: ["{{name}}", "{{terms_link}}"],
+  win_back: ["{{name}}", "{{room_type}}", "{{terms_link}}"],
+};
+
+function variablesFor(triggerKind: string | null): string[] {
+  return (triggerKind && VARIABLES_BY_TRIGGER[triggerKind]) || ALL_VARIABLES;
+}
 
 const OFFSET_KINDS = ["pre_arrival", "post_stay", "win_back"];
 
@@ -136,7 +148,7 @@ export function EditTemplateDialog({
           <div>
             <Label>{STR.variablesLabel[lang]}</Label>
             <div className="flex flex-wrap gap-1.5">
-              {VARIABLES.map((v) => (
+              {variablesFor(automation.trigger_kind).map((v) => (
                 <button
                   key={v}
                   type="button"

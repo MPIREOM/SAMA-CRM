@@ -42,6 +42,8 @@ const STR = {
   sentCol: { en: "Sent", ar: "أُرسلت" },
   created: { en: "Created", ar: "تاريخ الإنشاء" },
   send: { en: "Send", ar: "إرسال" },
+  resume: { en: "Resume", ar: "استئناف" },
+  retry: { en: "Retry", ar: "إعادة المحاولة" },
   statusDraft: { en: "Draft", ar: "مسودة" },
   statusSending: { en: "Sending", ar: "قيد الإرسال" },
   statusSent: { en: "Sent", ar: "تم الإرسال" },
@@ -349,17 +351,31 @@ export default function CampaignsPage() {
                     {formatDate(campaign.created_at, lang)}
                   </TD>
                   <TD>
-                    {campaign.status === "draft" && (
-                      <Button
-                        size="sm"
-                        variant="gold"
-                        onClick={() => openSendDialog(campaign)}
-                        disabled={sendState === "sending"}
-                      >
-                        <Send className="h-3.5 w-3.5 rtl:-scale-x-100" />
-                        {STR.send[lang]}
-                      </Button>
-                    )}
+                    {(() => {
+                      // Drafts send; interrupted ("sending") campaigns resume;
+                      // failed ones retry — all via the same send endpoint.
+                      // "sent" campaigns get no action.
+                      const actionLabel =
+                        campaign.status === "draft"
+                          ? STR.send
+                          : campaign.status === "sending"
+                          ? STR.resume
+                          : campaign.status === "failed"
+                          ? STR.retry
+                          : null;
+                      if (!actionLabel) return null;
+                      return (
+                        <Button
+                          size="sm"
+                          variant="gold"
+                          onClick={() => openSendDialog(campaign)}
+                          disabled={sendState === "sending"}
+                        >
+                          <Send className="h-3.5 w-3.5 rtl:-scale-x-100" />
+                          {actionLabel[lang]}
+                        </Button>
+                      );
+                    })()}
                   </TD>
                 </TR>
               ))}
