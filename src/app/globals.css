@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-maroon: #3b171b;
+  --brand-gold: #c5a04f;
+  --brand-crimson: #841424;
+  --brand-green: #098e4b;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-maroon-50 text-maroon-950 font-sans;
+  }
+  /* Arabic-first font stack when the UI is in RTL mode */
+  [dir="rtl"] body,
+  [dir="rtl"] {
+    font-family: var(--font-tajawal), var(--font-nunito), ui-sans-serif,
+      system-ui, sans-serif;
+  }
+  ::selection {
+    @apply bg-gold-200 text-maroon-900;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cda6ab transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cda6ab;
+    border-radius: 9999px;
+  }
+}
