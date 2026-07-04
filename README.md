@@ -212,10 +212,15 @@ The response is a JSON summary per trigger kind: `{ matched, sent, skipped, fail
 
 ## Deployment (Vercel)
 
-1. Import the repository in Vercel — the framework preset is **Next.js** and the default build command (`next build`) is all you need.
-2. Add every variable from `.env.example` under **Project → Settings → Environment Variables** (same names, real values — `SUPABASE_SERVICE_ROLE_KEY` and all WhatsApp/Resend secrets are server-side only, so do not prefix them with `NEXT_PUBLIC_`).
-3. Set `NEXT_PUBLIC_APP_URL` to the production URL.
-4. Deploy, then point the Meta webhook (WhatsApp setup step 4) at `https://<production-domain>/api/webhooks/whatsapp`.
+> **Already live**: the repo is connected to the Vercel project `sama-crm` and
+> production deploys automatically from the `claude/hotel-crm-nextjs-obex8g`
+> branch → **https://sama-crm.vercel.app**. The publishable Supabase URL/anon
+> key ship as code fallbacks, so the UI works with zero env vars.
+
+1. Add the remaining variables from `.env.example` under **Project → Settings → Environment Variables** (`SUPABASE_SERVICE_ROLE_KEY` and all WhatsApp/Resend secrets are server-side only, so do not prefix them with `NEXT_PUBLIC_`), then **Redeploy**.
+2. Set `NEXT_PUBLIC_APP_URL=https://sama-crm.vercel.app` (or your custom domain).
+3. Point the Meta webhook (WhatsApp setup step 4) at `https://sama-crm.vercel.app/api/webhooks/whatsapp`.
+4. If **Settings → Deployment Protection → Vercel Authentication** is enabled for production, disable it for Standard Protection — the kiosk (`/checkin`) and the Meta webhook must be publicly reachable.
 
 ## Compliance rules
 
@@ -248,14 +253,13 @@ Do these in order — everything else is finished. Each `KEY` goes into Vercel e
 3. Disable public sign-ups: Authentication → Sign In / Providers → turn **off** "Allow new users to sign up" (staff are created from the dashboard only).
 4. Copy the **service_role** key (Project Settings → API) → `SUPABASE_SERVICE_ROLE_KEY`.
 
-**2. Repo & local run (~5 min)**
-1. Merge branch `claude/hotel-crm-nextjs-obex8g` into `main` (or deploy the branch directly).
-2. `cp .env.example .env.local`, fill values as you collect them, then `npm install && npm run dev`.
+**2. Local run (optional, ~5 min)**
+1. `cp .env.example .env.local`, fill values as you collect them, then `npm install && npm run dev`.
 
-**3. Vercel (~10 min)**
-1. Import the GitHub repo → framework preset *Next.js*, default build.
-2. Add every variable from `.env.example` (with real values) to Project → Settings → Environment Variables.
-3. Deploy → note the production URL → set `NEXT_PUBLIC_APP_URL` and create a terms page → `TERMS_LINK`.
+**3. Vercel (~5 min) — project already created & deployed: https://sama-crm.vercel.app**
+1. Add the secret variables from `.env.example` (real values) to Project → Settings → Environment Variables, then Redeploy.
+2. Set `NEXT_PUBLIC_APP_URL=https://sama-crm.vercel.app` and create a terms page → `TERMS_LINK`.
+3. Check Settings → Deployment Protection: production must be publicly reachable (kiosk + Meta webhook).
 
 **4. Meta / WhatsApp Cloud API (~30–45 min)**
 1. Create a **Business** app at developers.facebook.com and add the *WhatsApp* product.
