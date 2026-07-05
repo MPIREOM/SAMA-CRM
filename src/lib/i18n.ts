@@ -26,6 +26,7 @@ export const COMMON = {
   automations: { en: "Automations", ar: "الأتمتة" },
   campaigns: { en: "Campaigns", ar: "الحملات" },
   kiosk: { en: "Check-in Kiosk", ar: "شاشة تسجيل الوصول" },
+  staff: { en: "Staff", ar: "الموظفون" },
   signOut: { en: "Sign out", ar: "تسجيل الخروج" },
   search: { en: "Search…", ar: "بحث…" },
   save: { en: "Save", ar: "حفظ" },
