@@ -59,11 +59,32 @@ export interface RoomType {
 }
 
 export const ROOM_TYPES: RoomType[] = [
-  { value: "Standard Room", en: "Standard Room", ar: "غرفة قياسية" },
-  { value: "Deluxe Room", en: "Deluxe Room", ar: "غرفة ديلوكس" },
-  { value: "Junior Suite", en: "Junior Suite", ar: "جناح جونيور" },
-  { value: "Executive Suite", en: "Executive Suite", ar: "جناح تنفيذي" },
-  { value: "Family Room", en: "Family Room", ar: "غرفة عائلية" },
+  { value: "Chalet", en: "Chalet", ar: "شاليه" },
+  {
+    value: "Deluxe Room Mountain View",
+    en: "Deluxe Room Mountain View",
+    ar: "غرفة ديلوكس بإطلالة على الجبل",
+  },
+  {
+    value: "Deluxe Room City View",
+    en: "Deluxe Room City View",
+    ar: "غرفة ديلوكس بإطلالة على المدينة",
+  },
+  {
+    value: "Family Deluxe",
+    en: "Family Deluxe",
+    ar: "غرفة عائلية ديلوكس",
+  },
+  {
+    value: "Sama Suite City View",
+    en: "Sama Suite City View",
+    ar: "جناح سما بإطلالة على المدينة",
+  },
+  {
+    value: "Sama Suite Mountain View",
+    en: "Sama Suite Mountain View",
+    ar: "جناح سما بإطلالة على الجبل",
+  },
 ];
 
 export function roomTypeLabel(value: string | null, lang: Lang): string {

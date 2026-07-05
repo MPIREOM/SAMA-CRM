@@ -1,8 +1,11 @@
 import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
+// twMerge lets caller classes override component base classes (e.g. a `w-36`
+// passed to Select must beat its built-in `w-full`).
 export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
+  return twMerge(clsx(inputs));
 }
 
 /** SAMA-YY-XXXX confirmation number (e.g. SAMA-26-4831). Editable for OTA refs. */

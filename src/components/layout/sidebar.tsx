@@ -10,6 +10,7 @@ import {
   Megaphone,
   MessageCircle,
   MonitorSmartphone,
+  UserCog,
   Users,
   Zap,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const NAV: NavItem[] = [
   { href: "/contacts", label: COMMON.contacts, icon: Users, roles: ["super_admin", "reservation_desk"] },
   { href: "/automations", label: COMMON.automations, icon: Zap, roles: ["super_admin"] },
   { href: "/campaigns", label: COMMON.campaigns, icon: Megaphone, roles: ["super_admin"] },
+  { href: "/users", label: COMMON.staff, icon: UserCog, roles: ["super_admin"] },
 ];
 
 export function Sidebar({

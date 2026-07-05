@@ -27,3 +27,13 @@ export async function getSessionProfile(): Promise<{
     role: (profile?.role as Role | undefined) ?? null,
   };
 }
+
+/** Route-handler guard: only a signed-in super_admin passes. */
+export async function requireSuperAdmin(): Promise<
+  { ok: true; userId: string } | { ok: false; status: 401 | 403 }
+> {
+  const session = await getSessionProfile();
+  if (!session) return { ok: false, status: 401 };
+  if (session.role !== "super_admin") return { ok: false, status: 403 };
+  return { ok: true, userId: session.userId };
+}

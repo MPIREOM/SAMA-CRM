@@ -412,14 +412,14 @@ export function CheckinKiosk() {
               </div>
 
               {/* Marketing consent — pre-ticked */}
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-maroon-100 bg-maroon-50/60 p-3.5">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-maroon-100 bg-maroon-50/60 px-3 py-2">
                 <input
                   type="checkbox"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
-                  className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-jabal-600"
+                  className="h-4 w-4 shrink-0 cursor-pointer accent-jabal-600"
                 />
-                <span className="text-sm leading-relaxed text-maroon-700">
+                <span className="text-xs leading-snug text-maroon-600">
                   {STR.consent[lang]}
                 </span>
               </label>
