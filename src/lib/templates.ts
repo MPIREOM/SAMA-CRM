@@ -40,12 +40,16 @@ export function bookingVars(booking: {
   };
 }
 
+// The app ships its own public terms page, so guests always get a working
+// link even when TERMS_LINK is not configured.
+export const DEFAULT_TERMS_LINK = "https://sama-crm.vercel.app/terms";
+
 /**
- * TERMS_LINK, but only when it's a real value — the .env.example placeholder
- * contains "YOUR_" mid-string (https://YOUR_DOMAIN/terms), which must never
- * reach a guest. Returning null keeps {{terms_link}} visibly unrendered.
+ * TERMS_LINK when it's a real value — the .env.example placeholder contains
+ * "YOUR_" mid-string (https://YOUR_DOMAIN/terms), which must never reach a
+ * guest — otherwise the built-in /terms page.
  */
-export function configuredTermsLink(): string | null {
+export function configuredTermsLink(): string {
   const link = process.env.TERMS_LINK;
-  return link && !link.includes("YOUR_") ? link : null;
+  return link && !link.includes("YOUR_") ? link : DEFAULT_TERMS_LINK;
 }

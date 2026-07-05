@@ -93,7 +93,7 @@ Environment variables (`.env.local`):
 | `RESEND_API_KEY` | Resend Dashboard → API Keys. |
 | `EMAIL_FROM` | A sender on your verified Resend domain, e.g. `Sama Hotel <noreply@YOUR_DOMAIN>`. |
 | `NEXT_PUBLIC_APP_URL` | Public URL of the deployed app (no trailing slash). |
-| `TERMS_LINK` | URL substituted into `{{terms_link}}` in templates, e.g. `https://YOUR_DOMAIN/terms`. |
+| `TERMS_LINK` | Optional — URL substituted into `{{terms_link}}` in templates. Defaults to the built-in bilingual terms page at `https://sama-crm.vercel.app/terms`. |
 | `KIOSK_EXIT_PIN` | 4–8 digit PIN staff enter to exit the `/checkin` kiosk. |
 
 ## Supabase setup
@@ -159,8 +159,9 @@ supabase secrets set --project-ref vsxesrhoovabgsmvodvh \
   WHATSAPP_PHONE_NUMBER_ID=YOUR_WHATSAPP_PHONE_NUMBER_ID \
   WHATSAPP_REENGAGE_TEMPLATE=YOUR_APPROVED_UTILITY_TEMPLATE_NAME \
   RESEND_API_KEY=YOUR_RESEND_API_KEY \
-  EMAIL_FROM="Sama Hotel <noreply@YOUR_DOMAIN>" \
-  TERMS_LINK=https://YOUR_DOMAIN/terms
+  EMAIL_FROM="Sama Hotel <noreply@YOUR_DOMAIN>"
+# TERMS_LINK is optional — {{terms_link}} defaults to the built-in
+# https://sama-crm.vercel.app/terms page; set it only for a custom URL.
 ```
 
 Missing secrets never crash the run — affected attempts are logged to `messages` as `failed` with a clear error note.
@@ -258,7 +259,7 @@ Do these in order — everything else is finished. Each `KEY` goes into Vercel e
 
 **3. Vercel (~5 min) — project already created & deployed: https://sama-crm.vercel.app**
 1. Add the secret variables from `.env.example` (real values) to Project → Settings → Environment Variables, then Redeploy.
-2. Set `NEXT_PUBLIC_APP_URL=https://sama-crm.vercel.app` and create a terms page → `TERMS_LINK`.
+2. Set `NEXT_PUBLIC_APP_URL=https://sama-crm.vercel.app`. A bilingual terms page ships at `/terms` — `TERMS_LINK` is only needed if you want a different URL.
 3. Check Settings → Deployment Protection: production must be publicly reachable (kiosk + Meta webhook).
 
 **4. Meta / WhatsApp Cloud API (~30–45 min)**
@@ -279,7 +280,7 @@ Do these in order — everything else is finished. Each `KEY` goes into Vercel e
 supabase secrets set --project-ref vsxesrhoovabgsmvodvh \
   WHATSAPP_ACCESS_TOKEN=... WHATSAPP_PHONE_NUMBER_ID=... \
   WHATSAPP_REENGAGE_TEMPLATE=sama_update RESEND_API_KEY=... \
-  EMAIL_FROM="Sama Hotel <noreply@your-domain>" TERMS_LINK=https://your-domain/terms
+  EMAIL_FROM="Sama Hotel <noreply@your-domain>"
 ```
 (or Dashboard → Edge Functions → automation-runner → Secrets — the function and its daily cron are already deployed.)
 

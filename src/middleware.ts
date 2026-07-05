@@ -6,6 +6,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
 const PUBLIC_PATHS = [
   "/login",
   "/checkin", // guest kiosk — locked UI, no CRM data exposed
+  "/terms", // marketing-consent terms linked from guest messages
   "/api/webhooks", // Meta webhook (verified by token/signature)
   "/api/checkin", // kiosk submit (service role, no session)
   "/api/kiosk", // kiosk PIN check

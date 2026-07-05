@@ -136,7 +136,7 @@ export async function POST(req: Request) {
       recipients = recipients.filter((r) => !attempted.has(r.id));
 
       // --- Send in chunks of 5 concurrent -------------------------------------
-      const termsLink = configuredTermsLink() ?? "";
+      const termsLink = configuredTermsLink();
       for (let i = 0; i < recipients.length; i += CONCURRENCY) {
         const chunk = recipients.slice(i, i + CONCURRENCY);
         const outcomes: SendOutcome[] = await Promise.all(
