@@ -108,3 +108,19 @@ Changes since pass 1: responsive staff shell (drawer below `lg`), staff-booking 
 | Mobile staff shell (390 × 844) | Hamburger → drawer → navigation works; calendar and new-booking form usable (`qa/screenshots/m-*.png` not committed) |
 
 Bug found in pass 2: the sitemap was rendered at build time, so room slugs were frozen to whatever the DB returned during the build (empty in the sandbox). Fixed by making `sitemap.ts` dynamic.
+
+## 8. Real-database security verification (Supabase MCP, `set role anon`, 2026-09-07 17:30 UTC)
+
+Run directly against project `vsxesrhoovabgsmvodvh` inside a rolled-back transaction:
+
+| As `anon` | Result |
+|---|---|
+| `select count(*) from bk_bookings / bk_settings / bk_scheduled_messages / contacts` | 0 rows (RLS) — `bk_settings` has 10 rows for the service role |
+| `select * from bk_room_types` | 6 rows (public catalogue, intended) |
+| `bk_availability(…)`, `bk_quote(…)`, `bk_public_settings()` | allowed (intended public RPC surface; returns only whitelisted keys) |
+| `bk_create_booking('{}')`, `bk_cancel_booking(…)`, `bk_setting('cron')`, `bk_generate_ref()` | **permission denied** |
+| `bk_available_count(…)` | was allowed through the default PUBLIC grant → **fixed in migration 0008** (now denied) |
+| `insert into bk_inventory_blocks` | permission denied |
+| `update bk_room_types set base_rate_omr = 1` | 0 rows affected (RLS write policy) |
+
+Supabase security advisor after 0008: remaining warnings are the intentional `SECURITY DEFINER` public RPCs (`bk_availability`, `bk_quote`, `bk_public_settings`, `bk_effective_rate`, `bk_nightly_rates`, `bk_min_stay`) and the CRM's pre-existing `my_role()` / leaked-password-protection notice. `search_path` pinned on `bk_touch_updated_at` and `bk_muscat_today`.
