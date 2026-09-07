@@ -31,3 +31,8 @@ next-env.d.ts
 supabase/.temp
 supabase/.branches
 .claude/
+
+# QA artefacts (screenshots, lighthouse) — generated, never committed
+qa/
+e2e/report/
+test-results/
