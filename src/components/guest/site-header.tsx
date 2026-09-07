@@ -49,7 +49,6 @@ export function SiteHeader() {
         <Link
           href="/"
           className="flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-maroon-900"
-          aria-label={t("brandWordmark")}
         >
           <Image src="/images/brand/logo-mark.png" alt="" width={40} height={39} priority className="h-9 w-auto sm:h-10" />
           <span className="flex flex-col leading-none">

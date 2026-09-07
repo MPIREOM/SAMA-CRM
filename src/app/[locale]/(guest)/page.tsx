@@ -203,7 +203,8 @@ export default async function HomePage({ params }: { params: { locale: string } 
             <li key={key} className="w-[72vw] shrink-0 snap-start sm:w-[44vw] lg:w-auto">
               <figure>
                 <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100">
-                  <Image src={src} alt={t(`facilities.${key}`)} fill sizes="(min-width: 1024px) 220px, 72vw" className="object-cover" />
+                  {/* The figcaption carries the name — an identical alt would be read twice. */}
+                  <Image src={src} alt="" fill sizes="(min-width: 1024px) 220px, 72vw" className="object-cover" />
                 </div>
                 <figcaption className="mt-3 text-sm font-bold text-maroon-800">{t(`facilities.${key}`)}</figcaption>
               </figure>
