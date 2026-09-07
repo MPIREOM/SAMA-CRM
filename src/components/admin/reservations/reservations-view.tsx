@@ -18,6 +18,7 @@ import { Select } from "@/components/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import {
   BOOKING_STATUSES,
+  RESERVATIONS_PAGE_SIZE as PAGE_SIZE,
   fmtDate,
   fmtMoney,
   localName,
@@ -25,8 +26,6 @@ import {
   statusLabel,
   statusVariant,
 } from "../shared";
-
-export const PAGE_SIZE = 50;
 
 export interface ReservationRow {
   id: string;

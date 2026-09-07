@@ -96,6 +96,12 @@ export function localName<T extends { name_en: string; name_ar: string }>(row: T
 // Booking statuses & sources
 // ---------------------------------------------------------------------------
 
+// Page size of the reservations list. Lives here (not in the "use client"
+// view) because the server page needs the real number: a value imported
+// across the client boundary is a client-reference proxy and `(page - 1) *
+// PAGE_SIZE` becomes NaN → PostgREST receives offset=NaN&limit=NaN.
+export const RESERVATIONS_PAGE_SIZE = 50;
+
 export const BOOKING_STATUSES: BkBookingStatus[] = [
   "pending",
   "confirmed",

@@ -3,10 +3,9 @@ import { FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { guardPage, isIsoDateParam, loadErrorMessage, param } from "@/components/admin/server";
 import { NoAccess } from "@/components/admin/no-access";
 import { LoadError } from "@/components/admin/load-error";
-import { BOOKING_STATUSES } from "@/components/admin/shared";
+import { BOOKING_STATUSES, RESERVATIONS_PAGE_SIZE as PAGE_SIZE } from "@/components/admin/shared";
 import {
   ReservationsView,
-  PAGE_SIZE,
   type ReservationRow,
   type ReservationsFilters,
 } from "@/components/admin/reservations/reservations-view";
