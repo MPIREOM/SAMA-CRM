@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { nunito, tajawal } from "@/fonts";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
@@ -13,6 +14,13 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+export const viewport: Viewport = {
+  themeColor: "#3b171b",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : "en";
   const t = await getTranslations({ locale, namespace: "meta" });
@@ -21,6 +29,8 @@ export async function generateMetadata({ params }: { params: { locale: string } 
     metadataBase: new URL(base),
     title: { default: t("siteTitle"), template: `%s · ${t("siteName")}` },
     description: t("siteDescription"),
+    applicationName: t("siteName"),
+    manifest: "/manifest.webmanifest",
     alternates: {
       canonical: `/${locale}`,
       languages: { en: "/en", ar: "/ar", "x-default": "/en" },
@@ -33,9 +43,14 @@ export async function generateMetadata({ params }: { params: { locale: string } 
       locale: locale === "ar" ? "ar_OM" : "en_GB",
       images: [{ url: "/images/og.jpg", width: 1200, height: 630 }],
     },
-    icons: { icon: "/favicon.ico" },
+    twitter: { card: "summary_large_image" },
+    icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
   };
 }
+
+// Google Tag Manager is optional: set NEXT_PUBLIC_GTM_ID to enable it.
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID?.trim();
+const GTM_ID_SAFE = GTM_ID && /^GTM-[A-Z0-9]+$/i.test(GTM_ID) ? GTM_ID : undefined;
 
 export default async function LocaleLayout({
   children,
@@ -53,6 +68,22 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir} className={`${nunito.variable} ${tajawal.variable} guest`}>
       <body className="guest-body">
+        {GTM_ID_SAFE && (
+          <>
+            <Script id="gtm" strategy="afterInteractive">
+              {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GTM_ID_SAFE}');`}
+            </Script>
+            <noscript>
+              <iframe
+                src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID_SAFE}`}
+                height="0"
+                width="0"
+                style={{ display: "none", visibility: "hidden" }}
+                title="Google Tag Manager"
+              />
+            </noscript>
+          </>
+        )}
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
