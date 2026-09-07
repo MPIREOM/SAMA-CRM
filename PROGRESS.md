@@ -10,5 +10,5 @@ Branch: `feat/booking-site` (based on `claude/hotel-crm-nextjs-obex8g`, the prod
 - [x] Phase 3 — messaging: templates EN/AR × email/WhatsApp, providers, dispatcher, cron route, webhook receipts, 58 tests (15:40 UTC)
 - [x] Phase 4 — QA pass 1: Supabase emulator, 17 Playwright scenarios green, 3 real bugs fixed, Lighthouse 85/100/100/100, docs/qa-report.md (16:55 UTC)
 - [x] Phase 5 — polish: responsive staff shell, pluralisation, a11y, default language, HANDOFF.md (17:10 UTC)
-- [ ] Phase 6 — QA pass 2 (build + unit + e2e:local after polish)
-- [ ] Phase 7 — push branch + PR + Vercel deploy + live smoke test — BLOCKED on repository push authorisation (see HANDOFF §9)
+- [x] Phase 6 — QA pass 2: build, 115 unit, 17/17 e2e, mobile shell verified; real-DB RLS check → migration 0008 (17:35 UTC)
+- [ ] Phase 7 — push branch + PR + Vercel deploy + live smoke test — BLOCKED on repository push authorisation; git bundle + HANDOFF delivered to the owner (OneDrive Website/booking-site-build). Resume: `git push origin feat/booking-site`, open PR into claude/hotel-crm-nextjs-obex8g, then run HANDOFF §9 checks.
