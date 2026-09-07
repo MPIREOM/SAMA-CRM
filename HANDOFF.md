@@ -9,7 +9,7 @@ _Built 7 September 2026 on top of the existing SAMA CRM. Read this first, then `
 | Guest site (EN) | `https://sama-crm.vercel.app/en` → later `https://book.samahotel.net/en` | `/` redirects to `/en` or `/ar` by browser language |
 | Guest site (AR) | `…/ar` | Full RTL |
 | Staff back-office | `https://sama-crm.vercel.app/login` → `/dashboard` | Same login as the CRM. Your existing `super_admin` account works; `reservation_desk` users see a reduced menu |
-| Supabase project | `sama-crm` (`vsxesrhoovabgsmvodvh`) | Migrations `0005`, `0006`, `0007` are **already applied** |
+| Supabase project | `sama-crm` (`vsxesrhoovabgsmvodvh`) | Migrations `0005`–`0008` are **already applied** |
 | Code | GitHub `MPIREOM/SAMA-CRM`, branch `feat/booking-site` | Production branch is `claude/hotel-crm-nextjs-obex8g` — merge the PR to go live |
 
 **Deployment status:** see section 9 — the branch could not be pushed from the build sandbox (repository not authorised for push). Everything else is ready.
@@ -108,7 +108,7 @@ npm run test                 # unit tests
 npm run e2e:local            # full e2e against the in-memory Supabase emulator (no credentials needed)
 npm run build && npm run start
 ```
-Migrations live in `supabase/migrations/` (`0005_booking_engine.sql`, `0006_booking_seed.sql`, `0007_booking_dispatch_cron.sql`). Never change the database by hand — add `0008_…sql` and apply with `supabase db push` or the SQL editor. Regenerate types with `supabase gen types typescript --project-id vsxesrhoovabgsmvodvh > src/lib/database.types.ts` (keep the alias block at the bottom).
+Migrations live in `supabase/migrations/` (`0005_booking_engine.sql`, `0006_booking_seed.sql`, `0007_booking_dispatch_cron.sql`, `0008_booking_grants_hardening.sql`). Never change the database by hand — add `0009_…sql` and apply with `supabase db push` or the SQL editor. Regenerate types with `supabase gen types typescript --project-id vsxesrhoovabgsmvodvh > src/lib/database.types.ts` (keep the alias block at the bottom).
 
 ## 11. Staff — first 10 minutes
 
