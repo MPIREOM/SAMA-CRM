@@ -77,9 +77,12 @@ const SECTIONS: NavSection[] = [
 export function Sidebar({
   role,
   fullName,
+  onNavigate,
 }: {
   role: Role;
   fullName: string | null;
+  /** Called after a nav link is clicked (closes the mobile drawer). */
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -97,7 +100,7 @@ export function Sidebar({
   );
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col bg-maroon-800 text-gold-100">
+    <aside className="flex h-full w-64 shrink-0 flex-col bg-maroon-800 text-gold-100 lg:h-screen">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-500 text-lg font-extrabold text-maroon-900">
@@ -129,6 +132,7 @@ export function Sidebar({
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={onNavigate}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
                       active

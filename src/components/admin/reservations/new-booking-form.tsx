@@ -100,6 +100,15 @@ export function NewBookingForm({ types, initial }: Props) {
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
+  // Message language follows the guest's country code until staff override it:
+  // Omani and GCC numbers default to Arabic, everything else to English.
+  const [langTouched, setLangTouched] = useState(false);
+  useEffect(() => {
+    if (langTouched) return;
+    const arabic = ["+968", "+966", "+971", "+965", "+974", "+973"].includes(form.country);
+    setForm((f) => (f.preferred_lang === (arabic ? "ar" : "en") ? f : { ...f, preferred_lang: arabic ? "ar" : "en" }));
+  }, [form.country, langTouched]);
+
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [rooms, setRooms] = useState<FreeRoom[] | null>(null);
@@ -290,7 +299,14 @@ export function NewBookingForm({ types, initial }: Props) {
               </div>
               <div>
                 <Label htmlFor="n-lang">{STR.preferredLang[lang]}</Label>
-                <Select id="n-lang" value={form.preferred_lang} onChange={(e) => set("preferred_lang", e.target.value === "ar" ? "ar" : "en")}>
+                <Select
+                  id="n-lang"
+                  value={form.preferred_lang}
+                  onChange={(e) => {
+                    setLangTouched(true);
+                    set("preferred_lang", e.target.value === "ar" ? "ar" : "en");
+                  }}
+                >
                   <option value="ar">العربية</option>
                   <option value="en">English</option>
                 </Select>

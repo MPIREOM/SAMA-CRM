@@ -20,3 +20,13 @@ Format: date · decision · why · how to reverse.
 16. **Photos**: the owner's Website/Pictures folder was resized to ≤1800 px and committed under `public/images/` (hero, rooms, facilities). Types without photos (Sama Suites) reuse Deluxe/Chalet shots and are flagged in HANDOFF.md.
 17. **Booking refs** use `SAMA-YY-XXXXXX` (6 unambiguous alphanumerics), compatible with the CRM's `SAMA-YY-…` convention.
 18. **Rate-limit** on the public booking action: in-memory token bucket per IP, 10/min per instance (good enough on Vercel; noted in HANDOFF).
+19. **Legacy CRM booking screens retired.** `/bookings` → `/reservations` and `/bookings/new` → `/reservations/new` (redirects in `next.config.mjs`). The old form wrote CRM `bookings` directly with no inventory or pricing; every booking now goes through `bk_create_booking`. The mirror keeps CRM `bookings` populated.
+20. **Messaging retry ladder** = 1 attempt + 3 retries at +5 min, +30 min, +3 h (`decideRetry`), then `failed`. Meta template-not-approved (132001/132000/132012) and undeliverable (131047/131026/131021) errors never retry; rate limits and 5xx do.
+21. **Meta error codes are parsed from the error text** the existing `sendWhatsAppTemplate` returns — no second Graph call.
+22. **Skipped rows** (booking cancelled, channel off, no email/phone) are recorded on `bk_scheduled_messages` only, not in `bk_message_log` — they are not attempts.
+23. **Email sends reuse the CRM `sendEmail`** (HTML only); the plain-text version feeds the CRM inbox body and logs. If Resend rejects the sender, one retry goes out from `onboarding@resend.dev` and is flagged `fallback_sender`.
+24. **Guest pages that read the database render per request** (`force-dynamic`); contact/policies/the-peek are ISR (10 min) with default settings as fallback — a Supabase outage can never fail a Vercel build.
+25. **Staff shell is responsive**: fixed sidebar ≥ 1024 px, drawer + top bar below (front desk on a phone). Content padding tightens on small screens.
+26. **Staff booking default message language** follows the guest's country code (Oman/GCC → Arabic, else English) until staff change it.
+27. **Local QA without credentials**: `scripts/mock-supabase/` emulates PostgREST + the `bk_*` RPCs + GoTrue in memory (seeded from migration 0006) so `npm run e2e:local` runs the full Playwright suite anywhere. It is a stand-in, not the truth — the SQL functions remain the source of truth and the post-deploy checks in HANDOFF §9 must still be run.
+28. **Sandbox network limits** (no `*.supabase.co`, `*.vercel.app`, Google Fonts, GitHub push): fonts are self-hosted from `@fontsource` files under `src/fonts/`; runtime verification against the real project is deferred to the first deploy (HANDOFF §9).

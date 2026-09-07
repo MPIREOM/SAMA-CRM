@@ -32,6 +32,7 @@ export const COMMON = {
   save: { en: "Save", ar: "حفظ" },
   cancel: { en: "Cancel", ar: "إلغاء" },
   close: { en: "Close", ar: "إغلاق" },
+  menu: { en: "Menu", ar: "القائمة" },
   add: { en: "Add", ar: "إضافة" },
   edit: { en: "Edit", ar: "تعديل" },
   delete: { en: "Delete", ar: "حذف" },
