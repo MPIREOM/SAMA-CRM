@@ -173,16 +173,16 @@ export function ReservationsView({
       </div>
       <form onSubmit={onSearch} className="mb-4 flex flex-wrap items-end gap-2">
         <div>
-          <label className="mb-1 block text-[11px] font-semibold text-maroon-400">{STR.checkInFrom[lang]}</label>
-          <Input type="date" value={filters.from} onChange={(e) => apply({ from: e.target.value })} className="h-9 w-40 text-xs" />
+          <label htmlFor="rv-from" className="mb-1 block text-[11px] font-semibold text-maroon-400">{STR.checkInFrom[lang]}</label>
+          <Input id="rv-from" type="date" value={filters.from} onChange={(e) => apply({ from: e.target.value })} className="h-9 w-40 text-xs" />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] font-semibold text-maroon-400">{STR.checkInTo[lang]}</label>
-          <Input type="date" value={filters.to} onChange={(e) => apply({ to: e.target.value })} className="h-9 w-40 text-xs" />
+          <label htmlFor="rv-to" className="mb-1 block text-[11px] font-semibold text-maroon-400">{STR.checkInTo[lang]}</label>
+          <Input id="rv-to" type="date" value={filters.to} onChange={(e) => apply({ to: e.target.value })} className="h-9 w-40 text-xs" />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] font-semibold text-maroon-400">{COMMON.roomType[lang]}</label>
-          <Select value={filters.type} onChange={(e) => apply({ type: e.target.value })} className="h-9 w-48 text-xs">
+          <label htmlFor="rv-type" className="mb-1 block text-[11px] font-semibold text-maroon-400">{COMMON.roomType[lang]}</label>
+          <Select id="rv-type" value={filters.type} onChange={(e) => apply({ type: e.target.value })} className="h-9 w-48 text-xs">
             <option value="">{STR.allTypes[lang]}</option>
             {types.map((t) => (
               <option key={t.id} value={t.id}>
@@ -192,8 +192,8 @@ export function ReservationsView({
           </Select>
         </div>
         <div className="flex-1 min-w-[12rem]">
-          <label className="mb-1 block text-[11px] font-semibold text-maroon-400">{COMMON.search[lang]}</label>
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={STR.searchPlaceholder[lang]} className="h-9 text-xs" />
+          <label htmlFor="rv-q" className="mb-1 block text-[11px] font-semibold text-maroon-400">{COMMON.search[lang]}</label>
+          <Input id="rv-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder={STR.searchPlaceholder[lang]} className="h-9 text-xs" />
         </div>
         <Button type="submit" variant="outline" size="sm" className="h-9">
           {COMMON.filter[lang]}

@@ -71,7 +71,7 @@ export function AuditView({ rows }: { rows: BkAuditLog[] }) {
             {filtered.length} / {rows.length}
           </CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Select value={entity} onChange={(e) => { setEntity(e.target.value); setAction(""); }} className="h-8 w-44 text-xs">
+            <Select value={entity} onChange={(e) => { setEntity(e.target.value); setAction(""); }} className="h-8 w-44 text-xs" aria-label={STR.entity[lang]}>
               <option value="">{STR.allEntities[lang]}</option>
               {entities.map((e) => (
                 <option key={e} value={e}>
@@ -79,7 +79,7 @@ export function AuditView({ rows }: { rows: BkAuditLog[] }) {
                 </option>
               ))}
             </Select>
-            <Select value={action} onChange={(e) => setAction(e.target.value)} className="h-8 w-44 text-xs">
+            <Select value={action} onChange={(e) => setAction(e.target.value)} className="h-8 w-44 text-xs" aria-label={STR.action[lang]}>
               <option value="">{STR.allActions[lang]}</option>
               {actions.map((a) => (
                 <option key={a} value={a}>
@@ -87,7 +87,7 @@ export function AuditView({ rows }: { rows: BkAuditLog[] }) {
                 </option>
               ))}
             </Select>
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={STR.searchPh[lang]} className="h-8 w-56 text-xs" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={STR.searchPh[lang]} className="h-8 w-56 text-xs" aria-label={STR.searchPh[lang]} />
           </div>
         </CardHeader>
         {filtered.length === 0 ? (

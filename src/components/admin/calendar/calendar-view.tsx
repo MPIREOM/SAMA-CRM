@@ -104,7 +104,7 @@ export function CalendarView({ from, days, today, types, rooms, bookings, blocks
           className="h-8 w-40 text-xs"
           aria-label={COMMON.from[lang]}
         />
-        <Select value={String(days)} onChange={(e) => navigate(from, Number(e.target.value))} className="h-8 w-28 text-xs">
+        <Select value={String(days)} onChange={(e) => navigate(from, Number(e.target.value))} className="h-8 w-28 text-xs" aria-label={STR.days[lang]}>
           {DAY_OPTIONS.map((d) => (
             <option key={d} value={d}>
               {d} {STR.days[lang]}

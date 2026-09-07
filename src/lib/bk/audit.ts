@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logger } from "@/lib/logger";
 import type { Json } from "@/lib/database.types";
 
 export interface Actor {
@@ -28,6 +29,6 @@ export async function audit(
     });
   } catch (e) {
     // Auditing must never break the primary action.
-    console.error("audit failed", (e as Error).message);
+    logger.error("bk.audit", "audit insert failed", { action, entity, entityId, error: (e as Error).message });
   }
 }

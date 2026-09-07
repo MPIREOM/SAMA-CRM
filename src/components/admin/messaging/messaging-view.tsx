@@ -159,7 +159,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
         <CardHeader className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle>{STR.queue[lang]}</CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Select value={fStatus} onChange={(e) => setFStatus(e.target.value)} className="h-8 w-36 text-xs">
+            <Select value={fStatus} onChange={(e) => setFStatus(e.target.value)} className="h-8 w-36 text-xs" aria-label={STR.allStatuses[lang]}>
               <option value="">{STR.allStatuses[lang]}</option>
               {SCHEDULED_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -167,7 +167,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
                 </option>
               ))}
             </Select>
-            <Select value={fKind} onChange={(e) => setFKind(e.target.value)} className="h-8 w-36 text-xs">
+            <Select value={fKind} onChange={(e) => setFKind(e.target.value)} className="h-8 w-36 text-xs" aria-label={STR.allKinds[lang]}>
               <option value="">{STR.allKinds[lang]}</option>
               {MESSAGE_KINDS.map((k) => (
                 <option key={k} value={k}>
@@ -175,7 +175,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
                 </option>
               ))}
             </Select>
-            <Select value={fChannel} onChange={(e) => setFChannel(e.target.value)} className="h-8 w-32 text-xs">
+            <Select value={fChannel} onChange={(e) => setFChannel(e.target.value)} className="h-8 w-32 text-xs" aria-label={STR.allChannels[lang]}>
               <option value="">{STR.allChannels[lang]}</option>
               {CHANNELS.map((c) => (
                 <option key={c} value={c}>
@@ -322,14 +322,14 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
         <CardHeader className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle>{STR.templates[lang]}</CardTitle>
           <div className="flex gap-2">
-            <Select value={previewKind} onChange={(e) => setPreviewKind(e.target.value as (typeof MESSAGE_KINDS)[number])} className="h-8 w-40 text-xs">
+            <Select value={previewKind} onChange={(e) => setPreviewKind(e.target.value as (typeof MESSAGE_KINDS)[number])} className="h-8 w-40 text-xs" aria-label={STR.allKinds[lang]}>
               {MESSAGE_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {kindLabel(k, lang)}
                 </option>
               ))}
             </Select>
-            <Select value={previewChannel} onChange={(e) => setPreviewChannel(e.target.value as MessageChannel)} className="h-8 w-32 text-xs">
+            <Select value={previewChannel} onChange={(e) => setPreviewChannel(e.target.value as MessageChannel)} className="h-8 w-32 text-xs" aria-label={STR.allChannels[lang]}>
               {CHANNELS.map((c) => (
                 <option key={c} value={c}>
                   {channelLabel(c, lang)}
@@ -370,8 +370,8 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
             <div className="grid gap-3 border-t border-maroon-100 pt-4 sm:grid-cols-2">
               <div className="flex items-end gap-2">
                 <div className="flex-1">
-                  <label className="mb-1 block text-xs font-semibold text-maroon-500">{STR.testTo[lang]} · WhatsApp</label>
-                  <Input dir="ltr" value={testPhoneInput} onChange={(e) => setTestPhoneInput(e.target.value)} placeholder="+9689XXXXXXX" />
+                  <label htmlFor="test-whatsapp" className="mb-1 block text-xs font-semibold text-maroon-500">{STR.testTo[lang]} · WhatsApp</label>
+                  <Input id="test-whatsapp" dir="ltr" value={testPhoneInput} onChange={(e) => setTestPhoneInput(e.target.value)} placeholder="+9689XXXXXXX" />
                 </div>
                 <Button variant="outline" loading={pending} disabled={!testPhoneInput} onClick={() => sendTest("whatsapp")}>
                   <Send className="h-4 w-4" />
@@ -380,8 +380,8 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
               </div>
               <div className="flex items-end gap-2">
                 <div className="flex-1">
-                  <label className="mb-1 block text-xs font-semibold text-maroon-500">{STR.testTo[lang]} · {COMMON.emailChannel[lang]}</label>
-                  <Input dir="ltr" type="email" value={testEmailInput} onChange={(e) => setTestEmailInput(e.target.value)} placeholder="you@samahotel.net" />
+                  <label htmlFor="test-email" className="mb-1 block text-xs font-semibold text-maroon-500">{STR.testTo[lang]} · {COMMON.emailChannel[lang]}</label>
+                  <Input id="test-email" dir="ltr" type="email" value={testEmailInput} onChange={(e) => setTestEmailInput(e.target.value)} placeholder="you@samahotel.net" />
                 </div>
                 <Button variant="outline" loading={pending} disabled={!testEmailInput} onClick={() => sendTest("email")}>
                   <Send className="h-4 w-4" />

@@ -392,7 +392,7 @@ export function SettingsView({ env, taxes, times, cancellation, contact, reviews
                       <Trash2 className="h-4 w-4" />
                     </Button>
                     <div className="col-span-5">
-                      <Input placeholder={STR.note[lang]} className="h-8 text-xs" value={c.note ?? ""} onChange={(e) => update(i, { note: e.target.value })} />
+                      <Input placeholder={STR.note[lang]} aria-label={STR.note[lang]} className="h-8 text-xs" value={c.note ?? ""} onChange={(e) => update(i, { note: e.target.value })} />
                     </div>
                   </div>
                 ))}

@@ -244,6 +244,7 @@ export function RoomTypeDialog({ type, onClose }: { type: RoomTypeRow | null; on
               type="file"
               accept="image/jpeg,image/png,image/webp,image/avif"
               className="hidden"
+              aria-label={STR.upload[lang]}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) void upload(file);
