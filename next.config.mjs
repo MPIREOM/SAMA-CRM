@@ -15,6 +15,13 @@ const nextConfig = {
       { protocol: "https", hostname: "vsxesrhoovabgsmvodvh.supabase.co", pathname: "/storage/v1/object/public/**" },
     ],
   },
+  async redirects() {
+    // The legacy CRM bookings screens are superseded by the booking-engine back-office.
+    return [
+      { source: "/bookings", destination: "/reservations", permanent: false },
+      { source: "/bookings/new", destination: "/reservations/new", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {
