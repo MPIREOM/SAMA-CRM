@@ -1,0 +1,12 @@
+{
+  "meta": {
+    "siteName": "Sama Hotel",
+    "siteTitle": "Sama Hotel — Jabal Al Akhdar, Oman",
+    "siteDescription": "Book direct at Sama Hotel, a mountain resort at 2,000 m in Jabal Al Akhdar, Oman. Pay at the hotel — no online payment needed."
+  },
+  "errors": {
+    "notFoundTitle": "This page has wandered off the mountain",
+    "notFoundBody": "The page you're looking for doesn't exist. Let's get you back to the hotel.",
+    "backHome": "Back to home"
+  }
+}

@@ -1,21 +1,9 @@
 import type { Metadata } from "next";
-import { Nunito_Sans, Tajawal } from "next/font/google";
+import { nunito, tajawal } from "@/fonts";
 import { cookies } from "next/headers";
 import { LangProvider } from "@/components/providers/lang-provider";
 import { dirFor, LANG_COOKIE, type Lang } from "@/lib/i18n";
-import "./globals.css";
-
-const nunito = Nunito_Sans({
-  subsets: ["latin"],
-  variable: "--font-nunito",
-  weight: ["400", "600", "700", "800"],
-});
-
-const tajawal = Tajawal({
-  subsets: ["arabic", "latin"],
-  variable: "--font-tajawal",
-  weight: ["400", "500", "700", "800"],
-});
+import "../globals.css";
 
 export const metadata: Metadata = {
   title: "Sama CRM | سما",
