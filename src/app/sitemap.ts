@@ -6,6 +6,9 @@ import { logger } from "@/lib/logger";
 // Guest-site sitemap: static pages × locales + every active room type.
 // CRM and booking-flow URLs are deliberately excluded (see robots.ts).
 
+// Generated per request (cached by the CDN) so room slugs are never frozen at build time.
+export const dynamic = "force-dynamic";
+
 const STATIC_PATHS = ["", "/rooms", "/the-peek", "/contact", "/policies"] as const;
 
 function base(): string {

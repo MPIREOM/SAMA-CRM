@@ -94,3 +94,17 @@ The `/ar` accessibility point was the same `image-redundant-alt` finding, fixed 
 - `scripts/mock-supabase/{server,db,postgrest,rpc,auth,seed}.ts`, `README.md`; `scripts/e2e-local.mjs`; npm scripts `mock:db`, `e2e:local`.
 - `e2e/helpers.ts`, `e2e/guest-booking.spec.ts`, `e2e/staff.spec.ts`, `e2e/platform.spec.ts`; `playwright.config.ts` (`PW_CHROMIUM_PATH`).
 - `qa/` (git-ignored): `screenshots/*.png` (62), `screenshots.mjs`, `lighthouse/*.report.{html,json}`, probe scripts.
+
+## 7. QA pass 2 (after polish, 2026-09-07 17:30 UTC)
+
+Changes since pass 1: responsive staff shell (drawer below `lg`), staff-booking default language by country code, dynamic sitemap, HANDOFF/DECISIONS.
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | 0 errors |
+| `npx vitest run` | 115 / 115 |
+| `next build` (mock env) | OK — 42 static pages, `/sitemap.xml` now `ƒ` (per request) |
+| Playwright `e2e/` against the emulator | **17 / 17** (desktop 11, mobile 6), 54 s |
+| Mobile staff shell (390 × 844) | Hamburger → drawer → navigation works; calendar and new-booking form usable (`qa/screenshots/m-*.png` not committed) |
+
+Bug found in pass 2: the sitemap was rendered at build time, so room slugs were frozen to whatever the DB returned during the build (empty in the sandbox). Fixed by making `sitemap.ts` dynamic.
