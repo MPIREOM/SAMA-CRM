@@ -10,7 +10,8 @@ import { pageMetadata } from "@/components/guest/metadata";
 import { localizeRoom, n } from "@/components/guest/lib";
 
 // Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
-export const revalidate = 600;
+// Rendered per request: room data lives in Supabase and must never make a build fail.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
