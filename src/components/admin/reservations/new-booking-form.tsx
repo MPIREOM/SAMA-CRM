@@ -18,7 +18,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createStaffBooking, freeRooms, quotePreview, type FreeRoom } from "@/app/(crm)/(app)/reservations/actions";
 import { InlineAlert } from "../load-error";
-import { STAFF_SOURCES, fmtDate, fmtMoney, localName, sourceLabel } from "../shared";
+import { STAFF_SOURCES, fmtDate, fmtMoney, localName, sourceLabel, nightsLabel } from "../shared";
 
 const STR = {
   title: { en: "New booking", ar: "حجز جديد" },
@@ -355,7 +355,7 @@ export function NewBookingForm({ types, initial }: Props) {
               ) : (
                 <>
                   <p className="text-xs text-maroon-500">
-                    {fmtDate(quote.check_in, lang)} → {fmtDate(quote.check_out, lang)} · {quote.nights} {COMMON.nights[lang]}
+                    {fmtDate(quote.check_in, lang)} → {fmtDate(quote.check_out, lang)} · {nightsLabel(quote.nights, lang)}
                   </p>
                   <p className={quote.available_count > 0 ? "text-xs font-semibold text-jabal-700" : "text-xs font-semibold text-crimson-700"}>
                     {quote.available_count > 0 ? `${quote.available_count} ${STR.available[lang]}` : STR.soldOut[lang]}

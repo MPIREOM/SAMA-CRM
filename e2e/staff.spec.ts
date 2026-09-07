@@ -123,6 +123,59 @@ test.describe("staff back-office", () => {
     await expect(cancelRow).not.toContainText("40000000");
   });
 
+  test("front desk: new walk-in booking today → assign room → check in → check out; CSV export", async ({ page }) => {
+    await loginAs(page, "admin");
+    await page.goto("/reservations/new");
+    await expect(page.getByRole("heading", { name: "New booking" })).toBeVisible();
+    await page.locator("#n-type").selectOption(ROOM_TYPES["deluxe-mountain-view"]);
+    await page.locator("#n-in").fill(muscatDate(0));
+    await page.locator("#n-out").fill(muscatDate(1));
+    // Free rooms load for the dates; pick the first one.
+    const roomSelect = page.locator("#n-room");
+    await expect(roomSelect).toBeEnabled();
+    await expect.poll(async () => roomSelect.locator("option").count()).toBeGreaterThan(1);
+    const roomNumber = await roomSelect.locator("option").nth(1).innerText();
+    await roomSelect.selectOption({ index: 1 });
+    await page.locator("#n-name").fill("E2E-Walk In");
+    await page.locator("#n-local").fill("97777777");
+    await page.locator("#n-source").selectOption("walk_in");
+    await page.locator('form button[type="submit"]').click();
+    await page.waitForURL(/\/reservations\/[0-9a-f-]{36}$/);
+    const id = page.url().split("/").pop()!;
+    const [row] = await db.rows<{ ref: string; status: string; source: string; room_id: string | null; total_omr: number; guest_phone: string }>(
+      "bk_bookings",
+      `select=ref,status,source,room_id,total_omr,guest_phone&id=eq.${id}`
+    );
+    expect(row.source).toBe("walk_in");
+    expect(row.status).toBe("confirmed");
+    expect(row.room_id).not.toBeNull();
+    expect(row.guest_phone).toBe("+96897777777");
+    expect(Number(row.total_omr)).toBeGreaterThan(0);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(row.ref);
+    await expect(page.getByText("1 night", { exact: false }).first()).toBeVisible();
+    await expect(page.locator("#s-room")).toHaveValue(row.room_id!);
+    expect(roomNumber).toMatch(/^\d{3}/);
+
+    // Same-day arrival → check in, then check out.
+    await page.getByRole("button", { name: "Check in", exact: true }).click();
+    await expect.poll(async () => (await db.rows<{ status: string }>("bk_bookings", `select=status&id=eq.${id}`))[0]?.status).toBe("checked_in");
+    await expect(page.getByRole("button", { name: "Check out", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Check out", exact: true }).click();
+    await expect.poll(async () => (await db.rows<{ status: string }>("bk_bookings", `select=status&id=eq.${id}`))[0]?.status).toBe("checked_out");
+    const mirror = await db.rows<{ status: string }>("bookings", `select=status&id=eq.${id}`);
+    expect(mirror[0]?.status).toBe("Completed");
+    const audit = await db.rows<{ action: string }>("bk_audit_log", `select=action&entity_id=eq.${id}&order=created_at.asc`);
+    expect(audit.map((a) => a.action)).toEqual(["booking.create", "booking.check_in", "booking.check_out"]);
+
+    // CSV export (super_admin only) covers the booking.
+    const csv = await page.request.get(`/reservations/export?from=${muscatDate(0)}&to=${muscatDate(0)}`);
+    expect(csv.status()).toBe(200);
+    expect(csv.headers()["content-type"]).toContain("text/csv");
+    const text = await csv.text();
+    expect(text.split("\n")[0]).toMatch(/ref/i);
+    expect(text).toContain(row.ref);
+  });
+
   test("reservation_desk cannot open /settings and sees no Settings in the sidebar", async ({ page }) => {
     await loginAs(page, "desk");
     await expect(page).toHaveURL(/\/dashboard/);

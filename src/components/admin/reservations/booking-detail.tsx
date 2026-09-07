@@ -53,6 +53,7 @@ import {
   sourceLabel,
   statusLabel,
   statusVariant,
+  nightsLabel,
 } from "../shared";
 
 const STR = {
@@ -241,7 +242,7 @@ export function BookingDetail({ booking, scheduled, log, auditRows, today }: Pro
       </Link>
       <PageHeader
         title={`${booking.ref} · ${booking.guest_name}`}
-        subtitle={`${localName(booking.room_type, lang)} · ${fmtDate(booking.check_in, lang)} → ${fmtDate(booking.check_out, lang)} · ${nights} ${COMMON.nights[lang]}`}
+        subtitle={`${localName(booking.room_type, lang)} · ${fmtDate(booking.check_in, lang)} → ${fmtDate(booking.check_out, lang)} · ${nightsLabel(nights, lang)}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={statusVariant(booking.status)} className="text-sm">

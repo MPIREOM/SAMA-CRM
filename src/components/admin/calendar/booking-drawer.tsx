@@ -22,7 +22,7 @@ import {
   type FreeRoom,
 } from "@/app/(crm)/(app)/reservations/actions";
 import { InlineAlert } from "../load-error";
-import { fmtDate, fmtMoney, localName, sourceLabel, statusLabel, statusVariant } from "../shared";
+import { fmtDate, fmtMoney, localName, sourceLabel, statusLabel, statusVariant, nightsLabel } from "../shared";
 import type { CalendarBooking, CalendarRoom, CalendarRoomType } from "./layout";
 
 const STR = {
@@ -156,7 +156,7 @@ export function BookingDrawer({ booking, rooms, types, today, onClose }: Props) 
           <dd className="font-semibold text-maroon-900">
             {fmtDate(booking.check_in, lang)} → {fmtDate(booking.check_out, lang)}
             <span className="ms-1 text-xs font-normal text-maroon-400">
-              ({nights} {COMMON.nights[lang]})
+              ({nightsLabel(nights, lang)})
             </span>
           </dd>
           <dt className="text-maroon-400">{STR.guests[lang]}</dt>

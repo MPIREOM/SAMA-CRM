@@ -41,7 +41,7 @@ export function RoomCard({ room, priority = false, className }: { room: Localize
             <span dir="ltr" className="ms-1.5 text-2xl font-extrabold tabular-nums">
               <span className="text-sm font-bold text-gold-700">{tc("omr")}</span> {formatRate(room.baseRate)}
             </span>
-            <span className="ms-1 text-sm text-maroon-600">/ {t("perNight")}</span>
+            <span className="ms-1 whitespace-nowrap text-sm text-maroon-600">/ {t("perNight")}</span>
           </p>
           <Link href={`/rooms/${room.slug}`} className="g-btn-outline g-btn-sm shrink-0">
             {t("viewRoom")}

@@ -15,6 +15,10 @@ export default async function AppLayout({
 
   const role: Role = (session.role ?? "reservation_desk") as Role;
 
+  // TODO(owner): the back-office shell is desktop-only — the 256 px sidebar is
+  // always visible, so below ~1024 px the content is squeezed/clipped (see
+  // qa/screenshots/staff-*.mobile.png). Decide whether front-desk staff need
+  // phone/tablet access; if so the sidebar needs a collapsible drawer.
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar role={role} fullName={session.profile?.full_name ?? session.email} />

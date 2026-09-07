@@ -78,7 +78,9 @@ function Stat({ label, value, icon: Icon, tint, href, sub }: { label: string; va
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <p className="truncate text-xs font-semibold text-maroon-400">{label}</p>
+        <p className="line-clamp-2 text-xs font-semibold leading-tight text-maroon-400" title={label}>
+          {label}
+        </p>
         <p className="text-2xl font-extrabold leading-tight text-maroon-900">{value}</p>
         {sub && <p className="text-[11px] text-maroon-400">{sub}</p>}
       </div>

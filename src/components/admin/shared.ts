@@ -102,6 +102,17 @@ export function localName<T extends { name_en: string; name_ar: string }>(row: T
 // PAGE_SIZE` becomes NaN → PostgREST receives offset=NaN&limit=NaN.
 export const RESERVATIONS_PAGE_SIZE = 50;
 
+/** "1 night" / "3 nights" — Arabic uses the dual/plural forms. */
+export function nightsLabel(n: number, lang: Lang): string {
+  if (lang === "ar") {
+    if (n === 1) return "ليلة واحدة";
+    if (n === 2) return "ليلتان";
+    if (n >= 3 && n <= 10) return `${n} ليالٍ`;
+    return `${n} ليلة`;
+  }
+  return `${n} ${n === 1 ? "night" : "nights"}`;
+}
+
 export const BOOKING_STATUSES: BkBookingStatus[] = [
   "pending",
   "confirmed",
