@@ -13,9 +13,18 @@ export default async function AuditPage() {
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.from("bk_audit_log").select("*").order("created_at", { ascending: false }).limit(500);
-    if (error) throw new Error(error.message);
-    return <AuditView rows={data ?? []} />;
+    const [log, profiles] = await Promise.all([
+      admin.from("bk_audit_log").select("*").order("created_at", { ascending: false }).limit(500),
+      admin.from("profiles").select("id, full_name"),
+    ]);
+    if (log.error) throw new Error(log.error.message);
+    // Rows written inside SQL (bk_cancel_booking) carry only actor_user_id —
+    // resolve them to the staff member's name so "By" never shows a raw uuid.
+    const names = new Map((profiles.data ?? []).map((p) => [p.id, p.full_name]));
+    const rows = (log.data ?? []).map((r) =>
+      r.actor_email || !r.actor_user_id ? r : { ...r, actor_email: names.get(r.actor_user_id) ?? r.actor_email }
+    );
+    return <AuditView rows={rows} />;
   } catch (e) {
     return <LoadError title="Audit log" message={loadErrorMessage(e)} />;
   }
