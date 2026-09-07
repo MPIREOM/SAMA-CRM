@@ -5,6 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
 // their bookings with reason "e2e" when done (see e2e/helpers.ts).
 const PORT = process.env.E2E_PORT ?? "3411";
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
+// Sandboxes with a pre-installed Chromium of a different revision than the
+// one this Playwright version pins can point at it explicitly.
+const launchOptions = process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : undefined;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -20,6 +23,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
     locale: "en-GB",
     timezoneId: "Asia/Muscat",
+    launchOptions,
   },
   webServer: process.env.E2E_BASE_URL
     ? undefined

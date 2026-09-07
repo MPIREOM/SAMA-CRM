@@ -382,9 +382,17 @@ function wantsObject(headers: Record<string, string>): boolean {
   return (headers.accept ?? "").includes("application/vnd.pgrst.object+json");
 }
 
+function intParam(params: URLSearchParams, key: string): number | null {
+  const raw = params.get(key);
+  if (raw === null) return null;
+  // PostgREST rejects anything that is not a non-negative integer (e.g. "NaN").
+  if (!/^\d+$/.test(raw)) throw new DbError("PGRST100", `"failed to parse ${key} parameter (${raw})" (line 1, column 1)`, `unexpected "${raw[0] ?? ""}" expecting digit`);
+  return Number(raw);
+}
+
 function paginate(params: URLSearchParams, headers: Record<string, string>): { offset: number; limit: number | null } {
-  let offset = params.get("offset") !== null ? Number(params.get("offset")) : 0;
-  let limit: number | null = params.get("limit") !== null ? Number(params.get("limit")) : null;
+  let offset = intParam(params, "offset") ?? 0;
+  let limit: number | null = intParam(params, "limit");
   const range = headers.range;
   if (range) {
     const m = /^(\d+)-(\d+)?$/.exec(range.trim());
