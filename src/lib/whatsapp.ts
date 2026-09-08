@@ -41,7 +41,10 @@ async function waPost(payload: Record<string, unknown>): Promise<WaSendResult> {
         cache: "no-store",
       }
     );
-    const data = (await res.json().catch(() => ({}))) as any;
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string };
+      messages?: { id?: string }[];
+    };
     if (!res.ok) {
       return {
         ok: false,

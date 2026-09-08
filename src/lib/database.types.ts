@@ -1,5 +1,6 @@
 // Generated from the live Supabase project (sama-crm / vsxesrhoovabgsmvodvh)
-// via `supabase gen types typescript`. Regenerate after schema changes.
+// via the Supabase MCP `generate_typescript_types` (2026-09-07, after
+// migrations 0005–0007). Regenerate after schema changes.
 export type Json =
   | string
   | number
@@ -47,6 +48,670 @@ export type Database = {
           offset_days?: number | null
           template?: string | null
           trigger_kind?: string | null
+        }
+        Relationships: []
+      }
+      bk_addons: {
+        Row: {
+          created_at: string
+          description_ar: string | null
+          description_en: string | null
+          details: Json
+          id: string
+          image: string | null
+          is_active: boolean
+          kind: string
+          max_quantity: number
+          name_ar: string
+          name_en: string
+          note_hint_ar: string | null
+          note_hint_en: string | null
+          price_omr: number
+          requires_note: boolean
+          slug: string
+          sort_order: number
+          tagline_ar: string | null
+          tagline_en: string | null
+          taxable: boolean
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          details?: Json
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          kind?: string
+          max_quantity?: number
+          name_ar: string
+          name_en: string
+          note_hint_ar?: string | null
+          note_hint_en?: string | null
+          price_omr: number
+          requires_note?: boolean
+          slug: string
+          sort_order?: number
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          taxable?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          details?: Json
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          kind?: string
+          max_quantity?: number
+          name_ar?: string
+          name_en?: string
+          note_hint_ar?: string | null
+          note_hint_en?: string | null
+          price_omr?: number
+          requires_note?: boolean
+          slug?: string
+          sort_order?: number
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          taxable?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bk_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_user_id: string | null
+          created_at: string
+          diff: Json | null
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      bk_booking_addons: {
+        Row: {
+          addon_id: string
+          booking_id: string
+          created_at: string
+          id: string
+          note: string | null
+          quantity: number
+          status: string
+          taxable: boolean
+          total_omr: number
+          unit_price_omr: number
+          updated_at: string
+        }
+        Insert: {
+          addon_id: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quantity: number
+          status?: string
+          taxable?: boolean
+          total_omr: number
+          unit_price_omr: number
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quantity?: number
+          status?: string
+          taxable?: boolean
+          total_omr?: number
+          unit_price_omr?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_booking_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "bk_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bk_booking_addons_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bk_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_bookings: {
+        Row: {
+          addons_omr: number
+          adults: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          check_in: string
+          check_out: string
+          checked_in_at: string | null
+          checked_out_at: string | null
+          children: number
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          discount_omr: number
+          guest_email: string | null
+          guest_name: string
+          guest_phone: string
+          id: string
+          internal_notes: string | null
+          nationality: string | null
+          nightly_rates: Json
+          nights: number | null
+          preferred_lang: string
+          promo_code: string | null
+          ref: string
+          room_id: string | null
+          room_subtotal_omr: number
+          room_type_id: string
+          service_charge_omr: number
+          source: string
+          special_requests: string | null
+          status: string
+          total_omr: number
+          tourism_fee_omr: number
+          updated_at: string
+          vat_omr: number
+        }
+        Insert: {
+          addons_omr?: number
+          adults?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          check_in: string
+          check_out: string
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          children?: number
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_omr?: number
+          guest_email?: string | null
+          guest_name: string
+          guest_phone: string
+          id?: string
+          internal_notes?: string | null
+          nationality?: string | null
+          nightly_rates?: Json
+          nights?: number | null
+          preferred_lang?: string
+          promo_code?: string | null
+          ref: string
+          room_id?: string | null
+          room_subtotal_omr?: number
+          room_type_id: string
+          service_charge_omr?: number
+          source?: string
+          special_requests?: string | null
+          status?: string
+          total_omr?: number
+          tourism_fee_omr?: number
+          updated_at?: string
+          vat_omr?: number
+        }
+        Update: {
+          addons_omr?: number
+          adults?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          check_in?: string
+          check_out?: string
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          children?: number
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_omr?: number
+          guest_email?: string | null
+          guest_name?: string
+          guest_phone?: string
+          id?: string
+          internal_notes?: string | null
+          nationality?: string | null
+          nightly_rates?: Json
+          nights?: number | null
+          preferred_lang?: string
+          promo_code?: string | null
+          ref?: string
+          room_id?: string | null
+          room_subtotal_omr?: number
+          room_type_id?: string
+          service_charge_omr?: number
+          source?: string
+          special_requests?: string | null
+          status?: string
+          total_omr?: number
+          tourism_fee_omr?: number
+          updated_at?: string
+          vat_omr?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_bookings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bk_bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "bk_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bk_bookings_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "bk_room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_inventory_blocks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          kind: string
+          reason: string | null
+          room_id: string | null
+          room_type_id: string | null
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          kind?: string
+          reason?: string | null
+          room_id?: string | null
+          room_type_id?: string | null
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          kind?: string
+          reason?: string | null
+          room_id?: string | null
+          room_type_id?: string | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_inventory_blocks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "bk_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bk_inventory_blocks_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "bk_room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_message_log: {
+        Row: {
+          booking_id: string | null
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          payload: Json | null
+          provider_message_id: string | null
+          recipient: string | null
+          scheduled_id: string | null
+          status: string
+        }
+        Insert: {
+          booking_id?: string | null
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          payload?: Json | null
+          provider_message_id?: string | null
+          recipient?: string | null
+          scheduled_id?: string | null
+          status: string
+        }
+        Update: {
+          booking_id?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          payload?: Json | null
+          provider_message_id?: string | null
+          recipient?: string | null
+          scheduled_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_message_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bk_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bk_message_log_scheduled_id_fkey"
+            columns: ["scheduled_id"]
+            isOneToOne: false
+            referencedRelation: "bk_scheduled_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_rate_plans: {
+        Row: {
+          adjust_pct: number | null
+          created_at: string
+          created_by: string | null
+          days_of_week: number[] | null
+          end_date: string
+          id: string
+          is_active: boolean
+          min_stay: number
+          name: string
+          priority: number
+          rate_omr: number | null
+          room_type_id: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          adjust_pct?: number | null
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[] | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          min_stay?: number
+          name: string
+          priority?: number
+          rate_omr?: number | null
+          room_type_id?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          adjust_pct?: number | null
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[] | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          min_stay?: number
+          name?: string
+          priority?: number
+          rate_omr?: number | null
+          room_type_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_rate_plans_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "bk_room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_room_types: {
+        Row: {
+          amenities: Json
+          base_rate_omr: number
+          bed_config_ar: string | null
+          bed_config_en: string | null
+          created_at: string
+          crm_value: string
+          description_ar: string | null
+          description_en: string | null
+          id: string
+          images: string[]
+          is_active: boolean
+          max_adults: number
+          max_children: number
+          name_ar: string
+          name_en: string
+          size_sqm: number | null
+          slug: string
+          sort_order: number
+          tagline_ar: string | null
+          tagline_en: string | null
+          updated_at: string
+          view_ar: string | null
+          view_en: string | null
+        }
+        Insert: {
+          amenities?: Json
+          base_rate_omr: number
+          bed_config_ar?: string | null
+          bed_config_en?: string | null
+          created_at?: string
+          crm_value: string
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          images?: string[]
+          is_active?: boolean
+          max_adults?: number
+          max_children?: number
+          name_ar: string
+          name_en: string
+          size_sqm?: number | null
+          slug: string
+          sort_order?: number
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          updated_at?: string
+          view_ar?: string | null
+          view_en?: string | null
+        }
+        Update: {
+          amenities?: Json
+          base_rate_omr?: number
+          bed_config_ar?: string | null
+          bed_config_en?: string | null
+          created_at?: string
+          crm_value?: string
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          images?: string[]
+          is_active?: boolean
+          max_adults?: number
+          max_children?: number
+          name_ar?: string
+          name_en?: string
+          size_sqm?: number | null
+          slug?: string
+          sort_order?: number
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          updated_at?: string
+          view_ar?: string | null
+          view_en?: string | null
+        }
+        Relationships: []
+      }
+      bk_rooms: {
+        Row: {
+          created_at: string
+          floor: string | null
+          id: string
+          notes: string | null
+          room_number: string
+          room_type_id: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          room_number: string
+          room_type_id: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          room_number?: string
+          room_type_id?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_rooms_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "bk_room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_scheduled_messages: {
+        Row: {
+          attempts: number
+          booking_id: string
+          channel: string
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          locked_at: string | null
+          send_at: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          channel: string
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          locked_at?: string | null
+          send_at: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          locked_at?: string | null
+          send_at?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_scheduled_messages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bk_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bk_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }
@@ -299,6 +964,88 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bk_availability: {
+        Args: {
+          p_adults?: number
+          p_check_in: string
+          p_check_out: string
+          p_children?: number
+        }
+        Returns: {
+          available_count: number
+          fits_capacity: boolean
+          min_stay: number
+          min_stay_ok: boolean
+          nightly: Json
+          room_subtotal: number
+          room_type_id: string
+          slug: string
+        }[]
+      }
+      bk_available_count: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_exclude_booking?: string
+          p_room_type_id: string
+        }
+        Returns: number
+      }
+      bk_cancel_booking: {
+        Args: { p_actor?: string; p_booking_id: string; p_reason?: string }
+        Returns: Json
+      }
+      bk_create_booking: { Args: { p: Json }; Returns: Json }
+      bk_effective_rate: {
+        Args: { p_date: string; p_room_type_id: string }
+        Returns: number
+      }
+      bk_generate_ref: { Args: never; Returns: string }
+      bk_min_stay: {
+        Args: { p_check_in: string; p_room_type_id: string }
+        Returns: number
+      }
+      bk_muscat_today: { Args: never; Returns: string }
+      bk_nightly_rates: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_room_type_id: string
+        }
+        Returns: Json
+      }
+      bk_public_settings: { Args: never; Returns: Json }
+      bk_quote: {
+        Args: {
+          p_addons?: Json
+          p_adults?: number
+          p_check_in: string
+          p_check_out: string
+          p_children?: number
+          p_promo_code?: string
+          p_room_type_id: string
+        }
+        Returns: Json
+      }
+      bk_schedule_booking_messages: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
+      bk_send_at: {
+        Args: { p_check_in: string; p_check_out: string; p_kind: string }
+        Returns: string
+      }
+      bk_setting: { Args: { p_key: string }; Returns: Json }
+      bk_upsert_contact: {
+        Args: {
+          p_email: string
+          p_lang: string
+          p_name: string
+          p_nationality: string
+          p_phone: string
+        }
+        Returns: string
+      }
       my_role: { Args: never; Returns: string }
     }
     Enums: {
@@ -448,3 +1195,38 @@ export type TriggerKind =
   | "post_stay"
   | "birthday"
   | "win_back"
+
+// Booking-engine aliases
+export type BkRoomType = Tables<"bk_room_types">
+export type BkRoom = Tables<"bk_rooms">
+export type BkRatePlan = Tables<"bk_rate_plans">
+export type BkInventoryBlock = Tables<"bk_inventory_blocks">
+export type BkBooking = Tables<"bk_bookings">
+export type BkSetting = Tables<"bk_settings">
+export type BkScheduledMessage = Tables<"bk_scheduled_messages">
+export type BkMessageLog = Tables<"bk_message_log">
+export type BkAuditLog = Tables<"bk_audit_log">
+export type BkAddon = Tables<"bk_addons">
+export type BkBookingAddon = Tables<"bk_booking_addons">
+
+export type BkBookingStatus =
+  | "pending"
+  | "confirmed"
+  | "checked_in"
+  | "checked_out"
+  | "cancelled"
+  | "no_show"
+export type BkBookingSource = "website" | "staff" | "phone" | "walk_in" | "ota"
+export type BkMessageKind = "confirmation" | "pre_arrival" | "post_stay"
+export type BkScheduledStatus =
+  | "pending"
+  | "sending"
+  | "sent"
+  | "failed"
+  | "stubbed"
+  | "cancelled"
+  | "skipped"
+export type BkLocale = "en" | "ar"
+export type BkAddonKind = "activity" | "transfer" | "other"
+export type BkAddonUnit = "per_person" | "per_car" | "per_booking" | "per_night"
+export type BkBookingAddonStatus = "requested" | "confirmed" | "done" | "cancelled"

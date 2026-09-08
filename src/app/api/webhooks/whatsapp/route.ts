@@ -27,9 +27,17 @@ interface WaMessage {
   };
 }
 
+interface WaStatusError {
+  code?: number;
+  title?: string;
+  message?: string;
+  error_data?: { details?: string };
+}
+
 interface WaStatus {
   id?: string;
   status?: string;
+  errors?: WaStatusError[];
 }
 
 interface WaValue {
@@ -158,6 +166,10 @@ export async function POST(req: Request) {
             .update({ status })
             .in("provider_msg_id", ids);
         }
+
+        // ---- c) Booking-engine message log (bk_message_log) — same receipts,
+        // keyed by provider_message_id. Failed receipts keep Meta's error title.
+        await updateBookingMessageLog(admin, value.statuses ?? []);
       }
     }
   } catch (err) {
@@ -166,6 +178,51 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+// Receipt statuses only ever move a log row forward (sent → delivered → read);
+// a late "sent" receipt must not downgrade a row already marked "delivered".
+const LOG_RECEIPT_RANK: Record<string, number> = { sent: 1, delivered: 2, read: 3 };
+
+async function updateBookingMessageLog(
+  admin: ReturnType<typeof createAdminClient>,
+  statuses: WaStatus[]
+): Promise<void> {
+  const failed: { id: string; error: string }[] = [];
+  const byStatus = new Map<string, string[]>();
+  for (const s of statuses) {
+    const status = s?.status;
+    if (!s?.id || !status || !RECEIPT_STATUSES.includes(status)) continue;
+    if (status === "failed") {
+      const e = s.errors?.[0];
+      const error =
+        [e?.title, e?.message, e?.error_data?.details]
+          .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+          .join(" — ") || "Delivery failed";
+      failed.push({ id: s.id, error: e?.code ? `(#${e.code}) ${error}` : error });
+      continue;
+    }
+    const ids = byStatus.get(status) ?? [];
+    ids.push(s.id);
+    byStatus.set(status, ids);
+  }
+
+  for (const [status, ids] of Array.from(byStatus.entries())) {
+    const rank = LOG_RECEIPT_RANK[status] ?? 0;
+    const lower = Object.keys(LOG_RECEIPT_RANK).filter((k) => LOG_RECEIPT_RANK[k] < rank);
+    if (lower.length === 0) continue; // "sent" is what the dispatcher already wrote
+    await admin
+      .from("bk_message_log")
+      .update({ status })
+      .in("provider_message_id", ids)
+      .in("status", lower);
+  }
+  for (const f of failed) {
+    await admin
+      .from("bk_message_log")
+      .update({ status: "failed", error: f.error })
+      .eq("provider_message_id", f.id);
+  }
 }
 
 async function handleInboundMessage(

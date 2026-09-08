@@ -2,34 +2,53 @@
   "name": "sama-crm",
   "version": "1.0.0",
   "private": true,
-  "description": "SAMA Hotel CRM — bilingual (Arabic/English) hotel guest CRM built on Next.js 14 + Supabase",
+  "description": "SAMA Hotel — bilingual (Arabic/English) direct-booking website, guest CRM and back-office on Next.js 14 + Supabase",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "images:optimise": "tsx scripts/optimise-images.ts",
+    "mock:db": "tsx scripts/mock-supabase/server.ts",
+    "e2e:local": "node scripts/e2e-local.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.45.4",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "libphonenumber-js": "^1.13.12",
     "lucide-react": "^0.441.0",
     "next": "^14.2.15",
+    "next-intl": "^3.26.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "resend": "^4.0.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@fontsource/nunito-sans": "^5.3.0",
+    "@fontsource/tajawal": "^5.3.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.47",
+    "sharp": "^0.33.5",
     "tailwindcss": "^3.4.13",
-    "typescript": "^5.6.2"
+    "tsx": "^4.23.13",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.9"
   }
 }
