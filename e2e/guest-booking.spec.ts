@@ -101,7 +101,7 @@ test.describe("guest booking", () => {
     // The quote re-runs with the add-ons: one line each, a subtotal and the grand total = room + 25.
     await expect(confirm).toBeEnabled({ timeout: 20_000 });
     // Scoped to the form: the sticky "Your stay" aside repeats the same lines.
-    const priceBlock = page.locator("form").filter({ has: confirm });
+    const priceBlock = page.locator("form").filter({ has: page.locator('button[type="submit"].g-btn-gold') });
     await expect(priceBlock.getByTestId("price-addon")).toHaveCount(2);
     await expect(priceBlock.getByText("APEX Zipline × 2", { exact: true })).toBeVisible();
     await expect(priceBlock.getByText(/4WD transfer up — Birkat Al Mouz to the hotel × 1/)).toBeVisible();
@@ -235,14 +235,14 @@ test.describe("guest booking", () => {
   });
 
   test("APEX Zipline page, home add-on cards and the transfers policy render from the catalogue", async ({ page }) => {
-    await page.goto("/en");
+    await page.goto("/en", { waitUntil: "domcontentloaded" });
     const addonsSection = page.locator("section").filter({ has: page.getByRole("heading", { name: "Two things worth booking with your room" }) });
     await expect(addonsSection).toBeVisible();
     await expect(addonsSection.getByText("OMR 5 per rider")).toBeVisible();
     await expect(addonsSection.getByText("OMR 15 per car")).toBeVisible();
     await expect(addonsSection.getByRole("link", { name: "How transfers work" })).toHaveAttribute("href", /\/en\/policies#transfers$/);
     await addonsSection.getByRole("link", { name: "About the zipline" }).click();
-    await page.waitForURL(/\/en\/apex-zipline$/);
+    await page.waitForURL(/\/en\/apex-zipline$/, { waitUntil: "domcontentloaded" });
 
     await expect(page.getByRole("heading", { level: 1, name: "310 metres over the canyon" })).toBeVisible();
     // The desktop nav is display:none on the mobile project, hence includeHidden.
@@ -262,7 +262,7 @@ test.describe("guest booking", () => {
     await expectNoRawKeys(page);
     await expect(page.getByRole("link", { name: "Add it when you book" })).toHaveAttribute("href", /\/en#availability$/);
 
-    await page.goto("/en/policies#transfers");
+    await page.goto("/en/policies#transfers", { waitUntil: "domcontentloaded" });
     const transfers = page.locator("article#transfers");
     await expect(transfers.getByRole("heading", { name: "Transfers & activities" })).toBeVisible();
     await expect(transfers.getByText(/not allowed past the Birkat Al Mouz police checkpoint/)).toBeVisible();
@@ -272,7 +272,8 @@ test.describe("guest booking", () => {
     await expect(transfers.getByText(/Cancelling a booking cancels its add-ons too/)).toBeVisible();
 
     // Arabic page: RTL, Arabic copy, Latin digits.
-    await page.goto("/ar/apex-zipline");
+    // domcontentloaded: the first hit of a large hero image can take >60 s to optimise in a cold sandbox.
+    await page.goto("/ar/apex-zipline", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("310");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/[؀-ۿ]/);

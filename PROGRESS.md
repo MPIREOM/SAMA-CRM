@@ -12,3 +12,9 @@ Branch: `feat/booking-site` (based on `claude/hotel-crm-nextjs-obex8g`, the prod
 - [x] Phase 5 — polish: responsive staff shell, pluralisation, a11y, default language, HANDOFF.md (17:10 UTC)
 - [x] Phase 6 — QA pass 2: build, 115 unit, 17/17 e2e, mobile shell verified; real-DB RLS check → migration 0008 (17:35 UTC)
 - [ ] Phase 7 — push branch + PR + Vercel deploy + live smoke test — BLOCKED on repository push authorisation; git bundle + HANDOFF delivered to the owner (OneDrive Website/booking-site-build). Resume: `git push origin feat/booking-site`, open PR into claude/hotel-crm-nextjs-obex8g, then run HANDOFF §9 checks.
+
+## 8 September 2026 — owner change requests
+- [x] New room + facility photos processed and mapped (migration 0009)
+- [x] Room counts removed from home copy (EN/AR)
+- [x] Add-ons: APEX Zipline + 4WD transfers — schema (0010), quote/create RPCs verified on the live DB, guest flow, APEX page, emails, back-office `/addons`, reservation add-on lines, dashboard/list/CSV, emulator, 20/20 e2e
+- [ ] Push + deploy (still blocked on repository authorisation) — bundle refreshed in OneDrive Website/booking-site-build

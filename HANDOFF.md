@@ -1,6 +1,6 @@
 # HANDOFF — Sama Hotel direct-booking website + back-office
 
-_Built 7 September 2026 on top of the existing SAMA CRM. Read this first, then `docs/qa-report.md` and `DECISIONS.md`._
+_Built 7–8 September 2026 on top of the existing SAMA CRM. Read this first, then `docs/qa-report.md` and `DECISIONS.md`._
 
 ## 1. Where things are
 
@@ -9,7 +9,7 @@ _Built 7 September 2026 on top of the existing SAMA CRM. Read this first, then `
 | Guest site (EN) | `https://sama-crm.vercel.app/en` → later `https://book.samahotel.net/en` | `/` redirects to `/en` or `/ar` by browser language |
 | Guest site (AR) | `…/ar` | Full RTL |
 | Staff back-office | `https://sama-crm.vercel.app/login` → `/dashboard` | Same login as the CRM. Your existing `super_admin` account works; `reservation_desk` users see a reduced menu |
-| Supabase project | `sama-crm` (`vsxesrhoovabgsmvodvh`) | Migrations `0005`–`0008` are **already applied** |
+| Supabase project | `sama-crm` (`vsxesrhoovabgsmvodvh`) | Migrations `0005`–`0010` are **already applied** |
 | Code | GitHub `MPIREOM/SAMA-CRM`, branch `feat/booking-site` | Production branch is `claude/hotel-crm-nextjs-obex8g` — merge the PR to go live |
 
 **Deployment status:** see section 9 — the branch could not be pushed from the build sandbox (repository not authorised for push). Everything else is ready.
@@ -20,6 +20,7 @@ _Built 7 September 2026 on top of the existing SAMA CRM. Read this first, then `
 - **Booking engine (Postgres):** per-night availability across 60 rooms, rate plans (seasonal / weekend / min-stay / priority), stop-sell, blocks, itemised OMR pricing (service 8 %, tourism 4 %, VAT 5 %, 3-decimal rounding), promo codes (`SAMA10`), double-booking protection with a per-room-type lock, booking references `SAMA-YY-XXXXXX`.
 - **CRM integration:** every booking creates/updates the guest in CRM `contacts` and mirrors into CRM `bookings` (same reference), so the WhatsApp inbox, birthday and win-back automations keep working. Guest messages appear in the inbox thread.
 - **Messaging:** confirmation (immediately), pre-arrival guide (3 days before, 10:00), post-stay review (1 day after check-out, 11:00) — by **email (Resend)** and **WhatsApp (Meta templates)** in the guest's language; retries with back-off; delivery receipts from Meta update the log; global on/off per channel; "send me a test" in `/messaging`.
+- **Add-ons (8 Sept):** guests can add **APEX Zipline** (OMR 5 per rider for hotel guests) and **4WD transfers** up from / down to the Birkat Al Mouz checkpoint (OMR 15 per car each way, up to 4 guests) on the review step; lines appear in the quote, confirmation, manage page and emails; staff see them on the reservation (with Confirm / Done / Cancel), on the dashboard arrivals ("4WD pickup"), in the list filter and in the CSV. Catalogue managed in `/addons` (prices, texts, active). Dedicated page `/en/apex-zipline` and a "Two things worth booking with your room" section on the home page.
 - **Back-office:** dashboard (arrivals, departures, in-house, occupancy), tape-chart calendar (rooms × nights, click to book/block, assign/move rooms), reservations list + detail (edit, change dates with re-check, check-in/out, no-show, cancel, resend confirmation, message timeline), walk-in/phone bookings, rooms & room types (incl. photo upload), rates (base rates, plans, month grid, bulk set, stop-sell), blocks, messaging queue + log + previews, settings (taxes, times, cancellation text, contacts, review links, promo codes, schedule), audit log, CSV export. Works on phone/tablet (drawer menu) and desktop.
 - **Tests:** 115 unit tests (pricing, dates, templates, dispatcher, schemas, tape-chart maths) and a 17-scenario Playwright suite (EN/AR booking, sold-out/min-stay, race, staff flows, cron auth, middleware). Lighthouse mobile on `/en`: Performance 85 · Accessibility 100 · Best practices 100 · SEO 100.
 
@@ -30,6 +31,8 @@ _Built 7 September 2026 on top of the existing SAMA CRM. Read this first, then `
 | **Room counts per type** | Placeholder split 14 / 14 / 14 / 8 / 5 / 5 (only "60 total" and "14 chalets" are confirmed) | `/rooms` → Rooms tab: rename/re-type rooms to match the real inventory |
 | **Rates** | Placeholders OMR 50 / 55 / 65 / 70 / 85 / 95, weekend (Thu+Fri) +20 % | `/rates` → set real base rates and seasons |
 | **Room photos** | Real photos but thin: Sama Suites reuse Deluxe shots, Deluxe Mountain View reuses the twin-bed shot | `/rooms` → Room types → upload real photos (stored in Supabase Storage `bk-room-images`) |
+| **Transfer price** | OMR 15 per car each way is a placeholder | `/addons` → edit "4WD transfer up/down" |
+| **APEX photos** | The APEX page and add-on card use hotel aerial photos | `/addons` → image path, or drop photos into `public/images/addons/` |
 | **Review links** | Empty | `/settings` → Reviews: paste the Google "write a review" short link (g.page/r/…) and TripAdvisor |
 | **Cancellation policy text** | Sensible default (48 h, first night charged) | `/settings` → Cancellation |
 | **Children pricing** | Children are free up to the room's max (extra bed OMR 10 is text only) | Policy decision; can be added as a rate rule later |
@@ -108,7 +111,7 @@ npm run test                 # unit tests
 npm run e2e:local            # full e2e against the in-memory Supabase emulator (no credentials needed)
 npm run build && npm run start
 ```
-Migrations live in `supabase/migrations/` (`0005_booking_engine.sql`, `0006_booking_seed.sql`, `0007_booking_dispatch_cron.sql`, `0008_booking_grants_hardening.sql`). Never change the database by hand — add `0009_…sql` and apply with `supabase db push` or the SQL editor. Regenerate types with `supabase gen types typescript --project-id vsxesrhoovabgsmvodvh > src/lib/database.types.ts` (keep the alias block at the bottom).
+Migrations live in `supabase/migrations/` (`0005_booking_engine.sql` … `0010_booking_addons.sql`). Never change the database by hand — add `0011_…sql` and apply with `supabase db push` or the SQL editor. Regenerate types with `supabase gen types typescript --project-id vsxesrhoovabgsmvodvh > src/lib/database.types.ts` (keep the alias block at the bottom).
 
 ## 11. Staff — first 10 minutes
 
@@ -117,6 +120,7 @@ Migrations live in `supabase/migrations/` (`0005_booking_engine.sql`, `0006_book
 3. **Phone booking:** `/reservations` → New booking → type, dates, guest phone (+968 default) → the quote updates live → Confirm. The guest gets the confirmation at once.
 4. **Resend a confirmation:** open the reservation → "Resend" (email / WhatsApp).
 5. **Check-in / check-out:** from the calendar bar drawer or the reservation page.
+5b. **Add-ons:** on a reservation, confirm the zipline / transfer request once APEX or the driver is booked; the dashboard shows "4WD pickup" on arrivals so the desk knows who to collect at the checkpoint.
 6. **See what was sent:** `/messaging` (queue + log) or the guest's thread in the WhatsApp inbox.
 
 ## 12. Files worth knowing

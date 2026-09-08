@@ -11,7 +11,8 @@ import { APEX_SLUG, formatRate, localizeAddon, n, type LocalizedAddon } from "@/
 // APEX Zipline — the activity add-on guests can book with their stay.
 // Copy, price and the stat strip come from the bk_addons record; the
 // published facts below are the fallback when the catalogue is unavailable.
-export const revalidate = 600;
+// Rendered per request: prices come from bk_addons and must never be frozen at build time.
+export const dynamic = "force-dynamic";
 
 const APEX_IMAGE = "/images/addons/apex-zipline.jpg";
 const APEX_WEBSITE = "https://www.apexzipline.com";

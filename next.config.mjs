@@ -9,7 +9,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    formats: ["image/avif", "image/webp"],
+    // WebP only: AVIF encodes 5–10× slower on first hit for little gain on photos this size.
+    formats: ["image/webp"],
     remotePatterns: [
       // Room images uploaded from the back-office (Supabase Storage bucket bk-room-images).
       { protocol: "https", hostname: "vsxesrhoovabgsmvodvh.supabase.co", pathname: "/storage/v1/object/public/**" },

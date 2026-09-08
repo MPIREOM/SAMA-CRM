@@ -9,7 +9,8 @@ import { pageMetadata } from "@/components/guest/metadata";
 import { APEX_SLUG, TRANSFER_UP_SLUG, formatRate, localizeAddon, n, pct, type LocalizedAddon } from "@/components/guest/lib";
 
 // Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
-export const revalidate = 600;
+// Rendered per request: prices come from bk_addons and must never be frozen at build time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
