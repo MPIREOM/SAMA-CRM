@@ -11,7 +11,7 @@ export const revalidate = 600;
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   const t = await getTranslations({ locale, namespace: "meta" });
-  return pageMetadata({ locale, path: "/the-peek", title: t("peekTitle"), description: t("peekDescription"), image: "/images/hotel/terrace-sunset.jpg" });
+  return pageMetadata({ locale, path: "/the-peek", title: t("peekTitle"), description: t("peekDescription"), image: "/images/hotel/peek-4.jpg" });
 }
 
 export default async function ThePeekPage({ params }: { params: { locale: string } }) {
@@ -23,7 +23,7 @@ export default async function ThePeekPage({ params }: { params: { locale: string
     <>
       <section className="relative">
         <div className="relative h-[52svh] min-h-[380px] w-full">
-          <Image src="/images/hotel/terrace-sunset.jpg" alt={t("imageAlt1")} fill priority sizes="100vw" className="object-cover object-center" />
+          <Image src="/images/hotel/peek-4.jpg" alt={t("imageAlt1")} fill priority sizes="100vw" className="object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-t from-maroon-950/80 via-maroon-950/20 to-transparent" aria-hidden="true" />
           <div className="g-container relative flex h-full flex-col justify-end pb-10">
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-gold-300 rtl:text-base rtl:tracking-normal">{t("eyebrow")}</p>
@@ -53,13 +53,13 @@ export default async function ThePeekPage({ params }: { params: { locale: string
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="relative col-span-2 aspect-[4/3] overflow-hidden rounded-3xl bg-stone-100">
-            <Image src="/images/hotel/terrace-evening.jpg" alt={t("imageAlt2")} fill sizes="(min-width: 1024px) 420px, 100vw" className="object-cover" />
+            <Image src="/images/hotel/peek-1.jpg" alt={t("imageAlt2")} fill sizes="(min-width: 1024px) 420px, 100vw" className="object-cover" />
           </div>
           <div className="relative aspect-square overflow-hidden rounded-3xl bg-stone-100">
-            <Image src="/images/hotel/courtyard.jpg" alt={t("imageAlt3")} fill sizes="(min-width: 1024px) 200px, 50vw" className="object-cover" />
+            <Image src="/images/hotel/peek-3.jpg" alt={t("imageAlt3")} fill sizes="(min-width: 1024px) 200px, 50vw" className="object-cover" />
           </div>
           <div className="relative aspect-square overflow-hidden rounded-3xl bg-stone-100">
-            <Image src="/images/hotel/viewpoint.jpg" alt="" fill sizes="(min-width: 1024px) 200px, 50vw" className="object-cover" />
+            <Image src="/images/hotel/terrace-sunset.jpg" alt="" fill sizes="(min-width: 1024px) 200px, 50vw" className="object-cover" />
           </div>
         </div>
       </section>

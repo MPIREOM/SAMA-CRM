@@ -40,7 +40,7 @@
   "home": {
     "heroEyebrow": "Jabal Al Akhdar · 2,000 m above the sea",
     "heroTitle": "A quiet stay at the edge of the canyon",
-    "heroSubtitle": "Sixty rooms, suites and chalets on Oman's Green Mountain — cool air, big skies and no online payment. Book direct and pay when you arrive.",
+    "heroSubtitle": "Rooms, suites and chalets on Oman's Green Mountain — cool air, big skies and no online payment. Book direct and pay when you arrive.",
     "heroImageAlt": "The canyon below Sama Hotel in Jabal Al Akhdar at golden hour",
     "highlightsEyebrow": "Why guests come back",
     "highlightsTitle": "The mountain does the rest",
@@ -68,7 +68,7 @@
     },
     "roomsEyebrow": "Stay",
     "roomsTitle": "Rooms, suites & chalets",
-    "roomsIntro": "Six ways to stay, from a deluxe room for two to a chalet with its own garden. Prices are per night, taxes shown separately.",
+    "roomsIntro": "From a deluxe room for two to a chalet with its own garden. Prices are per night, taxes shown separately.",
     "roomsUnavailable": "Room details are not available right now. Please call or WhatsApp us and we will help you book.",
     "viewAllRooms": "See all rooms",
     "facilitiesEyebrow": "Around the hotel",
@@ -78,7 +78,8 @@
       "restaurant": "Sama Restaurant, 06:00–22:00",
       "kids": "Children's park",
       "gym": "Fitness centre",
-      "majlis": "Traditional majlis"
+      "majlis": "Traditional majlis",
+      "peek": "The Peek coffee shop"
     },
     "locationEyebrow": "Getting here",
     "locationTitle": "About two hours from Muscat",
@@ -129,7 +130,7 @@
     "otherRooms": "Other rooms",
     "extraBedNote": "Extra bed on request: OMR {price} per night. Children under {age} stay free.",
     "taxesNote": "Prices per night before taxes. Service charge, tourism fee and VAT are shown as separate lines when you book.",
-    "chaletsNote": "We have 14 chalets set in a private garden by the pool."
+    "chaletsNote": "Our chalets are set in a private garden by the pool."
   },
   "search": {
     "eyebrow": "Availability",

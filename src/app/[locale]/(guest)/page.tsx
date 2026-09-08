@@ -26,10 +26,11 @@ export async function generateMetadata({ params }: { params: { locale: string } 
 }
 
 const FACILITIES = [
-  { key: "pool", src: "/images/hotel/pool-morning.jpg" },
-  { key: "restaurant", src: "/images/hotel/restaurant.jpg" },
-  { key: "kids", src: "/images/hotel/kids-park.jpg" },
+  { key: "pool", src: "/images/hotel/pool-wide.jpg" },
+  { key: "restaurant", src: "/images/hotel/restaurant-new.jpg" },
+  { key: "kids", src: "/images/hotel/kids-park-new.jpg" },
   { key: "gym", src: "/images/hotel/gym.jpg" },
+  { key: "peek", src: "/images/hotel/peek-4.jpg" },
   { key: "majlis", src: "/images/hotel/majlis.jpg" },
 ] as const;
 
@@ -199,13 +200,13 @@ export default async function HomePage({ params }: { params: { locale: string } 
             {t("facilitiesTitle")}
           </h2>
         </div>
-        <ul className="g-container mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-thin lg:grid lg:grid-cols-5 lg:overflow-visible">
+        <ul className="g-container mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-thin lg:grid lg:grid-cols-6 lg:overflow-visible">
           {FACILITIES.map(({ key, src }) => (
             <li key={key} className="w-[72vw] shrink-0 snap-start sm:w-[44vw] lg:w-auto">
               <figure>
                 <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100">
                   {/* The figcaption carries the name — an identical alt would be read twice. */}
-                  <Image src={src} alt="" fill sizes="(min-width: 1024px) 220px, 72vw" className="object-cover" />
+                  <Image src={src} alt="" fill sizes="(min-width: 1024px) 190px, 72vw" className="object-cover" />
                 </div>
                 <figcaption className="mt-3 text-sm font-bold text-maroon-800">{t(`facilities.${key}`)}</figcaption>
               </figure>
@@ -217,7 +218,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
       {/* Location ---------------------------------------------------------- */}
       <section className="g-container grid items-center gap-10 pt-20 sm:pt-24 lg:grid-cols-2 lg:gap-16" aria-labelledby="home-location">
         <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-stone-100 lg:order-2">
-          <Image src="/images/hotel/aerial.jpg" alt="" fill sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" />
+          <Image src="/images/hotel/aerial-canyon-pool.jpg" alt="" fill sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" />
         </div>
         <div className="lg:order-1">
           <p className="g-eyebrow">{t("locationEyebrow")}</p>

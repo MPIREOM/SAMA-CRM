@@ -72,10 +72,10 @@ export default async function ContactPage({ params }: { params: { locale: string
 
       <div className="grid grid-cols-2 gap-4 lg:pt-14">
         <div className="relative col-span-2 aspect-[16/10] overflow-hidden rounded-3xl bg-stone-100">
-          <Image src="/images/hotel/entrance.jpg" alt="" fill priority sizes="(min-width: 1024px) 520px, 100vw" className="object-cover" />
+          <Image src="/images/hotel/hotel-pool.jpg" alt="" fill priority sizes="(min-width: 1024px) 520px, 100vw" className="object-cover" />
         </div>
         <div className="relative aspect-square overflow-hidden rounded-3xl bg-stone-100">
-          <Image src="/images/hotel/lobby.jpg" alt="" fill sizes="(min-width: 1024px) 250px, 50vw" className="object-cover" />
+          <Image src="/images/hotel/chalets-courtyard.jpg" alt="" fill sizes="(min-width: 1024px) 250px, 50vw" className="object-cover" />
         </div>
         <div className="relative aspect-square overflow-hidden rounded-3xl bg-stone-100">
           <Image src="/images/hotel/sign-sunset.jpg" alt="" fill sizes="(min-width: 1024px) 250px, 50vw" className="object-cover" />

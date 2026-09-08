@@ -70,7 +70,7 @@ export function localizeRoom(rt: BkRoomType, locale: Locale): LocalizedRoom {
     maxAdults: rt.max_adults,
     maxChildren: rt.max_children,
     baseRate: Number(rt.base_rate_omr),
-    images: Array.isArray(rt.images) && rt.images.length > 0 ? rt.images : ["/images/hotel/hotel-building.jpg"],
+    images: Array.isArray(rt.images) && rt.images.length > 0 ? rt.images : ["/images/hotel/hotel-pool.jpg"],
     amenities: roomAmenities(rt),
   };
 }
