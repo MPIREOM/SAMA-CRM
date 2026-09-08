@@ -22,6 +22,7 @@ export function ManageBooking({
   hoursBefore,
   whatsapp,
   phone,
+  hasAddons = false,
   action,
 }: {
   bookingRef: string;
@@ -33,6 +34,8 @@ export function ManageBooking({
   hoursBefore: number;
   whatsapp: string;
   phone: string;
+  /** Add-ons (zipline, transfers) are cancelled together with the room. */
+  hasAddons?: boolean;
   action: (prev: CancelState, formData: FormData) => Promise<CancelState>;
 }) {
   const t = useTranslations("manage");
@@ -133,6 +136,7 @@ export function ManageBooking({
             </h2>
             <p id={`${uid}-body`} className="mt-2 text-sm leading-relaxed text-maroon-800">
               {t("cancelBody", { dates: datesLabel })}
+              {hasAddons && <span className="mt-1.5 block">{t("cancelAddonsNote")}</span>}
             </p>
             <form action={formAction} className="mt-5">
               <input type="hidden" name="ref" value={bookingRef} />

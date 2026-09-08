@@ -6,10 +6,11 @@ import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getBookingByRef, type BookingWithRelations } from "@/lib/bk/bookings";
 import { verifyBookingToken } from "@/lib/booking-engine/tokens";
 import { logger } from "@/lib/logger";
+import { BookingAddons } from "@/components/guest/booking-addons";
 import { BookingDetails } from "@/components/guest/booking-details";
 import { safePublicSettings } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
-import { prettyPhone, telLink, waLink } from "@/components/guest/lib";
+import { TRANSFER_UP_SLUG, hasAddon, prettyPhone, telLink, waLink } from "@/components/guest/lib";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,9 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   const cancelled = booking.status === "cancelled" || booking.status === "no_show";
   const icsHref = `/api/bk/ics/${encodeURIComponent(booking.ref)}?token=${encodeURIComponent(token ?? "")}&locale=${locale}`;
+  const addons = booking.addons ?? [];
+  const transferUp = !cancelled && hasAddon(addons, TRANSFER_UP_SLUG);
+  const nextSteps = [t("next1"), ...(transferUp ? [t("nextTransfer")] : []), t("next2"), t("next3")];
 
   return (
     <div className="g-container max-w-4xl pt-12 sm:pt-16">
@@ -112,6 +116,8 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
         <BookingDetails booking={booking} settings={settings} locale={locale} />
       </div>
 
+      {addons.length > 0 && <BookingAddons addons={addons} locale={locale} className="mt-6" />}
+
       {!cancelled && (
         <>
           <section className="mt-10" aria-labelledby="what-next">
@@ -119,7 +125,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
               {t("whatNext")}
             </h2>
             <ol className="mt-5 space-y-4">
-              {[t("next1"), t("next2"), t("next3")].map((text, i) => (
+              {nextSteps.map((text, i) => (
                 <li key={i} className="flex gap-4">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-extrabold text-gold-100 tabular-nums">{i + 1}</span>
                   <p className="pt-1 text-maroon-800">{text}</p>
@@ -128,11 +134,16 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
             </ol>
           </section>
 
-          <div className="mt-8 flex items-start gap-4 rounded-2xl border border-gold-300 bg-gold-50 p-5">
-            <Car className="mt-0.5 h-6 w-6 shrink-0 text-gold-700" aria-hidden="true" />
+          <div className={transferUp ? "mt-8 flex items-start gap-4 rounded-2xl border-2 border-jabal-600 bg-jabal-50 p-5" : "mt-8 flex items-start gap-4 rounded-2xl border border-gold-300 bg-gold-50 p-5"}>
+            <Car className={transferUp ? "mt-0.5 h-6 w-6 shrink-0 text-jabal-700" : "mt-0.5 h-6 w-6 shrink-0 text-gold-700"} aria-hidden="true" />
             <div>
-              <h2 className="font-extrabold text-maroon-900">{t("fourWdTitle")}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-maroon-800">{t("fourWdBody")}</p>
+              <h2 className="font-extrabold text-maroon-900">{transferUp ? t("transferBookedTitle") : t("fourWdTitle")}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-maroon-800">{transferUp ? t("transferBookedBody") : t("fourWdBody")}</p>
+              {!transferUp && (
+                <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-link mt-2 inline-block text-sm">
+                  {t("transferLink")}
+                </Link>
+              )}
             </div>
           </div>
 

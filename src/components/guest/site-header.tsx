@@ -11,6 +11,7 @@ import { LanguageSwitcher } from "./language-switcher";
 const NAV = [
   { href: "/rooms", key: "rooms" },
   { href: "/the-peek", key: "peek" },
+  { href: "/apex-zipline", key: "apex" },
   { href: "/contact", key: "contact" },
 ] as const;
 

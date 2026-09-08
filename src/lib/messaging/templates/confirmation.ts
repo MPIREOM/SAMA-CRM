@@ -3,16 +3,19 @@ import { formatOmr } from "@/lib/booking-engine/pricing";
 import type { BuiltMessage, Locale, TemplateContext } from "../types";
 import { renderEmail, type Block } from "./email-shell";
 import {
+  addonItemRows,
   bookingSummaryRows,
   contactsBlock,
   emailFooter,
   friendlyTime,
   guestName,
+  hasTransferUp,
   hotelName,
   longDate,
   nightsOf,
   pick,
   roomName,
+  transferUpLine,
 } from "./shared";
 import { cleanParam, DEFAULT_TEMPLATE_NAMES, renderWhatsAppBody } from "./whatsapp-bodies";
 
@@ -70,6 +73,8 @@ function itemisedRows(ctx: TemplateContext, locale: Locale): Block {
       value: `OMR ${formatOmr(b.vat_omr)}`,
     });
   }
+  // Add-ons are not taxed: they follow the tax lines with their own subtotal.
+  rows.push(...addonItemRows(ctx, locale));
   rows.push({
     label: pick(locale, { en: "Total", ar: "الإجمالي" }),
     value: `OMR ${formatOmr(b.total_omr)}`,
@@ -100,6 +105,8 @@ export function buildConfirmation(ctx: TemplateContext, locale: Locale): BuiltMe
 
   const details = bookingSummaryRows(ctx, locale);
   details.push({ label: pick(locale, { en: "Guests", ar: "الضيوف" }), value: guestsLine });
+  const transferUp = hasTransferUp(ctx);
+  const pickup = transferUp ? ` ${transferUpLine(locale)}` : "";
   if (b.special_requests && b.special_requests.trim()) {
     details.push({
       label: pick(locale, { en: "Special requests", ar: "طلبات خاصة" }),
@@ -138,8 +145,8 @@ export function buildConfirmation(ctx: TemplateContext, locale: Locale): BuiltMe
     {
       type: "paragraph",
       text: pick(locale, {
-        en: `**What happens next?** We'll message you ${days} ${days === 1 ? "day" : "days"} before arrival with directions and mountain tips (a 4WD is required for the climb). Check-in is from ${checkInTime}. Reply to our WhatsApp message anytime — a real person answers.`,
-        ar: `**ما الخطوة التالية؟** سنراسلكم قبل الوصول بـ ${days} ${days === 1 ? "يوم" : "أيام"} بالاتجاهات وإرشادات الجبل (يلزم سيارة دفع رباعي للصعود). تسجيل الوصول من الساعة ${checkInTime}. راسلونا على واتساب في أي وقت — يرد عليكم فريقنا شخصياً.`,
+        en: `**What happens next?** We'll message you ${days} ${days === 1 ? "day" : "days"} before arrival with directions and mountain tips${transferUp ? "" : " (a 4WD is required for the climb)"}.${pickup} Check-in is from ${checkInTime}. Reply to our WhatsApp message anytime — a real person answers.`,
+        ar: `**ما الخطوة التالية؟** سنراسلكم قبل الوصول بـ ${days} ${days === 1 ? "يوم" : "أيام"} بالاتجاهات وإرشادات الجبل${transferUp ? "" : " (يلزم سيارة دفع رباعي للصعود)"}.${pickup} تسجيل الوصول من الساعة ${checkInTime}. راسلونا على واتساب في أي وقت — يرد عليكم فريقنا شخصياً.`,
       }),
     },
     {

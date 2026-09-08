@@ -7,10 +7,11 @@ import { getBookingByRef } from "@/lib/bk/bookings";
 import { getPublicSettings } from "@/lib/bk/settings";
 import { verifyBookingToken } from "@/lib/booking-engine/tokens";
 import { formatLongDate } from "@/lib/booking-engine/dates";
+import { BookingAddons } from "@/components/guest/booking-addons";
 import { BookingDetails } from "@/components/guest/booking-details";
 import { ManageBooking } from "@/components/guest/manage-booking";
 import { pageMetadata } from "@/components/guest/metadata";
-import { canCancelOnline, cancellationDeadline, formatMuscatDateTime } from "@/components/guest/lib";
+import { canCancelOnline, cancellationDeadline, formatMuscatDateTime, liveBookingAddons } from "@/components/guest/lib";
 import { requestCancellationAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,8 @@ export default async function ManagePage({ params, searchParams }: Props) {
         <BookingDetails booking={booking} settings={settings} locale={locale} />
       </div>
 
+      {(booking.addons?.length ?? 0) > 0 && <BookingAddons addons={booking.addons ?? []} locale={locale} className="mt-6" />}
+
       <section className="mt-8" aria-label={t("requestCancel")}>
         <ManageBooking
           bookingRef={booking.ref}
@@ -74,6 +77,7 @@ export default async function ManagePage({ params, searchParams }: Props) {
           hoursBefore={settings.cancellation.hours_before}
           whatsapp={settings.contact.whatsapp}
           phone={settings.contact.phone}
+          hasAddons={liveBookingAddons(booking.addons).length > 0}
           action={requestCancellationAction}
         />
       </section>

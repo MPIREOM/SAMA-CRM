@@ -1,6 +1,7 @@
-import type { BkRoomType } from "@/lib/database.types";
+import type { BkAddon, BkBookingAddon, BkRoomType } from "@/lib/database.types";
 import type { Locale } from "@/i18n/routing";
 import type { TaxSettings } from "@/lib/booking-engine/pricing";
+import type { QuoteAddonLine } from "@/lib/bk/types";
 import { hoursUntilCheckIn, muscatDateTime } from "@/lib/booking-engine/dates";
 
 // Client-safe helpers for the guest site (no server-only imports).
@@ -73,6 +74,119 @@ export function localizeRoom(rt: BkRoomType, locale: Locale): LocalizedRoom {
     images: Array.isArray(rt.images) && rt.images.length > 0 ? rt.images : ["/images/hotel/hotel-pool.jpg"],
     amenities: roomAmenities(rt),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Add-ons (APEX Zipline, 4WD transfers)
+// ---------------------------------------------------------------------------
+
+export type AddonKind = "activity" | "transfer" | "other";
+export type AddonUnit = "per_person" | "per_car" | "per_booking" | "per_night";
+export type AddonStatus = "requested" | "confirmed" | "done" | "cancelled";
+
+export const TRANSFER_UP_SLUG = "transfer-up";
+export const TRANSFER_DOWN_SLUG = "transfer-down";
+export const APEX_SLUG = "apex-zipline";
+
+export function asAddonKind(value: string): AddonKind {
+  return value === "activity" || value === "transfer" ? value : "other";
+}
+
+export function asAddonUnit(value: string): AddonUnit {
+  return value === "per_car" || value === "per_booking" || value === "per_night" ? value : "per_person";
+}
+
+export function asAddonStatus(value: string): AddonStatus {
+  return value === "confirmed" || value === "done" || value === "cancelled" ? value : "requested";
+}
+
+/** Message key under `addons.unit` for the price suffix ("per rider", "per car" …). */
+export function addonUnitKey(unit: AddonUnit, kind: AddonKind): "per_rider" | "per_person" | "per_car" | "per_booking" | "per_night" {
+  if (unit === "per_person") return kind === "activity" ? "per_rider" : "per_person";
+  return unit;
+}
+
+export type LocalizedAddon = {
+  id: string;
+  slug: string;
+  kind: AddonKind;
+  name: string;
+  tagline: string;
+  description: string;
+  price: number;
+  unit: AddonUnit;
+  maxQuantity: number;
+  requiresNote: boolean;
+  noteHint: string;
+  image: string;
+  details: Record<string, string | number>;
+};
+
+/** Pick the locale's copy from a bk_addons row (falls back to English). */
+export function localizeAddon(a: BkAddon, locale: Locale): LocalizedAddon {
+  const ar = locale === "ar";
+  const details: Record<string, string | number> = {};
+  if (a.details && typeof a.details === "object" && !Array.isArray(a.details)) {
+    for (const [k, v] of Object.entries(a.details)) {
+      if (typeof v === "string" || typeof v === "number") details[k] = v;
+    }
+  }
+  return {
+    id: a.id,
+    slug: a.slug,
+    kind: asAddonKind(a.kind),
+    name: (ar ? a.name_ar : a.name_en) || a.name_en,
+    tagline: (ar ? a.tagline_ar : a.tagline_en) ?? a.tagline_en ?? "",
+    description: (ar ? a.description_ar : a.description_en) ?? a.description_en ?? "",
+    price: Number(a.price_omr),
+    unit: asAddonUnit(a.unit),
+    maxQuantity: Math.max(1, Number(a.max_quantity) || 1),
+    requiresNote: Boolean(a.requires_note),
+    noteHint: (ar ? a.note_hint_ar : a.note_hint_en) ?? a.note_hint_en ?? "",
+    image: a.image || (a.kind === "transfer" ? "/images/addons/transfer.jpg" : "/images/addons/apex-zipline.jpg"),
+    details,
+  };
+}
+
+/** One add-on line as the price summary renders it. */
+export interface AddonPriceLine {
+  key: string;
+  name: string;
+  quantity: number;
+  total: number;
+}
+
+/** Add-on lines of a live quote (bk_quote → `addons`). */
+export function quoteAddonLines(addons: QuoteAddonLine[], locale: Locale): AddonPriceLine[] {
+  return addons
+    .filter((a) => a.quantity > 0)
+    .map((a) => ({
+      key: a.slug,
+      name: (locale === "ar" ? a.name_ar : a.name_en) || a.name_en,
+      quantity: a.quantity,
+      total: a.total,
+    }));
+}
+
+export type BookingAddonRow = BkBookingAddon & { addon: BkAddon | null };
+
+/** Add-on rows of a stored booking that still count towards the bill. */
+export function liveBookingAddons<T extends { status: string }>(addons: T[] | undefined | null): T[] {
+  return (addons ?? []).filter((a) => a.status !== "cancelled");
+}
+
+/** Add-on lines of a stored booking (bk_booking_addons with the catalogue row). */
+export function bookingAddonLines(addons: BookingAddonRow[] | undefined | null, locale: Locale): AddonPriceLine[] {
+  return liveBookingAddons(addons).map((a) => ({
+    key: a.id,
+    name: a.addon ? localizeAddon(a.addon, locale).name : a.addon_id,
+    quantity: Number(a.quantity),
+    total: Number(a.total_omr),
+  }));
+}
+
+export function hasAddon(addons: BookingAddonRow[] | undefined | null, slug: string): boolean {
+  return liveBookingAddons(addons).some((a) => a.addon?.slug === slug);
 }
 
 /** Whole OMR when the rate is round, otherwise 3 dp — for "from OMR 50/night". */

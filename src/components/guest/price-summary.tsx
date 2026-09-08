@@ -4,10 +4,12 @@ import type { Locale } from "@/i18n/routing";
 import { formatLongDate } from "@/lib/booking-engine/dates";
 import { formatOmr, type TaxSettings } from "@/lib/booking-engine/pricing";
 import { cn } from "@/lib/utils";
-import { pct } from "./lib";
+import { n, pct, type AddonPriceLine } from "./lib";
 
 // Itemised quote table. Works in server and client components (useTranslations
 // is isomorphic). Tax percentages come from settings so labels stay honest.
+// Add-ons (APEX Zipline, transfers) are not taxed, so they sit after the tax
+// lines with their own "paid at the hotel" subtotal, right above the total.
 
 export interface PriceLines {
   nightly: { date: string; rate: number }[];
@@ -18,6 +20,8 @@ export interface PriceLines {
   tourism_fee: number;
   vat: number;
   total: number;
+  addons?: AddonPriceLine[];
+  addons_total?: number;
 }
 
 export function PriceSummary({
@@ -36,9 +40,12 @@ export function PriceSummary({
   compact?: boolean;
 }) {
   const t = useTranslations("search");
+  const ta = useTranslations("addons");
   const tc = useTranslations("common");
   const discount = quote.discount ?? 0;
   const discountPct = quote.discount_pct ?? 0;
+  const addons = quote.addons ?? [];
+  const addonsTotal = quote.addons_total ?? addons.reduce((s, a) => s + a.total, 0);
 
   return (
     <div className={cn("text-sm text-maroon-800", className)}>
@@ -71,6 +78,16 @@ export function PriceSummary({
           <Row label={t("tourismFee", { pct: pct(taxes.tourism_fee_pct) })} value={quote.tourism_fee} muted />
         )}
         {(taxes.vat_enabled || quote.vat > 0) && <Row label={t("vat", { pct: pct(taxes.vat_pct) })} value={quote.vat} muted />}
+        {addons.map((a, i) => (
+          <Row
+            key={a.key}
+            label={ta("priceLine", { name: a.name, qty: n(a.quantity) })}
+            value={a.total}
+            className={i === 0 ? "border-t border-dashed border-stone-200 pt-1.5" : undefined}
+            testId="price-addon"
+          />
+        ))}
+        {addons.length > 0 && <Row label={ta("subtotal")} value={addonsTotal} muted testId="price-addons-subtotal" />}
         <div className="flex items-baseline justify-between gap-3 border-t border-stone-200 pt-2.5">
           <dt className="text-base font-extrabold text-maroon-900">{t("total")}</dt>
           <dd dir="ltr" className="text-xl font-extrabold text-maroon-900">
@@ -78,17 +95,31 @@ export function PriceSummary({
           </dd>
         </div>
       </dl>
-      {!compact && <p className="mt-1.5 text-xs text-maroon-600">{t("totalHint")}</p>}
+      {!compact && <p className="mt-1.5 text-xs text-maroon-600">{addons.length > 0 ? ta("totalHint") : t("totalHint")}</p>}
     </div>
   );
 }
 
-function Row({ label, value, muted, accent }: { label: string; value: number; muted?: boolean; accent?: boolean }) {
+function Row({
+  label,
+  value,
+  muted,
+  accent,
+  className,
+  testId,
+}: {
+  label: string;
+  value: number;
+  muted?: boolean;
+  accent?: boolean;
+  className?: string;
+  testId?: string;
+}) {
   const tc = useTranslations("common");
   return (
-    <div className="flex items-baseline justify-between gap-3">
+    <div className={cn("flex items-baseline justify-between gap-3", className)} data-testid={testId}>
       <dt className={cn(muted ? "text-maroon-600" : "text-maroon-800", accent && "font-semibold text-jabal-700")}>{label}</dt>
-      <dd dir="ltr" className={cn("font-semibold", accent && "text-jabal-700")}>
+      <dd dir="ltr" className={cn("shrink-0 font-semibold", accent && "text-jabal-700")}>
         {value < 0 ? `− ${tc("omrAmount", { amount: formatOmr(Math.abs(value)) })}` : tc("omrAmount", { amount: formatOmr(value) })}
       </dd>
     </div>

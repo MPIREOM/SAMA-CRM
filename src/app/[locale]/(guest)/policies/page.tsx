@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Baby, Ban, Car, CigaretteOff, Clock, Receipt, Wallet, XCircle } from "lucide-react";
-import { isLocale, type Locale } from "@/i18n/routing";
+import { ArrowRight, Baby, Ban, Car, CigaretteOff, Clock, Receipt, Sparkles, Wallet, XCircle } from "lucide-react";
+import { Link, isLocale, type Locale } from "@/i18n/routing";
+import { getAddons } from "@/lib/bk/catalogue";
+import { logger } from "@/lib/logger";
 import { safePublicSettings } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
-import { n, pct } from "@/components/guest/lib";
+import { APEX_SLUG, TRANSFER_UP_SLUG, formatRate, localizeAddon, n, pct, type LocalizedAddon } from "@/components/guest/lib";
 
 // Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
 export const revalidate = 600;
@@ -18,8 +20,22 @@ export async function generateMetadata({ params }: { params: { locale: string } 
 export default async function PoliciesPage({ params }: { params: { locale: string } }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [t, settings] = await Promise.all([getTranslations("policies"), safePublicSettings()]);
+  const [t, ta, tc, settings] = await Promise.all([getTranslations("policies"), getTranslations("addons"), getTranslations("common"), safePublicSettings()]);
   const { times, cancellation, booking, taxes } = settings;
+
+  // Transfer and zipline prices come from the catalogue; the section still renders without them.
+  let transfer: LocalizedAddon | null = null;
+  let apex: LocalizedAddon | null = null;
+  try {
+    const addons = (await getAddons()).map((a) => localizeAddon(a, locale));
+    transfer = addons.find((a) => a.slug === TRANSFER_UP_SLUG) ?? null;
+    apex = addons.find((a) => a.slug === APEX_SLUG) ?? null;
+  } catch (err) {
+    logger.warn("guest.policies", "add-ons unavailable", { error: err instanceof Error ? err.message : String(err) });
+  }
+  const omr = (value: number) => tc("omrAmount", { amount: formatRate(value) });
+  const maxGuests = typeof transfer?.details.max_guests_per_car === "number" ? transfer.details.max_guests_per_car : 4;
+  const maxWeight = typeof apex?.details.max_weight_kg === "number" ? apex.details.max_weight_kg : 120;
 
   const sections = [
     { Icon: Clock, title: t("checkTimesTitle"), body: t("checkTimesBody", { checkIn: times.check_in, checkOut: times.check_out }) },
@@ -34,6 +50,14 @@ export default async function PoliciesPage({ params }: { params: { locale: strin
       body: t("taxesBody", { service: pct(taxes.service_charge_pct), tourism: pct(taxes.tourism_fee_pct), vat: pct(taxes.vat_pct) }),
     },
     { Icon: Car, title: t("fourWdTitle"), body: t("fourWdBody") },
+  ];
+
+  const transferRules = [
+    ta("policy.checkpoint"),
+    transfer ? ta("policy.transferPriced", { price: omr(transfer.price), guests: n(maxGuests) }) : ta("policy.transfer", { guests: n(maxGuests) }),
+    apex ? ta("policy.apexPriced", { price: omr(apex.price), kg: n(maxWeight) }) : ta("policy.apex", { kg: n(maxWeight) }),
+    ta("policy.confirmation"),
+    ta("policy.cancellation"),
   ];
 
   return (
@@ -52,6 +76,33 @@ export default async function PoliciesPage({ params }: { params: { locale: strin
             <p className="mt-2 text-sm leading-relaxed text-maroon-800">{body}</p>
           </article>
         ))}
+
+        <article id="transfers" className="g-card scroll-mt-24 p-5 sm:col-span-2 sm:p-6" aria-labelledby="policies-transfers">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <h2 id="policies-transfers" className="g-h3 mt-4">
+            {ta("policy.title")}
+          </h2>
+          <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-maroon-800">
+            {transferRules.map((rule, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold-500" aria-hidden="true" />
+                <span>{rule}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/apex-zipline" className="g-btn-outline g-btn-sm">
+              {ta("policy.apexLink")}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+            </Link>
+            <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-primary g-btn-sm">
+              {ta("policy.bookLink")}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+            </Link>
+          </div>
+        </article>
       </div>
     </section>
   );

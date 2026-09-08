@@ -12,13 +12,16 @@ import { nightsBetween, type TaxSettings } from "@/lib/booking-engine/pricing";
 import type { QuoteResult } from "@/lib/bk/types";
 import { cn } from "@/lib/utils";
 import type { CreateBookingState, QuoteState } from "@/app/[locale]/(guest)/book/[slug]/actions";
-import { PriceSummary } from "./price-summary";
-import { n, waLink, type LocalizedRoom } from "./lib";
+import { AddonPicker, type AddonSelectionMap } from "./addon-picker";
+import { PriceSummary, type PriceLines } from "./price-summary";
+import { n, quoteAddonLines, waLink, type LocalizedAddon, type LocalizedRoom } from "./lib";
 import {
+  ADDON_NOTE_MAX,
   NATIONALITY_CODES,
   fieldErrors,
   guestDetailsSchema,
   searchParamsFor,
+  type AddonSelectionInput,
   type NationalityCode,
   type SearchQuery,
 } from "./schemas";
@@ -33,11 +36,16 @@ export interface BookingFlowProps {
   cancellationPolicy: string;
   maxAdvanceDays: number;
   whatsapp: string;
+  /** Active add-ons (APEX Zipline, transfers); empty when the catalogue is unavailable. */
+  addons: LocalizedAddon[];
   actions: {
     getQuote: (input: unknown) => Promise<QuoteState>;
     createBooking: (prev: CreateBookingState, formData: FormData) => Promise<CreateBookingState>;
   };
 }
+
+/** Debounce for re-quoting after a stepper click; the DB is the final authority anyway. */
+const QUOTE_DEBOUNCE_MS = 350;
 
 type Step = 1 | 2;
 
@@ -55,7 +63,7 @@ interface FormValues {
 
 const INITIAL_STATE: CreateBookingState = { error: null };
 
-export function BookingFlow({ locale, room, query, initialQuote, taxes, times, cancellationPolicy, maxAdvanceDays, whatsapp, actions }: BookingFlowProps) {
+export function BookingFlow({ locale, room, query, initialQuote, taxes, times, cancellationPolicy, maxAdvanceDays, whatsapp, addons, actions }: BookingFlowProps) {
   const t = useTranslations("booking");
   const tc = useTranslations("common");
   const uid = useId();
@@ -73,10 +81,13 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
     specialRequests: "",
     promoCode: "",
   });
+  const [addonSel, setAddonSel] = useState<AddonSelectionMap>({});
+  const [addonErrors, setAddonErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [quote, setQuote] = useState<QuoteResult>(initialQuote);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [quotedKey, setQuotedKey] = useState<string | null>(null);
   const [quoting, startQuote] = useTransition();
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -88,15 +99,26 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
     if (state.error === "validation" && state.fields) {
       setErrors(state.fields);
       if (state.fields.consent) setConsentError(true);
-      const onlyConsent = Object.keys(state.fields).every((k) => k === "consent");
-      if (!onlyConsent) setStep(1);
+      const addonIssues = Object.fromEntries(
+        Object.entries(state.fields)
+          .filter(([k]) => k.startsWith("addon."))
+          .map(([k, v]) => [k.slice("addon.".length), t(`validation.${v}`)])
+      );
+      setAddonErrors(addonIssues);
+      const onlyReview = Object.keys(state.fields).every((k) => k === "consent" || k.startsWith("addon."));
+      if (!onlyReview) setStep(1);
     }
     if (state.error) topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [state]);
+  }, [state, t]);
 
   function update<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setDetails((d) => ({ ...d, [key]: value }));
     if (errors[key]) setErrors((e) => ({ ...e, [key]: "" }));
+  }
+
+  function updateAddon(slug: string, choice: { quantity: number; note: string }) {
+    setAddonSel((s) => ({ ...s, [slug]: choice }));
+    if (addonErrors[slug]) setAddonErrors((e) => ({ ...e, [slug]: "" }));
   }
 
   function toReview(e: FormEvent) {
@@ -111,28 +133,55 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
     }
     setErrors({});
     setStep(2);
+    // Always refresh the quote on entering the review step (availability may have moved).
+    setQuotedKey(null);
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const promo = parsed.data.promoCode;
-    startQuote(async () => {
-      const res = await actions.getQuote({
-        slug: room.slug,
-        checkin: query.checkin,
-        checkout: query.checkout,
-        adults: query.adults,
-        children: query.children,
-        promoCode: promo || undefined,
-      });
-      if (res.error) setQuoteError(res.error);
-      else {
-        setQuoteError(null);
-        setQuote(res.quote);
-      }
-    });
   }
 
   const steps = [t("steps.details"), t("steps.review"), t("steps.confirm")];
   const cleanPromo = details.promoCode.trim().toUpperCase();
   const visualStep = submitting ? 3 : step;
+
+  // What we send to bk_quote: promo + the add-ons with a quantity. Serialised
+  // so the effect below only re-quotes when something that affects the price changed.
+  const addonInputs: AddonSelectionInput[] = addons
+    .map((a) => ({ slug: a.slug, quantity: addonSel[a.slug]?.quantity ?? 0, note: (addonSel[a.slug]?.note ?? "").trim().slice(0, ADDON_NOTE_MAX) }))
+    .filter((a) => a.quantity > 0);
+  const quoteKey = JSON.stringify({ promo: cleanPromo, addons: addonInputs.map((a) => [a.slug, a.quantity]) });
+  const latest = useRef({ promo: cleanPromo, addons: addonInputs });
+  latest.current = { promo: cleanPromo, addons: addonInputs };
+
+  // Re-quote on entering the review step and (debounced) after every add-on
+  // change. The confirm button waits until the shown total matches the selection.
+  useEffect(() => {
+    if (step !== 2 || quotedKey === quoteKey) return;
+    const timer = setTimeout(
+      () => {
+        startQuote(async () => {
+          const res = await actions.getQuote({
+            slug: room.slug,
+            checkin: query.checkin,
+            checkout: query.checkout,
+            adults: query.adults,
+            children: query.children,
+            promoCode: latest.current.promo || undefined,
+            addons: latest.current.addons,
+          });
+          if (res.error) setQuoteError(res.error);
+          else {
+            setQuoteError(null);
+            setQuote(res.quote);
+          }
+          setQuotedKey(quoteKey);
+        });
+      },
+      quotedKey === null ? 0 : QUOTE_DEBOUNCE_MS
+    );
+    return () => clearTimeout(timer);
+  }, [step, quoteKey, quotedKey, actions, room.slug, query.checkin, query.checkout, query.adults, query.children]);
+
+  const quoteStale = quoting || quotedKey !== quoteKey;
+  const priceLines: PriceLines = { ...quote, addons: quoteAddonLines(quote.addons ?? [], locale), addons_total: quote.addons_total ?? 0 };
 
   return (
     <div ref={topRef} className="scroll-mt-24">
@@ -420,34 +469,42 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                 {t("editDetails")}
               </button>
 
+              {addons.length > 0 && (
+                <div className="mt-8">
+                  <AddonPicker addons={addons} selection={addonSel} onChange={updateAddon} errors={addonErrors} />
+                </div>
+              )}
+
               <section className="mt-8" aria-labelledby={`${uid}-price`}>
                 <h3 id={`${uid}-price`} className="g-h3 text-lg">
                   {t("priceDetails")}
                 </h3>
-                <div className="mt-3 min-h-[12rem]" aria-busy={quoting}>
-                  {quoting ? (
-                    <p className="flex items-center gap-2 text-sm text-maroon-700">
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                      {t("loadingQuote")}
-                    </p>
-                  ) : (
-                    <>
-                      {quoteError && (
-                        <p role="alert" className="mb-3 text-sm font-semibold text-crimson-700">
-                          {t(`errors.${quoteError === "unknown" ? "unknown" : "quote_failed"}`)}
-                        </p>
-                      )}
-                      {cleanPromo && quote.promo_valid && (
-                        <p className="mb-3 rounded-xl bg-jabal-50 px-3.5 py-2 text-sm font-semibold text-jabal-800">
-                          {t("promoApplied", { code: cleanPromo, pct: n(quote.discount_pct) })}
-                        </p>
-                      )}
-                      {cleanPromo && !quote.promo_valid && !quoteError && (
-                        <p className="mb-3 rounded-xl bg-gold-50 px-3.5 py-2 text-sm text-maroon-800">{t("promoInvalid", { code: cleanPromo })}</p>
-                      )}
-                      <PriceSummary quote={quote} taxes={taxes} locale={locale} breakdownOpen />
-                    </>
-                  )}
+                <div className="mt-3 min-h-[12rem]" aria-busy={quoteStale}>
+                  {/* While a re-quote is pending the last figures stay visible but dimmed, so a stepper click never blanks the table. */}
+                  <p className="flex min-h-5 items-center gap-2 text-sm text-maroon-700" aria-live="polite">
+                    {quoteStale && (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                        {t("loadingQuote")}
+                      </>
+                    )}
+                  </p>
+                  <div className={cn("mt-2 transition-opacity", quoteStale && "opacity-50")}>
+                    {quoteError && !quoteStale && (
+                      <p role="alert" className="mb-3 text-sm font-semibold text-crimson-700">
+                        {t(`errors.${quoteError === "unknown" ? "unknown" : "quote_failed"}`)}
+                      </p>
+                    )}
+                    {cleanPromo && quote.promo_valid && (
+                      <p className="mb-3 rounded-xl bg-jabal-50 px-3.5 py-2 text-sm font-semibold text-jabal-800">
+                        {t("promoApplied", { code: cleanPromo, pct: n(quote.discount_pct) })}
+                      </p>
+                    )}
+                    {cleanPromo && !quote.promo_valid && !quoteError && !quoteStale && (
+                      <p className="mb-3 rounded-xl bg-gold-50 px-3.5 py-2 text-sm text-maroon-800">{t("promoInvalid", { code: cleanPromo })}</p>
+                    )}
+                    <PriceSummary quote={priceLines} taxes={taxes} locale={locale} breakdownOpen />
+                  </div>
                 </div>
               </section>
 
@@ -502,7 +559,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                   <ArrowLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
                   {t("back")}
                 </button>
-                <ConfirmButton disabled={quoting} label={t("confirm")} pendingLabel={t("confirming")} />
+                <ConfirmButton disabled={quoteStale} label={t("confirm")} pendingLabel={t("confirming")} />
               </div>
               <PendingHint text={t("confirmingHint")} onPendingChange={setSubmitting} />
             </form>
@@ -540,7 +597,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                 </div>
               </dl>
               <div className="mt-4 border-t border-stone-200 pt-4">
-                <PriceSummary quote={quote} taxes={taxes} locale={locale} compact />
+                <PriceSummary quote={priceLines} taxes={taxes} locale={locale} compact />
               </div>
               <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-link mt-4 inline-block text-sm">
                 {t("changeDates")}

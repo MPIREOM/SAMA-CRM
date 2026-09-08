@@ -1,9 +1,13 @@
 // Helpers shared by the three template builders.
 import { formatLongDate } from "@/lib/booking-engine/dates";
-import { nightsBetween } from "@/lib/booking-engine/pricing";
+import { formatOmr, nightsBetween } from "@/lib/booking-engine/pricing";
+import type { BookingAddonWithAddon } from "@/lib/bk/bookings";
 import type { Locale, TemplateContext } from "../types";
 import type { Block } from "./email-shell";
 import { cleanParam } from "./whatsapp-bodies";
+
+export const TRANSFER_UP_SLUG = "transfer-up";
+export const TRANSFER_DOWN_SLUG = "transfer-down";
 
 export type Bilingual = { en: string; ar: string };
 
@@ -84,6 +88,65 @@ export function emailFooter(ctx: TemplateContext, locale: Locale): string[] {
       ar: "وصلتكم هذه الرسالة لأنكم قمتم بحجز إقامة لدينا.",
     }),
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Add-ons (APEX Zipline, 4WD transfers) — email content only; the WhatsApp
+// bodies are approved in Meta and the total there already includes them.
+// ---------------------------------------------------------------------------
+
+/** Add-on rows that still count (cancelled ones disappear from every email). */
+export function bookingAddons(ctx: TemplateContext): BookingAddonWithAddon[] {
+  return (ctx.booking.addons ?? []).filter((a) => a.status !== "cancelled");
+}
+
+export function addonName(row: BookingAddonWithAddon, locale: Locale): string {
+  const a = row.addon;
+  if (!a) return pick(locale, { en: "Add-on", ar: "خدمة إضافية" });
+  return cleanParam(locale === "ar" ? a.name_ar || a.name_en : a.name_en || a.name_ar);
+}
+
+/** "APEX Zipline × 2" (+ " — note" when the guest left one). */
+export function addonLineLabel(row: BookingAddonWithAddon, locale: Locale, withNote = true): string {
+  const base = `${addonName(row, locale)} × ${Number(row.quantity)}`;
+  const note = withNote && row.note ? cleanParam(row.note) : "";
+  return note ? `${base} — ${note}` : base;
+}
+
+export function hasTransferUp(ctx: TemplateContext): boolean {
+  return bookingAddons(ctx).some((a) => a.addon?.slug === TRANSFER_UP_SLUG);
+}
+
+/** Add-on lines + subtotal for the itemised table (empty when nothing was booked). */
+export function addonItemRows(ctx: TemplateContext, locale: Locale): { label: string; value: string }[] {
+  const rows = bookingAddons(ctx);
+  if (rows.length === 0) return [];
+  const subtotal = Number(ctx.booking.addons_omr ?? 0) || rows.reduce((s, r) => s + Number(r.total_omr), 0);
+  return [
+    ...rows.map((r) => ({ label: addonLineLabel(r, locale), value: `OMR ${formatOmr(Number(r.total_omr))}` })),
+    {
+      label: pick(locale, { en: "Add-ons (paid at the hotel)", ar: "الخدمات الإضافية (تُدفع في الفندق)" }),
+      value: `OMR ${formatOmr(subtotal)}`,
+    },
+  ];
+}
+
+/** One "Add-ons" row for the booking summary: "APEX Zipline × 2 · 4WD transfer up × 1". */
+export function addonSummaryRow(ctx: TemplateContext, locale: Locale): { label: string; value: string } | null {
+  const rows = bookingAddons(ctx);
+  if (rows.length === 0) return null;
+  return {
+    label: pick(locale, { en: "Add-ons", ar: "الخدمات الإضافية" }),
+    value: rows.map((r) => addonLineLabel(r, locale, false)).join(" · "),
+  };
+}
+
+/** The pickup line used by the confirmation and pre-arrival emails. */
+export function transferUpLine(locale: Locale): string {
+  return pick(locale, {
+    en: "Your 4WD pickup at the Birkat Al Mouz checkpoint is booked — we will confirm the time on WhatsApp. Park at the checkpoint car park and message us when you arrive.",
+    ar: "تم حجز سيارة الدفع الرباعي لاستقبالكم عند نقطة التفتيش في بركة الموز — سنؤكد الموعد عبر واتساب. اركنوا سيارتكم في موقف نقطة التفتيش وراسلونا عند وصولكم.",
+  });
 }
 
 /** Booking summary rows used by more than one email. */

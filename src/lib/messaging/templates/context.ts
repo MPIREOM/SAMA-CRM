@@ -2,6 +2,7 @@
 // builders consume, plus realistic sample data for the admin preview screen.
 import type { BookingWithRelations } from "@/lib/bk/bookings";
 import type { AllSettings } from "@/lib/bk/types";
+import type { BkAddon } from "@/lib/database.types";
 import { bookingUrl } from "@/lib/booking-engine/tokens";
 import type { Locale, TemplateContext, TemplateLinks } from "../types";
 import { SAMPLE_SETTINGS } from "./sample-settings";
@@ -54,9 +55,67 @@ export function buildContext(
 
 export const SAMPLE_BOOKING_ID = "00000000-0000-4000-8000-00000000b00c";
 
+const SAMPLE_APEX_ID = "00000000-0000-4000-8000-0000000000d1";
+const SAMPLE_TRANSFER_UP_ID = "00000000-0000-4000-8000-0000000000d2";
+
+/** The seeded bk_addons rows (migration 0010) as the previews need them. */
+function sampleAddonCatalogue(now: string): Record<"apex" | "transferUp", BkAddon> {
+  return {
+    apex: {
+      id: SAMPLE_APEX_ID,
+      slug: "apex-zipline",
+      kind: "activity",
+      name_en: "APEX Zipline",
+      name_ar: "أبكس زيبلاين",
+      tagline_en: "310 m over the canyon at up to 60 km/h — it starts right next to the hotel.",
+      tagline_ar: "310 متراً فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
+      description_en: null,
+      description_ar: null,
+      price_omr: 5,
+      unit: "per_person",
+      max_quantity: 10,
+      taxable: false,
+      requires_note: true,
+      note_hint_en: "Preferred day (arrival day, any day of your stay) and any riders under 16",
+      note_hint_ar: "اليوم المفضل (يوم الوصول أو أي يوم خلال الإقامة) وعدد الراكبين تحت 16 عاماً",
+      image: "/images/addons/apex-zipline.jpg",
+      details: { length_m: 310, height_m: 20, speed_kmh: 60, max_weight_kg: 120, website: "https://www.apexzipline.com" },
+      is_active: true,
+      sort_order: 10,
+      created_at: now,
+      updated_at: now,
+    },
+    transferUp: {
+      id: SAMPLE_TRANSFER_UP_ID,
+      slug: "transfer-up",
+      kind: "transfer",
+      name_en: "4WD transfer up — Birkat Al Mouz to the hotel",
+      name_ar: "نقل بسيارة دفع رباعي صعوداً — من بركة الموز إلى الفندق",
+      tagline_en: "Leave your car at the checkpoint car park; we bring you up the mountain.",
+      tagline_ar: "اتركوا سيارتكم في موقف نقطة التفتيش ونحن نصعد بكم إلى الجبل.",
+      description_en: null,
+      description_ar: null,
+      price_omr: 15,
+      unit: "per_car",
+      max_quantity: 3,
+      taxable: false,
+      requires_note: true,
+      note_hint_en: "Expected arrival time at the checkpoint and number of guests",
+      note_hint_ar: "وقت الوصول المتوقع إلى نقطة التفتيش وعدد النزلاء",
+      image: "/images/addons/transfer.jpg",
+      details: { max_guests_per_car: 4, pickup: "Birkat Al Mouz checkpoint car park", duration_min: 45 },
+      is_active: true,
+      sort_order: 20,
+      created_at: now,
+      updated_at: now,
+    },
+  };
+}
+
 export function sampleBooking(locale: Locale): BookingWithRelations {
   const now = new Date().toISOString();
   const roomTypeId = "00000000-0000-4000-8000-0000000000a1";
+  const catalogue = sampleAddonCatalogue(now);
   return {
     id: SAMPLE_BOOKING_ID,
     ref: "SAMA-26-K7P3QX",
@@ -123,6 +182,37 @@ export function sampleBooking(locale: Locale): BookingWithRelations {
       updated_at: now,
     },
     room: null,
+    // addons_omr 25 = zipline 2 × 5 + transfer up 1 × 15 (both untaxed).
+    addons: [
+      {
+        id: "00000000-0000-4000-8000-0000000000e1",
+        booking_id: SAMPLE_BOOKING_ID,
+        addon_id: SAMPLE_APEX_ID,
+        quantity: 2,
+        unit_price_omr: 5,
+        total_omr: 10,
+        taxable: false,
+        note: locale === "ar" ? "يوم الوصول، بعد الظهر" : "Arrival day, afternoon",
+        status: "requested",
+        created_at: now,
+        updated_at: now,
+        addon: catalogue.apex,
+      },
+      {
+        id: "00000000-0000-4000-8000-0000000000e2",
+        booking_id: SAMPLE_BOOKING_ID,
+        addon_id: SAMPLE_TRANSFER_UP_ID,
+        quantity: 1,
+        unit_price_omr: 15,
+        total_omr: 15,
+        taxable: false,
+        note: locale === "ar" ? "الوصول نحو الساعة 1 ظهراً، 3 نزلاء" : "Arriving around 1 PM, 3 guests",
+        status: "requested",
+        created_at: now,
+        updated_at: now,
+        addon: catalogue.transferUp,
+      },
+    ],
   };
 }
 
