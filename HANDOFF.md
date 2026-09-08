@@ -43,7 +43,18 @@ _Built 7–8 September 2026 on top of the existing SAMA CRM. Read this first, th
 | Legacy CRM "Bookings" screens | `/bookings` now redirects to `/reservations` (the old form did not check inventory or prices) | — |
 | CRM automations `booking_created`, `pre_arrival`, `post_stay` | **Switched off** (the engine sends these now, with approved templates). Birthday + win-back still run | Re-enable in `/automations` only if you turn the engine's channels off in `/settings` |
 
-## 4. WhatsApp — the 3 templates (must be approved in Meta before guests get WhatsApp)
+## 4. WhatsApp — shared number, one-click setup, the 3 templates
+
+The hotel shares the SAAS project's WhatsApp number (already registered in Meta). Everything below is done from the back-office page **`/messaging` → WhatsApp setup** (super_admin) once the credentials are in Vercel:
+
+1. Vercel → project `sama-crm` → Settings → Environment Variables (Production): copy `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` and the verify token from the `saas` project (its name `WHATSAPP_WEBHOOK_VERIFY_TOKEN` is accepted as-is — or use Vercel *shared* variables linked to both projects). Add `WHATSAPP_FORWARD_URL=https://saas-rho-kohl.vercel.app/api/webhooks/whatsapp` and `WHATSAPP_FORWARD_SENDERS=96877332220` (the SAAS admin number). Redeploy.
+2. Open `/messaging/whatsapp`: it shows the token, the number, the WhatsApp Business Account and where webhooks currently point.
+3. Press **Point this number's webhooks here** — a WABA-level callback override; the SAAS app's dashboard settings stay as they are. From then on the hotel receives every event and relays the SAAS admins' messages + all delivery receipts to SAAS (guest replies never reach the SAAS bot, which would otherwise answer them with "this is an automated number").
+4. Press **Create missing templates** — submits the 3 guest templates in `en` + `ar` (bodies from `docs/message-content.md`). Status shows PENDING → APPROVED, usually within minutes.
+5. If the website's "Chat on WhatsApp" number differs from the Cloud API number, press **Use this number on the website**.
+6. `/messaging` → Send test (pre-arrival) to your own phone.
+
+Manual alternative (Meta dashboard) — only if the page cannot reach Meta:
 
 Meta Business Manager → WhatsApp Manager → Message templates → Create. Category **Utility**, one template per language (**English** and **Arabic**), names exactly:
 

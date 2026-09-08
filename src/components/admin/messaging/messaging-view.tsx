@@ -65,6 +65,7 @@ const STR = {
   recipient: { en: "Recipient", ar: "المستلم" },
   showing: { en: "showing", ar: "عرض" },
   subject: { en: "Subject", ar: "الموضوع" },
+  waSetup: { en: "WhatsApp setup", ar: "إعداد واتساب" },
 } satisfies Strings;
 
 interface Props {
@@ -128,7 +129,21 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
 
   return (
     <div>
-      <PageHeader title={COMMON.messaging[lang]} subtitle={STR.subtitle[lang]} />
+      <PageHeader
+        title={COMMON.messaging[lang]}
+        subtitle={STR.subtitle[lang]}
+        actions={
+          isAdmin ? (
+            <Link
+              href="/messaging/whatsapp"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-maroon-200 bg-white px-4 text-sm font-semibold text-maroon-800 transition-colors hover:bg-maroon-50"
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+              {STR.waSetup[lang]}
+            </Link>
+          ) : undefined
+        }
+      />
       <div className="mb-4 space-y-2">
         <InlineAlert kind="error" message={error} />
         <InlineAlert kind="success" message={notice} />

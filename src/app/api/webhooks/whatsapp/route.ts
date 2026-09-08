@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fromWaId } from "@/lib/phone";
+import { logger } from "@/lib/logger";
+import { whatsappEnv } from "@/lib/whatsapp-env";
+import { forwardWebhook, signWebhookBody, splitWebhookPayload, type SplitResult } from "@/lib/whatsapp-forward";
 
 // Meta WhatsApp Cloud API webhook.
 // GET  = subscription verification handshake.
@@ -9,6 +12,9 @@ import { fromWaId } from "@/lib/phone";
 //        never throw — Meta retries + eventually disables slow/erroring hooks.
 
 export const dynamic = "force-dynamic";
+// Relaying to the other app sharing this number can take a few seconds; keep
+// headroom above the forward timeout so Meta always gets our ACK.
+export const maxDuration = 30;
 
 // ---------------------------------------------------------------------------
 // Minimal payload shapes (Meta sends much more; we only read what we need).
@@ -78,11 +84,6 @@ function isOptOut(body: string): boolean {
   return OPT_OUT_KEYWORDS.some((k) => words.includes(k));
 }
 
-/** "YOUR_" anywhere marks a .env.example placeholder value. */
-function isPlaceholder(value: string | undefined): boolean {
-  return !value || value.includes("YOUR_");
-}
-
 const RECEIPT_STATUSES = ["sent", "delivered", "read", "failed"];
 
 // ---------------------------------------------------------------------------
@@ -94,11 +95,10 @@ export async function GET(req: Request) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  if (
-    mode === "subscribe" &&
-    !isPlaceholder(process.env.WHATSAPP_VERIFY_TOKEN) &&
-    token === process.env.WHATSAPP_VERIFY_TOKEN
-  ) {
+  // WHATSAPP_VERIFY_TOKEN, or WHATSAPP_WEBHOOK_VERIFY_TOKEN when the variables
+  // are shared with the SAAS project (see src/lib/whatsapp-env.ts).
+  const expected = whatsappEnv().verifyToken;
+  if (mode === "subscribe" && expected && token === expected) {
     return new Response(challenge ?? "", { status: 200 });
   }
   return new Response("Forbidden", { status: 403 });
@@ -113,8 +113,9 @@ export async function POST(req: Request) {
   // Signature verification is MANDATORY: this public endpoint mutates consent
   // and the 24h window with the service role, so it fails closed when
   // WHATSAPP_APP_SECRET is missing rather than accepting forged payloads.
-  const secret = process.env.WHATSAPP_APP_SECRET;
-  if (isPlaceholder(secret)) {
+  const env = whatsappEnv();
+  const secret = env.appSecret;
+  if (!secret) {
     return NextResponse.json(
       { error: "webhook_not_configured (WHATSAPP_APP_SECRET)" },
       { status: 503 }
@@ -122,7 +123,7 @@ export async function POST(req: Request) {
   }
   const header = req.headers.get("x-hub-signature-256") ?? "";
   const expected =
-    "sha256=" + createHmac("sha256", secret!).update(raw).digest("hex");
+    "sha256=" + createHmac("sha256", secret).update(raw).digest("hex");
   const a = Buffer.from(header);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
@@ -137,10 +138,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true });
   }
 
+  // The number is shared with another app (SAAS): Meta delivers everything
+  // here, so hand that app its admins' messages and every receipt, and keep
+  // guest conversations out of its bot (see src/lib/whatsapp-forward.ts).
+  const received: WaPayload = payload ?? {};
+  const split: SplitResult<WaPayload> = env.forwardUrl
+    ? splitWebhookPayload(received, new Set(env.forwardSenders))
+    : { local: received, forward: null, forwardedMessages: 0, forwardedStatuses: 0 };
+
   try {
     const admin = createAdminClient();
 
-    for (const entry of payload?.entry ?? []) {
+    for (const entry of split.local.entry ?? []) {
       for (const change of entry?.changes ?? []) {
         const value = change?.value;
         if (!value || value.messaging_product !== "whatsapp") continue;
@@ -175,6 +184,24 @@ export async function POST(req: Request) {
   } catch (err) {
     // Never bubble errors back to Meta — log and ACK.
     console.error("WhatsApp webhook processing failed:", err);
+  }
+
+  if (env.forwardUrl && split.forward) {
+    const body = JSON.stringify(split.forward);
+    const outcome = await forwardWebhook({
+      url: env.forwardUrl,
+      body,
+      signature: signWebhookBody(body, secret),
+      timeoutMs: 8000,
+    });
+    const meta = {
+      messages: split.forwardedMessages,
+      statuses: split.forwardedStatuses,
+      status: outcome.status,
+      ms: outcome.ms,
+    };
+    if (outcome.ok) logger.info("whatsapp.forward", "relayed to partner app", meta);
+    else logger.warn("whatsapp.forward", "relay not acknowledged", { ...meta, error: outcome.error });
   }
 
   return NextResponse.json({ received: true });
