@@ -18,6 +18,13 @@ export const ROOM_TYPES = {
   "sama-suite-mountain-view": "10000000-0000-4000-8000-000000000006",
 } as const;
 
+/** Add-ons seeded by the emulator (migration 0010). */
+export const ADDONS = {
+  "apex-zipline": "60000000-0000-4000-8000-000000000001",
+  "transfer-up": "60000000-0000-4000-8000-000000000002",
+  "transfer-down": "60000000-0000-4000-8000-000000000003",
+} as const;
+
 export const STAFF = {
   admin: { email: "admin@sama.test", password: "Admin1234!" },
   desk: { email: "desk@sama.test", password: "Desk1234!" },

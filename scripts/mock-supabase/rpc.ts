@@ -1,6 +1,7 @@
-// RPCs mirrored from supabase/migrations/0005_booking_engine.sql. Error text
-// is identical to the SQL `raise exception` messages so the app's
-// mapBookingError() / searchAvailability() branches behave the same way.
+// RPCs mirrored from supabase/migrations/0005_booking_engine.sql (+ the
+// add-on parameters from 0010). Error text is identical to the SQL
+// `raise exception` messages so the app's mapBookingError() /
+// searchAvailability() branches behave the same way.
 // Pricing goes through the TS mirror in src/lib/booking-engine/pricing.ts.
 
 import { muscatToday } from "../../src/lib/booking-engine/dates";
@@ -194,6 +195,59 @@ function bkAvailability(db: Db, a: Args): Row[] {
     });
 }
 
+/** One priced add-on line — the `addons` entries bk_quote returns (migration 0010). */
+interface AddonQuoteLine extends Row {
+  addon_id: string;
+  slug: string;
+  kind: string;
+  name_en: string;
+  name_ar: string;
+  unit: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  taxable: boolean;
+  note: string | null;
+}
+
+/**
+ * Resolve `p_addons = [{slug|addon_id, quantity, note}]` against the catalogue.
+ * Prices always come from bk_addons, never from the caller; per_night lines
+ * multiply by the number of nights. Mirrors the loop in bk_quote (0010).
+ */
+function resolveAddons(db: Db, raw: unknown, nights: number): AddonQuoteLine[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AddonQuoteLine[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const it = item as Row;
+    const qty = Number(it.quantity ?? 0);
+    if (!Number.isFinite(qty) || qty <= 0) continue;
+    const addonId = it.addon_id === undefined || it.addon_id === null ? null : String(it.addon_id).toLowerCase();
+    const slug = it.slug === undefined || it.slug === null ? null : String(it.slug);
+    const ad = db.rows("bk_addons").find((x) => x.is_active === true && ((addonId !== null && x.id === addonId) || (slug !== null && x.slug === slug)));
+    if (!ad) throw invalid("addon_not_found");
+    if (qty > Number(ad.max_quantity)) throw invalid("addon_quantity");
+    const unit = String(ad.unit);
+    const unitPrice = Number(ad.price_omr);
+    const total = roundOmr(unit === "per_night" ? unitPrice * qty * nights : unitPrice * qty);
+    out.push({
+      addon_id: String(ad.id),
+      slug: String(ad.slug),
+      kind: String(ad.kind),
+      name_en: String(ad.name_en),
+      name_ar: String(ad.name_ar),
+      unit,
+      quantity: qty,
+      unit_price: unitPrice,
+      total,
+      taxable: ad.taxable === true,
+      note: it.note === undefined || it.note === null ? null : String(it.note),
+    });
+  }
+  return out;
+}
+
 function bkQuote(db: Db, a: Args): Row {
   const roomTypeId = toUuid(a.p_room_type_id);
   const checkIn = toDate(a.p_check_in, "p_check_in");
@@ -207,6 +261,7 @@ function bkQuote(db: Db, a: Args): Row {
   const id = rt.id as string;
 
   const nightly = nightlyRates(Number(rt.base_rate_omr), plans(db), id, checkIn, checkOut);
+  const addonLines = resolveAddons(db, a.p_addons, nightsBetween(checkIn, checkOut));
 
   let promoValid = false;
   let discountPct = 0;
@@ -226,7 +281,12 @@ function bkQuote(db: Db, a: Args): Row {
     }
   }
   const t = taxes(db);
-  const q = quoteFromNightly(nightly, t, discountPct);
+  const q = quoteFromNightly(
+    nightly,
+    t,
+    discountPct,
+    addonLines.map((l) => ({ quantity: l.quantity, unit_price: l.unit_price, unit: l.unit as "per_person" | "per_car" | "per_booking" | "per_night", taxable: l.taxable }))
+  );
   return {
     room_type_id: id,
     slug: rt.slug,
@@ -241,6 +301,8 @@ function bkQuote(db: Db, a: Args): Row {
     promo_valid: promoValid,
     discount_pct: discountPct,
     discount: q.discount,
+    addons: addonLines,
+    addons_total: q.addons_total,
     service_charge: q.service_charge,
     tourism_fee: q.tourism_fee,
     vat: q.vat,
@@ -374,6 +436,7 @@ function bkCreateBooking(db: Db, a: Args): Row {
     p_adults: adults,
     p_children: children,
     p_promo_code: p.promo_code ?? null,
+    p_addons: p.addons ?? null,
   });
   const contactId = upsertContact(db, name, phone, email, lang, p.nationality);
   const ref = generateRef(db);
@@ -397,6 +460,7 @@ function bkCreateBooking(db: Db, a: Args): Row {
       nightly_rates: quote.nightly,
       room_subtotal_omr: quote.room_subtotal,
       discount_omr: quote.discount,
+      addons_omr: quote.addons_total,
       service_charge_omr: quote.service_charge,
       tourism_fee_omr: quote.tourism_fee,
       vat_omr: quote.vat,
@@ -408,6 +472,20 @@ function bkCreateBooking(db: Db, a: Args): Row {
       created_by: toUuid(p.created_by),
     },
   ]);
+  // Migration 0010: one bk_booking_addons row per priced line (status 'requested').
+  for (const line of quote.addons as AddonQuoteLine[]) {
+    db.insert("bk_booking_addons", [
+      {
+        booking_id: booking.id,
+        addon_id: line.addon_id,
+        quantity: line.quantity,
+        unit_price_omr: line.unit_price,
+        total_omr: line.total,
+        taxable: line.taxable,
+        note: trimOrNull(line.note),
+      },
+    ]);
+  }
   scheduleMessages(db, booking.id as string);
   return { ...booking };
 }

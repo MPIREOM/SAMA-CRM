@@ -59,6 +59,9 @@ const nullable = (type: ColumnType): ColumnSpec => col(type, { default: () => nu
 export const BOOKING_STATUSES = ["pending", "confirmed", "checked_in", "checked_out", "cancelled", "no_show"] as const;
 export const BOOKING_SOURCES = ["website", "staff", "phone", "walk_in", "ota"] as const;
 export const MESSAGE_STATUSES = ["pending", "sending", "sent", "failed", "stubbed", "cancelled", "skipped"] as const;
+export const ADDON_KINDS = ["activity", "transfer", "other"] as const;
+export const ADDON_UNITS = ["per_person", "per_car", "per_booking", "per_night"] as const;
+export const BOOKING_ADDON_STATUSES = ["requested", "confirmed", "done", "cancelled"] as const;
 
 /** Market is a GENERATED column on contacts: +968 → Oman, GCC prefixes → GCC, other + → International. */
 export function marketFromPhone(phone: unknown): string | null {
@@ -172,6 +175,7 @@ export const TABLES: Record<string, TableSpec> = {
       tourism_fee_omr: col("numeric", { default: () => 0 }),
       vat_omr: col("numeric", { default: () => 0 }),
       total_omr: col("numeric", { default: () => 0 }),
+      addons_omr: col("numeric", { default: () => 0 }),
       promo_code: nullable("text"),
       special_requests: nullable("text"),
       internal_notes: nullable("text"),
@@ -185,6 +189,52 @@ export const TABLES: Record<string, TableSpec> = {
       updated_at: ts(),
     },
     unique: [["id"], ["ref"]],
+    touchUpdatedAt: true,
+  },
+  // --- Add-ons (migration 0010) ---------------------------------------------
+  bk_addons: {
+    columns: {
+      id: id(),
+      slug: col("text", { required: true }),
+      kind: col("text", { default: () => "other", enum: ADDON_KINDS }),
+      name_en: col("text", { required: true }),
+      name_ar: col("text", { required: true }),
+      tagline_en: nullable("text"),
+      tagline_ar: nullable("text"),
+      description_en: nullable("text"),
+      description_ar: nullable("text"),
+      price_omr: col("numeric", { required: true }),
+      unit: col("text", { default: () => "per_person", enum: ADDON_UNITS }),
+      max_quantity: col("int", { default: () => 10 }),
+      taxable: col("bool", { default: () => false }),
+      requires_note: col("bool", { default: () => false }),
+      note_hint_en: nullable("text"),
+      note_hint_ar: nullable("text"),
+      image: nullable("text"),
+      details: col("json", { default: () => ({}) }),
+      is_active: col("bool", { default: () => true }),
+      sort_order: col("int", { default: () => 0 }),
+      created_at: ts(),
+      updated_at: ts(),
+    },
+    unique: [["id"], ["slug"]],
+    touchUpdatedAt: true,
+  },
+  bk_booking_addons: {
+    columns: {
+      id: id(),
+      booking_id: col("uuid", { required: true }),
+      addon_id: col("uuid", { required: true }),
+      quantity: col("int", { required: true }),
+      unit_price_omr: col("numeric", { required: true }),
+      total_omr: col("numeric", { required: true }),
+      taxable: col("bool", { default: () => false }),
+      note: nullable("text"),
+      status: col("text", { default: () => "requested", enum: BOOKING_ADDON_STATUSES }),
+      created_at: ts(),
+      updated_at: ts(),
+    },
+    unique: [["id"], ["booking_id", "addon_id"]],
     touchUpdatedAt: true,
   },
   bk_settings: {
@@ -356,6 +406,11 @@ export const RELATIONS: Record<string, Record<string, { table: string; fk: strin
   bk_message_log: {
     bk_bookings: { table: "bk_bookings", fk: "booking_id" },
     bk_scheduled_messages: { table: "bk_scheduled_messages", fk: "scheduled_id" },
+  },
+  bk_addons: {},
+  bk_booking_addons: {
+    bk_bookings: { table: "bk_bookings", fk: "booking_id" },
+    bk_addons: { table: "bk_addons", fk: "addon_id" },
   },
   messages: {
     contacts: { table: "contacts", fk: "contact_id" },
@@ -529,6 +584,15 @@ export class Db implements DbSettingsReader {
       if (ms < 1 || ms > 30) fail("bk_rate_plans_min_stay_check");
     }
     if (table === "bk_room_types" && Number(row.base_rate_omr) < 0) fail("bk_room_types_base_rate_omr_check");
+    if (table === "bk_addons") {
+      if (Number(row.price_omr) < 0) fail("bk_addons_price_omr_check");
+      const mq = Number(row.max_quantity);
+      if (mq < 1 || mq > 50) fail("bk_addons_max_quantity_check");
+    }
+    if (table === "bk_booking_addons") {
+      const q = Number(row.quantity);
+      if (q < 1 || q > 50) fail("bk_booking_addons_quantity_check");
+    }
   }
 
   private findConflict(table: string, row: Row, exceptRow?: Row, constraint?: string[]): { key: string[]; existing: Row } | null {
@@ -662,7 +726,22 @@ export class Db implements DbSettingsReader {
     if (table === "bk_bookings") {
       for (const b of removed) {
         this.delete("bk_scheduled_messages", (s) => s.booking_id === b.id);
+        this.delete("bk_booking_addons", (a) => a.booking_id === b.id);
         for (const l of this.rows("bk_message_log")) if (l.booking_id === b.id) l.booking_id = null;
+      }
+    }
+    if (table === "bk_addons") {
+      // ON DELETE RESTRICT: an add-on that has ever been booked cannot be deleted.
+      for (const a of removed) {
+        if (this.rows("bk_booking_addons").some((x) => x.addon_id === a.id)) {
+          throw new DbError(
+            "23503",
+            `update or delete on table "bk_addons" violates foreign key constraint "bk_booking_addons_addon_id_fkey" on table "bk_booking_addons"`,
+            `Key (id)=(${String(a.id)}) is still referenced from table "bk_booking_addons".`,
+            null,
+            409
+          );
+        }
       }
     }
     if (table === "bk_scheduled_messages") {
@@ -716,6 +795,13 @@ export class Db implements DbSettingsReader {
           if (s.booking_id === b.id && (s.status === "pending" || s.status === "failed")) {
             s.status = "cancelled";
             s.updated_at = now();
+          }
+        }
+        // Migration 0010: a cancelled booking cancels its add-on requests too.
+        for (const a of this.rows("bk_booking_addons")) {
+          if (a.booking_id === b.id && (a.status === "requested" || a.status === "confirmed")) {
+            a.status = "cancelled";
+            a.updated_at = now();
           }
         }
       }

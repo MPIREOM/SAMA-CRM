@@ -41,6 +41,7 @@ import {
   type FreeRoom,
 } from "@/app/(crm)/(app)/reservations/actions";
 import { InlineAlert } from "../load-error";
+import { BookingAddonsCard, type AddonOption, type BookingAddonLine } from "./booking-addons";
 import {
   channelLabel,
   fmtDate,
@@ -102,17 +103,20 @@ const STR = {
   saved: { en: "Saved", ar: "تم الحفظ" },
   needsRoom: { en: "Assign a room before checking in.", ar: "خصّص غرفة قبل تسجيل الوصول." },
   promo: { en: "Promo code", ar: "رمز الخصم" },
+  addons: { en: "Add-ons", ar: "الإضافات" },
 } satisfies Strings;
 
 type Money = Pick<
   BookingWithRelations,
-  "room_subtotal_omr" | "discount_omr" | "service_charge_omr" | "tourism_fee_omr" | "vat_omr" | "total_omr"
+  "room_subtotal_omr" | "discount_omr" | "service_charge_omr" | "tourism_fee_omr" | "vat_omr" | "total_omr" | "addons_omr"
 >;
 
-type BookingProps = Omit<BookingWithRelations, keyof Money> & { [K in keyof Money]: number };
+type BookingProps = Omit<BookingWithRelations, keyof Money | "addons"> & { [K in keyof Money]: number } & { addons: BookingAddonLine[] };
 
 interface Props {
   booking: BookingProps;
+  /** Active add-ons for the "Add add-on" control. */
+  catalogue: AddonOption[];
   scheduled: BkScheduledMessage[];
   log: BkMessageLog[];
   auditRows: Pick<BkAuditLog, "id" | "action" | "actor_email" | "created_at" | "diff">[];
@@ -122,7 +126,7 @@ interface Props {
 
 type Result = { ok: true } | { ok: false; error: string };
 
-export function BookingDetail({ booking, scheduled, log, auditRows, today }: Props) {
+export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, today }: Props) {
   const { lang } = useLang();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -453,6 +457,12 @@ export function BookingDetail({ booking, scheduled, log, auditRows, today }: Pro
                   <dt className="text-maroon-500">{STR.vat[lang]}</dt>
                   <dd>{fmtMoney(booking.vat_omr, lang)}</dd>
                 </div>
+                {booking.addons_omr > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-maroon-500">{STR.addons[lang]}</dt>
+                    <dd data-testid="money-addons">{fmtMoney(booking.addons_omr, lang)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-maroon-200 pt-1 text-base font-extrabold text-maroon-900">
                   <dt>{COMMON.total[lang]}</dt>
                   <dd>{fmtMoney(booking.total_omr, lang)}</dd>
@@ -462,6 +472,17 @@ export function BookingDetail({ booking, scheduled, log, auditRows, today }: Pro
             </div>
           </CardContent>
         </Card>
+
+        {/* Add-ons (APEX Zipline, 4WD transfers) */}
+        <BookingAddonsCard
+          bookingId={booking.id}
+          lines={booking.addons}
+          addonsOmr={booking.addons_omr}
+          catalogue={catalogue}
+          live={live}
+          pending={pending}
+          run={run}
+        />
 
         {/* Messages */}
         <Card>

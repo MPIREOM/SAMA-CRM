@@ -15,6 +15,29 @@ export const dynamic = "force-dynamic";
 
 const LIVE = ["pending", "confirmed", "checked_in"];
 
+/**
+ * 4WD transfers booked on today's movements: booking id → transfer slugs
+ * (`transfer-up` = pickup at the checkpoint, `transfer-down` = drop-off).
+ * Joined through bk_booking_addons → bk_addons(kind = 'transfer'); cancelled
+ * lines are ignored.
+ */
+async function transfersFor(admin: ReturnType<typeof createAdminClient>, bookingIds: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (bookingIds.length === 0) return out;
+  const { data, error } = await admin
+    .from("bk_booking_addons")
+    .select("booking_id, status, addon:bk_addons(kind, slug)")
+    .in("booking_id", bookingIds)
+    .neq("status", "cancelled");
+  if (error) throw new Error(error.message);
+  for (const line of data ?? []) {
+    const addon = Array.isArray(line.addon) ? (line.addon[0] ?? null) : line.addon;
+    if (addon?.kind !== "transfer") continue;
+    out.set(line.booking_id, [...(out.get(line.booking_id) ?? []), addon.slug]);
+  }
+  return out;
+}
+
 /** Property section: today's movements, occupancy, message queue — service role. */
 async function loadProperty(today: string): Promise<PropertyData | { error: string }> {
   try {
@@ -49,6 +72,11 @@ async function loadProperty(today: string): Promise<PropertyData | { error: stri
     const failed = [arrivals, departures, inHouse, window, rooms, pendingMsgs, failedMsgs, recent].find((r) => r.error);
     if (failed?.error) throw new Error(failed.error.message);
 
+    const transfers = await transfersFor(admin, [...(arrivals.data ?? []), ...(departures.data ?? [])].map((b) => b.id));
+    // Arrivals need the pickup ("up"); departures the drop-off ("down"). Any other transfer kind counts for both.
+    const pickup = (id: string) => (transfers.get(id) ?? []).some((slug) => slug !== "transfer-down");
+    const dropoff = (id: string) => (transfers.get(id) ?? []).some((slug) => slug !== "transfer-up");
+
     // Occupied room-nights per day for the next 30 days.
     const activeRooms = rooms.count ?? 0;
     const occupied = new Array<number>(30).fill(0);
@@ -70,8 +98,8 @@ async function loadProperty(today: string): Promise<PropertyData | { error: stri
       chart: occupied.slice(0, 14).map((n, i) => ({ date: addDays(today, i), occupied: n })),
       pendingMessages: pendingMsgs.count ?? 0,
       failedMessages: failedMsgs.count ?? 0,
-      arrivals: (arrivals.data ?? []).map((b) => ({ ...b, room_type: one(b.room_type), room: one(b.room) })),
-      departures: (departures.data ?? []).map((b) => ({ ...b, room_type: one(b.room_type), room: one(b.room) })),
+      arrivals: (arrivals.data ?? []).map((b) => ({ ...b, room_type: one(b.room_type), room: one(b.room), transfer: pickup(b.id) ? ("pickup" as const) : null })),
+      departures: (departures.data ?? []).map((b) => ({ ...b, room_type: one(b.room_type), room: one(b.room), transfer: dropoff(b.id) ? ("dropoff" as const) : null })),
       recent: (recent.data ?? []).map((b) => ({ ...b, total_omr: Number(b.total_omr), room_type: one(b.room_type) })),
     };
   } catch (e) {

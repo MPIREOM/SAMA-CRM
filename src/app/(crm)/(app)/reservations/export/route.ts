@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { audit } from "@/lib/bk/audit";
 import { formatOmr } from "@/lib/booking-engine/pricing";
 import { logger } from "@/lib/logger";
+import { addonsSummary } from "@/components/admin/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,10 @@ const COLUMNS = [
   "nights",
   "adults",
   "children",
+  "addons",
   "room_subtotal_omr",
   "discount_omr",
+  "addons_omr",
   "service_charge_omr",
   "tourism_fee_omr",
   "vat_omr",
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
     let query = admin
       .from("bk_bookings")
-      .select("*, room_type:bk_room_types(name_en), room:bk_rooms(room_number)")
+      .select("*, room_type:bk_room_types(name_en), room:bk_rooms(room_number), addons:bk_booking_addons(quantity, status, addon:bk_addons(name_en))")
       .order("check_in")
       .limit(5000);
     if (from) query = query.gte("check_in", from);
@@ -74,6 +77,7 @@ export async function GET(request: NextRequest) {
     for (const b of data ?? []) {
       const roomType = Array.isArray(b.room_type) ? b.room_type[0] : b.room_type;
       const room = Array.isArray(b.room) ? b.room[0] : b.room;
+      const addonLines = (b.addons ?? []).map((l) => ({ ...l, addon: Array.isArray(l.addon) ? (l.addon[0] ?? null) : l.addon }));
       const row: Record<(typeof COLUMNS)[number], unknown> = {
         ref: b.ref,
         status: b.status,
@@ -90,8 +94,10 @@ export async function GET(request: NextRequest) {
         nights: b.nights,
         adults: b.adults,
         children: b.children,
+        addons: addonsSummary(addonLines),
         room_subtotal_omr: formatOmr(Number(b.room_subtotal_omr)),
         discount_omr: formatOmr(Number(b.discount_omr)),
+        addons_omr: formatOmr(Number(b.addons_omr)),
         service_charge_omr: formatOmr(Number(b.service_charge_omr)),
         tourism_fee_omr: formatOmr(Number(b.tourism_fee_omr)),
         vat_omr: formatOmr(Number(b.vat_omr)),

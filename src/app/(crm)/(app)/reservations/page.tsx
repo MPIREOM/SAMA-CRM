@@ -15,7 +15,22 @@ export const dynamic = "force-dynamic";
 type Search = Record<string, string | string[] | undefined>;
 
 const ROW_SELECT =
-  "id, ref, guest_name, guest_phone, guest_email, room_type_id, room_id, check_in, check_out, nights, adults, children, status, source, total_omr, created_at, room_type:bk_room_types(name_en, name_ar), room:bk_rooms(room_number)";
+  "id, ref, guest_name, guest_phone, guest_email, room_type_id, room_id, check_in, check_out, nights, adults, children, status, source, total_omr, created_at, room_type:bk_room_types(name_en, name_ar), room:bk_rooms(room_number), addons:bk_booking_addons(status, addon:bk_addons(kind, slug))";
+
+/**
+ * Booking ids with a live (non-cancelled) transfer add-on. PostgREST can't
+ * filter a parent by an embedded child without `!inner`, and the emulator
+ * doesn't support that either, so the "Has transfer" chip resolves ids first.
+ */
+async function bookingIdsWithTransfer(admin: ReturnType<typeof createAdminClient>): Promise<string[]> {
+  const transfers = await admin.from("bk_addons").select("id").eq("kind", "transfer");
+  if (transfers.error) throw new Error(transfers.error.message);
+  const ids = (transfers.data ?? []).map((a) => a.id);
+  if (ids.length === 0) return [];
+  const lines = await admin.from("bk_booking_addons").select("booking_id").in("addon_id", ids).neq("status", "cancelled");
+  if (lines.error) throw new Error(lines.error.message);
+  return Array.from(new Set((lines.data ?? []).map((l) => l.booking_id)));
+}
 
 /** Escape a user string for PostgREST `or(...ilike...)` filters. */
 function likeTerm(q: string): string {
@@ -39,6 +54,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
     to: isIsoDateParam(toParam) ? toParam : "",
     type: param(searchParams.type) ?? "",
     q: (param(searchParams.q) ?? "").slice(0, 80),
+    transfer: param(searchParams.transfer) === "1",
     page: Math.max(1, parseInt(param(searchParams.page) ?? "1", 10) || 1),
   };
 
@@ -53,6 +69,11 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
       const term = likeTerm(filters.q);
       query = query.or(`guest_name.ilike.${term},guest_phone.ilike.${term},ref.ilike.${term}`);
     }
+    if (filters.transfer) {
+      const ids = await bookingIdsWithTransfer(admin);
+      // No transfers booked at all → an impossible id keeps the query shape and returns nothing.
+      query = query.in("id", ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    }
     const offset = (filters.page - 1) * PAGE_SIZE;
     const [rows, types] = await Promise.all([
       query.order("check_in", { ascending: true }).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1),
@@ -66,6 +87,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
       total_omr: Number(r.total_omr),
       room_type: Array.isArray(r.room_type) ? (r.room_type[0] ?? null) : r.room_type,
       room: Array.isArray(r.room) ? (r.room[0] ?? null) : r.room,
+      addons: (r.addons ?? []).map((l) => ({ status: l.status, addon: Array.isArray(l.addon) ? (l.addon[0] ?? null) : l.addon })),
     }));
 
     return (

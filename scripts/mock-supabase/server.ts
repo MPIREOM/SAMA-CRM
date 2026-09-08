@@ -78,7 +78,7 @@ function caller(req: IncomingMessage): Caller {
 }
 
 // ---------------------------------------------------------------------------
-// RLS (policies from migrations 0001 + 0005)
+// RLS (policies from migrations 0001 + 0005 + 0010)
 // ---------------------------------------------------------------------------
 
 const STAFF = ["super_admin", "reservation_desk"];
@@ -90,6 +90,11 @@ function rlsFilter(c: Caller, table: string, method: string): Predicate | "denie
   const admin = c.staffRole === "super_admin";
 
   if (table === "bk_room_types") {
+    if (isRead) return staff ? () => true : (r) => r.is_active === true;
+    return admin ? () => true : "denied";
+  }
+  // Migration 0010: the add-on catalogue is public while active; staff see everything, super_admin writes.
+  if (table === "bk_addons") {
     if (isRead) return staff ? () => true : (r) => r.is_active === true;
     return admin ? () => true : "denied";
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, BedDouble, CalendarDays, MailWarning, PlaneLanding, PlaneTakeoff, Plus, type LucideIcon } from "lucide-react";
+import { AlertTriangle, BedDouble, CalendarDays, Car, MailWarning, PlaneLanding, PlaneTakeoff, Plus, type LucideIcon } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ interface Movement {
   status: string;
   room_type: { name_en: string; name_ar: string } | null;
   room: { room_number: string } | null;
+  /** 4WD transfer booked for this movement (pickup on arrival, drop-off on departure). */
+  transfer: "pickup" | "dropoff" | null;
 }
 
 export interface PropertyData {
@@ -69,6 +71,8 @@ const STR = {
   newBooking: { en: "New booking", ar: "حجز جديد" },
   unavailable: { en: "Property data unavailable", ar: "بيانات الفندق غير متاحة" },
   viewAll: { en: "View all", ar: "عرض الكل" },
+  pickup: { en: "4WD pickup", ar: "استقبال بالدفع الرباعي" },
+  dropoff: { en: "4WD drop-off", ar: "توصيل بالدفع الرباعي" },
 } satisfies Strings;
 
 function Stat({ label, value, icon: Icon, tint, href, sub }: { label: string; value: string; icon: LucideIcon; tint: string; href?: string; sub?: string }) {
@@ -112,6 +116,12 @@ function MovementList({ items, empty }: { items: Movement[]; empty: string }) {
                 {b.ref} · {localName(b.room_type, lang)}
               </span>
             </span>
+            {b.transfer && (
+              <Badge variant="gold" data-testid={`movement-${b.transfer}`}>
+                <Car className="h-3 w-3" />
+                {b.transfer === "pickup" ? STR.pickup[lang] : STR.dropoff[lang]}
+              </Badge>
+            )}
             <Badge variant={statusVariant(b.status)}>{statusLabel(b.status, lang)}</Badge>
           </Link>
         </li>

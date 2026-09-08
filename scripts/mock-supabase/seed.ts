@@ -21,6 +21,13 @@ export const ROOM_TYPE_IDS = {
 
 export const WEEKEND_PLAN_ID = fixedId("30000000", 1);
 
+/** Add-ons from migration 0010 (deterministic ids so tests can reference them). */
+export const ADDON_IDS = {
+  "apex-zipline": fixedId("60000000", 1),
+  "transfer-up": fixedId("60000000", 2),
+  "transfer-down": fixedId("60000000", 3),
+} as const;
+
 export const USERS = {
   admin: { id: fixedId("40000000", 1), email: "admin@sama.test", password: "Admin1234!", full_name: "Sama Admin", role: "super_admin" },
   desk: { id: fixedId("40000000", 2), email: "desk@sama.test", password: "Desk1234!", full_name: "Front Desk", role: "reservation_desk" },
@@ -199,6 +206,79 @@ function rooms(): Row[] {
   }
   return out;
 }
+
+// Add-ons — migration 0010 seed, verbatim (APEX Zipline OMR 5 per rider, 4WD transfers OMR 15 per car).
+const ADDONS: Row[] = [
+  {
+    id: ADDON_IDS["apex-zipline"],
+    slug: "apex-zipline",
+    kind: "activity",
+    name_en: "APEX Zipline",
+    name_ar: "أبكس زيبلاين",
+    tagline_en: "310 m over the canyon at up to 60 km/h — it starts right next to the hotel.",
+    tagline_ar: "310 متراً فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
+    description_en:
+      "Fly 310 metres across the canyon, about 20 metres above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room. Maximum rider weight 120 kg; children ride with a guardian's consent.",
+    description_ar:
+      "انطلقوا 310 أمتار فوق الوادي على ارتفاع نحو 20 متراً فوق مدرجات العقر والشريجة والعين، بسرعة تصل إلى 60 كم/س. منصة الانطلاق على بُعد خطوات من الفندق، وتنتهي الرحلة عند ليالي الجبل الأخضر. يحصل نزلاء الفندق على سعر خاص؛ نحجز لكم موعدكم في اليوم الذي تفضلونه وتدفعون مع فاتورة الغرفة. الحد الأقصى لوزن الراكب 120 كجم، ويشارك الأطفال بموافقة ولي الأمر.",
+    price_omr: 5,
+    unit: "per_person",
+    max_quantity: 10,
+    taxable: false,
+    requires_note: true,
+    note_hint_en: "Preferred day (arrival day, any day of your stay) and any riders under 16",
+    note_hint_ar: "اليوم المفضل (يوم الوصول أو أي يوم خلال الإقامة) وعدد الراكبين تحت 16 عاماً",
+    image: "/images/addons/apex-zipline.jpg",
+    details: { length_m: 310, height_m: 20, speed_kmh: 60, max_weight_kg: 120, website: "https://www.apexzipline.com", operator: "Al Jabal Adventures LLC" },
+    sort_order: 10,
+  },
+  {
+    id: ADDON_IDS["transfer-up"],
+    slug: "transfer-up",
+    kind: "transfer",
+    name_en: "4WD transfer up — Birkat Al Mouz to the hotel",
+    name_ar: "نقل بسيارة دفع رباعي صعوداً — من بركة الموز إلى الفندق",
+    tagline_en: "Leave your car at the checkpoint car park; we bring you up the mountain.",
+    tagline_ar: "اتركوا سيارتكم في موقف نقطة التفتيش ونحن نصعد بكم إلى الجبل.",
+    description_en:
+      "The police checkpoint at Birkat Al Mouz does not allow 2WD cars up Jabal Al Akhdar. Park at the checkpoint car park and our 4WD collects you and your luggage and drives you to the hotel (about 45 minutes). Price is per car, up to 4 guests. Tell us your expected arrival time; we confirm the pickup by WhatsApp.",
+    description_ar:
+      "لا تسمح نقطة التفتيش في بركة الموز بصعود سيارات الدفع الثنائي إلى الجبل الأخضر. اركنوا سيارتكم في موقف نقطة التفتيش وستقلّكم سيارة الدفع الرباعي مع أمتعتكم إلى الفندق (نحو 45 دقيقة). السعر للسيارة الواحدة حتى 4 نزلاء. أخبرونا بوقت وصولكم المتوقع وسنؤكد الموعد عبر واتساب.",
+    price_omr: 15,
+    unit: "per_car",
+    max_quantity: 3,
+    taxable: false,
+    requires_note: true,
+    note_hint_en: "Expected arrival time at the checkpoint and number of guests",
+    note_hint_ar: "وقت الوصول المتوقع إلى نقطة التفتيش وعدد النزلاء",
+    image: "/images/addons/transfer.jpg",
+    details: { max_guests_per_car: 4, pickup: "Birkat Al Mouz checkpoint car park", duration_min: 45 },
+    sort_order: 20,
+  },
+  {
+    id: ADDON_IDS["transfer-down"],
+    slug: "transfer-down",
+    kind: "transfer",
+    name_en: "4WD transfer down — hotel to Birkat Al Mouz",
+    name_ar: "نقل بسيارة دفع رباعي نزولاً — من الفندق إلى بركة الموز",
+    tagline_en: "After check-out we drive you back down to your car.",
+    tagline_ar: "بعد تسجيل المغادرة نعيدكم إلى سيارتكم عند نقطة التفتيش.",
+    description_en:
+      "On your check-out day our 4WD takes you and your luggage from the hotel back to the Birkat Al Mouz checkpoint car park. Price is per car, up to 4 guests. Tell us what time you would like to leave.",
+    description_ar:
+      "في يوم المغادرة تقلّكم سيارة الدفع الرباعي مع أمتعتكم من الفندق إلى موقف نقطة التفتيش في بركة الموز. السعر للسيارة الواحدة حتى 4 نزلاء. أخبرونا بالوقت الذي تودون المغادرة فيه.",
+    price_omr: 15,
+    unit: "per_car",
+    max_quantity: 3,
+    taxable: false,
+    requires_note: true,
+    note_hint_en: "Preferred departure time on check-out day",
+    note_hint_ar: "وقت المغادرة المفضل في يوم تسجيل المغادرة",
+    image: "/images/addons/transfer.jpg",
+    details: { max_guests_per_car: 4, dropoff: "Birkat Al Mouz checkpoint car park", duration_min: 45 },
+    sort_order: 30,
+  },
+];
 
 const SETTINGS: Row[] = [
   { key: "taxes", value: { service_charge_pct: 8, service_charge_enabled: true, tourism_fee_pct: 4, tourism_fee_enabled: true, vat_pct: 5, vat_enabled: true, vat_on_fees: true } },
@@ -389,6 +469,7 @@ export function seed(db: Db): void {
     },
   ]);
   db.insert("bk_settings", SETTINGS);
+  db.insert("bk_addons", ADDONS);
   db.insert("automations", AUTOMATIONS);
   db.insert("profiles", [
     { id: USERS.admin.id, full_name: USERS.admin.full_name, role: USERS.admin.role },

@@ -84,6 +84,7 @@ export const COMMON = {
   calendar: { en: "Calendar", ar: "التقويم" },
   rooms: { en: "Rooms", ar: "الغرف" },
   rates: { en: "Rates", ar: "الأسعار" },
+  addons: { en: "Add-ons", ar: "الإضافات" },
   blocks: { en: "Blocks", ar: "الإغلاقات" },
   messaging: { en: "Messaging", ar: "الرسائل" },
   settings: { en: "Settings", ar: "الإعدادات" },

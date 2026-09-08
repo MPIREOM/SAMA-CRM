@@ -7,14 +7,16 @@ import { requireStaff, FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import { cancelBooking, createBooking } from "@/lib/bk/bookings";
 import { getQuote } from "@/lib/bk/catalogue";
+import { getSettings } from "@/lib/bk/settings";
 import type { QuoteResult } from "@/lib/bk/types";
 import { dispatchForBooking } from "@/lib/messaging/dispatch";
 import { normalizePhone } from "@/lib/phone";
 import { logger } from "@/lib/logger";
 import { muscatToday } from "@/lib/booking-engine/dates";
-import type { Json } from "@/lib/database.types";
+import { nightsBetween, type NightlyRate } from "@/lib/booking-engine/pricing";
+import type { BkBookingAddonStatus, Json } from "@/lib/database.types";
 import { runAction } from "@/components/admin/server";
-import type { ActionResult } from "@/components/admin/shared";
+import { ADDON_TRANSITIONS, addonLineOmr, bookingMoneyWithAddons, type ActionResult } from "@/components/admin/shared";
 
 // Every mutation: requireStaff → Zod → service-role write → audit → revalidate.
 
@@ -278,6 +280,9 @@ export async function changeDates(input: unknown): Promise<ActionResult> {
         return { ok: false, error: "room_unavailable" };
       }
     }
+    // Room-only re-quote; the booked add-on lines keep their stored unit prices
+    // and are folded back into the money columns below (per_night lines are
+    // re-priced for the new number of nights).
     const { data: quoteJson, error: quoteErr } = await admin.rpc("bk_quote", {
       p_room_type_id: before.room_type_id,
       p_check_in: data.check_in,
@@ -288,6 +293,19 @@ export async function changeDates(input: unknown): Promise<ActionResult> {
     });
     if (quoteErr) return { ok: false, error: quoteErr.message };
     const q = quoteJson as unknown as QuoteResult;
+    const nightly = (q.nightly ?? []).map((n) => ({ date: n.date, rate: Number(n.rate) }));
+    const lines = await loadAddonLines(data.bookingId);
+    const nights = nightsBetween(data.check_in, data.check_out);
+    for (const line of lines) {
+      if (line.status === "cancelled" || line.addon?.unit !== "per_night") continue;
+      const total = addonLineOmr(line.unit_price_omr, line.quantity, "per_night", nights);
+      if (total !== line.total_omr) {
+        const { error: lineErr } = await admin.from("bk_booking_addons").update({ total_omr: total }).eq("id", line.id);
+        if (lineErr) return { ok: false, error: lineErr.message };
+        line.total_omr = total;
+      }
+    }
+    const money = bookingMoneyWithAddons(nightly, Number(q.discount), lines, (await getSettings()).taxes);
     const { error } = await admin
       .from("bk_bookings")
       .update({
@@ -295,13 +313,8 @@ export async function changeDates(input: unknown): Promise<ActionResult> {
         check_out: data.check_out,
         adults: data.adults,
         children: data.children,
-        nightly_rates: (q.nightly ?? []) as unknown as Json,
-        room_subtotal_omr: Number(q.room_subtotal),
-        discount_omr: Number(q.discount),
-        service_charge_omr: Number(q.service_charge),
-        tourism_fee_omr: Number(q.tourism_fee),
-        vat_omr: Number(q.vat),
-        total_omr: Number(q.total),
+        nightly_rates: nightly as unknown as Json,
+        ...money,
         promo_code: q.promo_valid ? q.promo_code : null,
       })
       .eq("id", data.bookingId);
@@ -311,7 +324,147 @@ export async function changeDates(input: unknown): Promise<ActionResult> {
       check_out: { from: before.check_out, to: data.check_out },
       adults: { from: before.adults, to: data.adults },
       children: { from: before.children, to: data.children },
-      total_omr: { from: before.total_omr, to: Number(q.total) },
+      total_omr: { from: before.total_omr, to: money.total_omr },
+    });
+    revalidateBooking(data.bookingId);
+    return { ok: true };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Add-ons on a booking (APEX Zipline, 4WD transfers)
+// ---------------------------------------------------------------------------
+
+interface AddonLineRow {
+  id: string;
+  addon_id: string;
+  quantity: number;
+  unit_price_omr: number;
+  total_omr: number;
+  taxable: boolean;
+  note: string | null;
+  status: string;
+  addon: { slug: string; name_en: string; unit: string } | null;
+}
+
+async function loadAddonLines(bookingId: string): Promise<AddonLineRow[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("bk_booking_addons")
+    .select("id, addon_id, quantity, unit_price_omr, total_omr, taxable, note, status, addon:bk_addons(slug, name_en, unit)")
+    .eq("booking_id", bookingId)
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((l) => ({
+    ...l,
+    unit_price_omr: Number(l.unit_price_omr),
+    total_omr: Number(l.total_omr),
+    addon: Array.isArray(l.addon) ? (l.addon[0] ?? null) : l.addon,
+  }));
+}
+
+/**
+ * Rewrite addons_omr / taxes / total_omr from the stored nightly rates,
+ * discount and the booking's live add-on lines. Returns the money diff.
+ */
+async function recomputeBookingMoney(bookingId: string): Promise<{ from: number; to: number; addons_omr: number }> {
+  const admin = createAdminClient();
+  const booking = await loadBooking(bookingId);
+  const nightly = (Array.isArray(booking.nightly_rates) ? booking.nightly_rates : []) as unknown as NightlyRate[];
+  const lines = await loadAddonLines(bookingId);
+  const money = bookingMoneyWithAddons(
+    nightly.map((n) => ({ date: n.date, rate: Number(n.rate) })),
+    Number(booking.discount_omr),
+    lines,
+    (await getSettings()).taxes
+  );
+  const { error } = await admin.from("bk_bookings").update(money).eq("id", bookingId);
+  if (error) throw new Error(error.message);
+  return { from: Number(booking.total_omr), to: money.total_omr, addons_omr: money.addons_omr };
+}
+
+const AddonStatusSchema = z.object({
+  bookingId: uuid,
+  lineId: uuid,
+  status: z.enum(["confirmed", "done", "cancelled"]),
+});
+
+/** Confirm / mark done / cancel one booked add-on line. Cancelling takes it out of the total. */
+export async function setBookingAddonStatus(input: unknown): Promise<ActionResult> {
+  return runAction("booking.addon_status", async () => {
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
+    const { bookingId, lineId, status } = AddonStatusSchema.parse(input);
+    const lines = await loadAddonLines(bookingId);
+    const line = lines.find((l) => l.id === lineId);
+    if (!line) return { ok: false, error: "addon_not_found" };
+    const allowed = ADDON_TRANSITIONS[line.status as BkBookingAddonStatus] ?? [];
+    if (!allowed.includes(status)) return { ok: false, error: "addon_transition" };
+    const admin = createAdminClient();
+    const { error } = await admin.from("bk_booking_addons").update({ status }).eq("id", lineId);
+    if (error) return { ok: false, error: error.message };
+    const diff: Record<string, unknown> = { addon: line.addon?.slug ?? line.addon_id, status: { from: line.status, to: status } };
+    if (status === "cancelled") {
+      const money = await recomputeBookingMoney(bookingId);
+      diff.total_omr = { from: money.from, to: money.to };
+    }
+    await audit(actor, "booking.addon_status", "bk_bookings", bookingId, diff);
+    revalidateBooking(bookingId);
+    return { ok: true };
+  });
+}
+
+const AddAddonSchema = z.object({
+  bookingId: uuid,
+  addonId: uuid,
+  quantity: z.number().int().min(1).max(50),
+  note: z.string().trim().max(500).nullable().optional(),
+});
+
+/**
+ * Staff add an add-on to an existing booking. Priced from the catalogue
+ * (per_night × nights); a previously cancelled line for the same add-on is
+ * revived instead of duplicated (booking × addon is unique).
+ */
+export async function addBookingAddon(input: unknown): Promise<ActionResult> {
+  return runAction("booking.addon_add", async () => {
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
+    const data = AddAddonSchema.parse(input);
+    const booking = await loadBooking(data.bookingId);
+    if (booking.status === "cancelled" || booking.status === "no_show" || booking.status === "checked_out") {
+      return { ok: false, error: "This booking can no longer be changed." };
+    }
+    const admin = createAdminClient();
+    const { data: addon, error: addonErr } = await admin.from("bk_addons").select("*").eq("id", data.addonId).eq("is_active", true).maybeSingle();
+    if (addonErr) return { ok: false, error: addonErr.message };
+    if (!addon) return { ok: false, error: "addon_not_found" };
+    if (data.quantity > addon.max_quantity) return { ok: false, error: "addon_quantity" };
+    const nights = nightsBetween(booking.check_in, booking.check_out);
+    const unitPrice = Number(addon.price_omr);
+    const line = {
+      quantity: data.quantity,
+      unit_price_omr: unitPrice,
+      total_omr: addonLineOmr(unitPrice, data.quantity, addon.unit, nights),
+      taxable: addon.taxable,
+      note: data.note || null,
+      status: "requested" as const,
+    };
+    const existing = (await loadAddonLines(data.bookingId)).find((l) => l.addon_id === addon.id);
+    if (existing && existing.status !== "cancelled") return { ok: false, error: "addon_exists" };
+    if (existing) {
+      const { error } = await admin.from("bk_booking_addons").update(line).eq("id", existing.id);
+      if (error) return { ok: false, error: error.message };
+    } else {
+      const { error } = await admin.from("bk_booking_addons").insert({ booking_id: data.bookingId, addon_id: addon.id, ...line });
+      if (error) return { ok: false, error: error.code === "23505" ? "addon_exists" : error.message };
+    }
+    const money = await recomputeBookingMoney(data.bookingId);
+    await audit(actor, "booking.addon_add", "bk_bookings", data.bookingId, {
+      addon: addon.slug,
+      quantity: data.quantity,
+      total_omr_line: line.total_omr,
+      note: line.note,
+      revived: Boolean(existing),
+      total_omr: { from: money.from, to: money.to },
     });
     revalidateBooking(data.bookingId);
     return { ok: true };
@@ -362,6 +515,19 @@ export async function resendConfirmation(input: unknown): Promise<ActionResult> 
 // Staff booking form helpers
 // ---------------------------------------------------------------------------
 
+/** Add-on selection from the staff form: `{ addon_id, quantity, note }`; zero quantities are dropped. */
+const AddonSelectionSchema = z
+  .array(
+    z.object({
+      addon_id: uuid,
+      quantity: z.number().int().min(0).max(50),
+      note: z.string().trim().max(500).optional().nullable(),
+    })
+  )
+  .max(20)
+  .optional()
+  .nullable();
+
 const QuoteSchema = z.object({
   roomTypeId: uuid,
   checkIn: isoDate,
@@ -369,6 +535,7 @@ const QuoteSchema = z.object({
   adults: z.number().int().min(1).max(20),
   children: z.number().int().min(0).max(20),
   promoCode: z.string().trim().max(40).optional().nullable(),
+  addons: AddonSelectionSchema,
 });
 
 export async function quotePreview(input: unknown): Promise<ActionResult<QuoteResult>> {
@@ -376,7 +543,10 @@ export async function quotePreview(input: unknown): Promise<ActionResult<QuoteRe
     await requireStaff(FRONT_DESK_ROLES);
     const data = QuoteSchema.parse(input);
     if (data.checkOut <= data.checkIn) return { ok: false, error: "invalid_dates" };
-    const result = await getQuote(data);
+    const result = await getQuote({
+      ...data,
+      addons: (data.addons ?? []).filter((a) => a.quantity > 0).map((a) => ({ addon_id: a.addon_id, quantity: a.quantity, note: a.note || null })),
+    });
     if (result.quote === null) return { ok: false, error: result.error };
     return { ok: true, data: result.quote };
   });
@@ -445,6 +615,7 @@ const CreateSchema = z.object({
   promo_code: z.string().trim().max(40).optional().nullable(),
   special_requests: z.string().trim().max(2000).optional().nullable(),
   internal_notes: z.string().trim().max(2000).optional().nullable(),
+  addons: AddonSelectionSchema,
 });
 
 export async function createStaffBooking(input: unknown): Promise<ActionResult<{ id: string; ref: string }>> {
@@ -454,6 +625,7 @@ export async function createStaffBooking(input: unknown): Promise<ActionResult<{
     if (data.check_out <= data.check_in) return { ok: false, error: "invalid_dates" };
     const phone = normalizePhone(data.guest_phone);
     if (!phone) return { ok: false, error: "invalid_phone" };
+    const addons = (data.addons ?? []).filter((a) => a.quantity > 0).map((a) => ({ addon_id: a.addon_id, quantity: a.quantity, note: a.note || null }));
     const result = await createBooking({
       room_type_id: data.room_type_id,
       check_in: data.check_in,
@@ -472,6 +644,7 @@ export async function createStaffBooking(input: unknown): Promise<ActionResult<{
       status: data.status,
       room_id: data.room_id || null,
       created_by: actor.userId,
+      addons: addons.length > 0 ? addons : null,
     });
     if (result.error) return { ok: false, error: result.error === "unknown" ? result.detail : result.error };
     const booking = result.booking;
@@ -483,6 +656,8 @@ export async function createStaffBooking(input: unknown): Promise<ActionResult<{
       check_out: data.check_out,
       room_type_id: data.room_type_id,
       room_id: data.room_id ?? null,
+      addons: addons.map((a) => ({ addon_id: a.addon_id, quantity: a.quantity })),
+      addons_omr: booking.addons_omr,
       total_omr: booking.total_omr,
     });
     try {

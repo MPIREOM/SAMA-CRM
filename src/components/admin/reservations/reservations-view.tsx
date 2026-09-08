@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BedDouble, ChevronLeft, ChevronRight, Download, Plus, SearchX } from "lucide-react";
+import { BedDouble, Car, ChevronLeft, ChevronRight, Download, Plus, SearchX, Zap } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import type { BkBookingStatus, Role } from "@/lib/database.types";
@@ -46,6 +46,8 @@ export interface ReservationRow {
   created_at: string;
   room_type: { name_en: string; name_ar: string } | null;
   room: { room_number: string } | null;
+  /** Booked add-on lines (status + catalogue kind) for the row icons. */
+  addons: { status: string; addon: { kind: string; slug: string } | null }[];
 }
 
 export interface ReservationsFilters {
@@ -54,6 +56,8 @@ export interface ReservationsFilters {
   to: string;
   type: string;
   q: string;
+  /** Only bookings with a live 4WD transfer line. */
+  transfer: boolean;
   page: number;
 }
 
@@ -71,7 +75,16 @@ const STR = {
   page: { en: "Page", ar: "صفحة" },
   of: { en: "of", ar: "من" },
   exportHint: { en: "Exports the current check-in date range as CSV", ar: "يصدّر نطاق تواريخ الوصول الحالي كملف CSV" },
+  hasTransfer: { en: "Has transfer", ar: "مع نقل" },
+  transferTitle: { en: "4WD transfer booked", ar: "نقل بالدفع الرباعي محجوز" },
+  activityTitle: { en: "Activity booked (APEX Zipline)", ar: "نشاط محجوز (أبكس زيبلاين)" },
 } satisfies Strings;
+
+/** Live (non-cancelled) add-on kinds on a row. */
+function rowKinds(row: ReservationRow): { transfer: boolean; activity: boolean } {
+  const live = row.addons.filter((l) => l.status !== "cancelled");
+  return { transfer: live.some((l) => l.addon?.kind === "transfer"), activity: live.some((l) => l.addon?.kind === "activity") };
+}
 
 function buildQuery(f: ReservationsFilters, overrides: Partial<ReservationsFilters> = {}): string {
   const next = { ...f, ...overrides };
@@ -81,6 +94,7 @@ function buildQuery(f: ReservationsFilters, overrides: Partial<ReservationsFilte
   if (next.to) p.set("to", next.to);
   if (next.type) p.set("type", next.type);
   if (next.q) p.set("q", next.q);
+  if (next.transfer) p.set("transfer", "1");
   if (next.page > 1) p.set("page", String(next.page));
   const s = p.toString();
   return s ? `?${s}` : "";
@@ -118,8 +132,8 @@ export function ReservationsView({
     apply({ q: q.trim() });
   }
 
-  const hasFilters = filters.statuses.length > 0 || filters.from || filters.to || filters.type || filters.q;
-  const exportHref = `/reservations/export${buildQuery({ ...filters, statuses: [], type: "", q: "", page: 1 })}`;
+  const hasFilters = filters.statuses.length > 0 || filters.from || filters.to || filters.type || filters.q || filters.transfer;
+  const exportHref = `/reservations/export${buildQuery({ ...filters, statuses: [], type: "", q: "", transfer: false, page: 1 })}`;
 
   return (
     <div>
@@ -165,6 +179,18 @@ export function ReservationsView({
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => apply({ transfer: !filters.transfer })}
+          aria-pressed={filters.transfer}
+          className={cn(
+            "ms-2 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+            filters.transfer ? "border-maroon-800 bg-maroon-800 text-gold-100" : "border-maroon-200 bg-white text-maroon-600 hover:bg-maroon-50"
+          )}
+        >
+          <Car className="h-3.5 w-3.5" />
+          {STR.hasTransfer[lang]}
+        </button>
         {hasFilters && (
           <button type="button" onClick={() => router.push("/reservations")} className="ms-1 text-xs font-semibold text-crimson-700 hover:underline">
             {COMMON.reset[lang]}
@@ -238,9 +264,13 @@ export function ReservationsView({
               {rows.map((b) => (
                 <TR key={b.id} className="cursor-pointer hover:bg-maroon-50/50" onClick={() => router.push(`/reservations/${b.id}`)}>
                   <TD className="font-bold text-maroon-900">
-                    <Link href={`/reservations/${b.id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
-                      {b.ref}
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <Link href={`/reservations/${b.id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                        {b.ref}
+                      </Link>
+                      {rowKinds(b).transfer && <Car className="h-4 w-4 text-maroon-500" aria-label={STR.transferTitle[lang]} data-testid="row-transfer" />}
+                      {rowKinds(b).activity && <Zap className="h-4 w-4 text-gold-600" aria-label={STR.activityTitle[lang]} data-testid="row-activity" />}
+                    </div>
                   </TD>
                   <TD>
                     <p className="font-semibold">{b.guest_name}</p>

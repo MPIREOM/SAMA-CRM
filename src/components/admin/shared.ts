@@ -3,12 +3,15 @@
 
 import type { Lang, Localized } from "@/lib/i18n";
 import type {
+  BkAddonKind,
+  BkAddonUnit,
+  BkBookingAddonStatus,
   BkBookingSource,
   BkBookingStatus,
   BkMessageKind,
   BkScheduledStatus,
 } from "@/lib/database.types";
-import { formatOmr } from "@/lib/booking-engine/pricing";
+import { formatOmr, roundOmr, type NightlyRate, type TaxSettings } from "@/lib/booking-engine/pricing";
 
 /** Result contract for every back-office server action. Never throws to the client. */
 export type ActionResult<T = undefined> =
@@ -258,6 +261,145 @@ export function scheduledStatusVariant(status: string | null | undefined): Badge
 }
 
 // ---------------------------------------------------------------------------
+// Add-ons (APEX Zipline, 4WD transfers — migration 0010)
+// ---------------------------------------------------------------------------
+
+export const ADDON_KINDS: BkAddonKind[] = ["activity", "transfer", "other"];
+
+export const ADDON_KIND_LABELS: Record<BkAddonKind, Localized> = {
+  activity: { en: "Activity", ar: "نشاط" },
+  transfer: { en: "Transfer", ar: "نقل" },
+  other: { en: "Other", ar: "أخرى" },
+};
+
+export function addonKindLabel(kind: string | null | undefined, lang: Lang): string {
+  if (kind && kind in ADDON_KIND_LABELS) return ADDON_KIND_LABELS[kind as BkAddonKind][lang];
+  return kind ?? "—";
+}
+
+export const ADDON_UNITS: BkAddonUnit[] = ["per_person", "per_car", "per_booking", "per_night"];
+
+export const ADDON_UNIT_LABELS: Record<BkAddonUnit, Localized> = {
+  per_person: { en: "per person", ar: "للشخص" },
+  per_car: { en: "per car", ar: "للسيارة" },
+  per_booking: { en: "per booking", ar: "للحجز" },
+  per_night: { en: "per night", ar: "لليلة" },
+};
+
+export function addonUnitLabel(unit: string | null | undefined, lang: Lang): string {
+  if (unit && unit in ADDON_UNIT_LABELS) return ADDON_UNIT_LABELS[unit as BkAddonUnit][lang];
+  return unit ?? "—";
+}
+
+export const BOOKING_ADDON_STATUSES: BkBookingAddonStatus[] = ["requested", "confirmed", "done", "cancelled"];
+
+export const ADDON_STATUS_LABELS: Record<BkBookingAddonStatus, Localized> = {
+  requested: { en: "Requested", ar: "مطلوب" },
+  confirmed: { en: "Confirmed", ar: "مؤكد" },
+  done: { en: "Done", ar: "تم" },
+  cancelled: { en: "Cancelled", ar: "ملغي" },
+};
+
+export function addonStatusLabel(status: string | null | undefined, lang: Lang): string {
+  if (status && status in ADDON_STATUS_LABELS) return ADDON_STATUS_LABELS[status as BkBookingAddonStatus][lang];
+  return status ?? "—";
+}
+
+export function addonStatusVariant(status: string | null | undefined): BadgeVariant {
+  switch (status) {
+    case "requested":
+      return "gold";
+    case "confirmed":
+      return "maroon";
+    case "done":
+      return "green";
+    case "cancelled":
+      return "red";
+    default:
+      return "outline";
+  }
+}
+
+/** Allowed status transitions for a booked add-on line (staff actions). */
+export const ADDON_TRANSITIONS: Record<BkBookingAddonStatus, BkBookingAddonStatus[]> = {
+  requested: ["confirmed", "cancelled"],
+  confirmed: ["done", "cancelled"],
+  done: [],
+  cancelled: [],
+};
+
+/** "Transfer" add-ons are the 4WD pickups; the desk needs them at a glance. */
+export function isTransferAddon(a: { kind?: string | null; slug?: string | null } | null | undefined): boolean {
+  return a?.kind === "transfer";
+}
+
+/** Line total as bk_quote computes it: per_night lines multiply by the nights. */
+export function addonLineOmr(unitPrice: number, quantity: number, unit: string | null | undefined, nights: number): number {
+  const units = unit === "per_night" ? quantity * nights : quantity;
+  return roundOmr(unitPrice * units);
+}
+
+export interface AddonMoneyLine {
+  total_omr: number;
+  taxable: boolean;
+  status: string;
+}
+
+export interface BookingMoney {
+  room_subtotal_omr: number;
+  discount_omr: number;
+  addons_omr: number;
+  service_charge_omr: number;
+  tourism_fee_omr: number;
+  vat_omr: number;
+  total_omr: number;
+}
+
+/**
+ * Money columns for a stored booking after its add-on lines change — the same
+ * arithmetic as bk_quote / quoteFromNightly, but starting from the stored
+ * nightly rates and the stored (absolute) discount. Cancelled lines are
+ * ignored; taxable lines join the taxable base, the rest is added after taxes.
+ */
+export function bookingMoneyWithAddons(
+  nightly: NightlyRate[],
+  discountOmr: number,
+  lines: AddonMoneyLine[],
+  taxes: TaxSettings
+): BookingMoney {
+  const subtotal = roundOmr(nightly.reduce((s, n) => s + Number(n.rate ?? 0), 0));
+  const discount = roundOmr(discountOmr);
+  const live = lines.filter((l) => l.status !== "cancelled");
+  const addonsTaxable = roundOmr(live.filter((l) => l.taxable).reduce((s, l) => s + l.total_omr, 0));
+  const addonsUntaxed = roundOmr(live.filter((l) => !l.taxable).reduce((s, l) => s + l.total_omr, 0));
+  const taxable = subtotal - discount + addonsTaxable;
+  const service = taxes.service_charge_enabled ? roundOmr((taxable * taxes.service_charge_pct) / 100) : 0;
+  const tourism = taxes.tourism_fee_enabled ? roundOmr((taxable * taxes.tourism_fee_pct) / 100) : 0;
+  let vat = 0;
+  if (taxes.vat_enabled) {
+    const base = taxes.vat_on_fees ? taxable + service + tourism : taxable;
+    vat = roundOmr((base * taxes.vat_pct) / 100);
+  }
+  return {
+    room_subtotal_omr: subtotal,
+    discount_omr: discount,
+    addons_omr: roundOmr(addonsTaxable + addonsUntaxed),
+    service_charge_omr: service,
+    tourism_fee_omr: tourism,
+    vat_omr: vat,
+    total_omr: roundOmr(taxable + service + tourism + vat + addonsUntaxed),
+  };
+}
+
+/** "APEX Zipline ×2; 4WD transfer up ×1" — live (non-cancelled) lines only. */
+export function addonsSummary(lines: { quantity: number; status: string; addon: { name_en: string } | null }[]): string {
+  return lines
+    .filter((l) => l.status !== "cancelled")
+    .map((l) => `${l.addon?.name_en ?? "?"} ×${l.quantity}`)
+    .join("; ");
+}
+
+// ---------------------------------------------------------------------------
 // Rooms / blocks
 // ---------------------------------------------------------------------------
 
@@ -332,6 +474,12 @@ export const ERROR_MESSAGES: Record<string, Localized> = {
   overlap: { en: "That room is already booked or blocked for those dates.", ar: "هذه الغرفة محجوزة أو مغلقة في هذه التواريخ." },
   validation: { en: "Please check the highlighted fields.", ar: "يرجى مراجعة الحقول." },
   not_configured: { en: "Server is missing SUPABASE_SERVICE_ROLE_KEY.", ar: "مفتاح الخدمة غير مضبوط على الخادم." },
+  addon_not_found: { en: "That add-on is not available.", ar: "هذه الإضافة غير متاحة." },
+  addon_quantity: { en: "Quantity is above the maximum for this add-on.", ar: "الكمية تتجاوز الحد الأقصى لهذه الإضافة." },
+  addon_exists: { en: "This add-on is already on the booking — cancel that line first.", ar: "هذه الإضافة موجودة على الحجز بالفعل — ألغِ ذلك السطر أولاً." },
+  addon_transition: { en: "That status change isn't allowed.", ar: "تغيير الحالة هذا غير مسموح." },
+  slug_taken: { en: "An add-on with that slug already exists.", ar: "توجد إضافة بهذا المعرّف بالفعل." },
+  invalid_json: { en: "Details must be a valid JSON object.", ar: "يجب أن تكون التفاصيل كائن JSON صالحاً." },
 };
 
 /** Map an action error code / message to a readable bilingual string. */

@@ -24,6 +24,10 @@ test.describe("middleware", () => {
     const guarded = await request.get("/reservations", { maxRedirects: 0 });
     expect(guarded.status()).toBe(307);
     expect(guarded.headers().location).toMatch(/\/login\?next=%2Freservations$/);
+    // /addons is a CRM prefix too (not a guest locale route).
+    const addons = await request.get("/addons", { maxRedirects: 0 });
+    expect(addons.status()).toBe(307);
+    expect(addons.headers().location).toMatch(/\/login\?next=%2Faddons$/);
 
     const cron = await request.get("/api/cron/dispatch");
     expect(cron.status()).toBe(401);

@@ -19,6 +19,7 @@ const CRM_PREFIXES = [
   "/calendar",
   "/rooms",
   "/rates",
+  "/addons",
   "/blocks",
   "/messaging",
   "/settings",

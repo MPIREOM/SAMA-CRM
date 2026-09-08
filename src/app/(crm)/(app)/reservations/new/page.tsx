@@ -24,11 +24,16 @@ export default async function NewReservationPage({ searchParams }: { searchParam
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("bk_room_types")
-      .select("id, name_en, name_ar, max_adults, max_children, base_rate_omr, is_active")
-      .order("sort_order");
+    const [{ data, error }, addons] = await Promise.all([
+      admin.from("bk_room_types").select("id, name_en, name_ar, max_adults, max_children, base_rate_omr, is_active").order("sort_order"),
+      admin
+        .from("bk_addons")
+        .select("id, slug, kind, name_en, name_ar, price_omr, unit, max_quantity, taxable, requires_note, note_hint_en, note_hint_ar")
+        .eq("is_active", true)
+        .order("sort_order"),
+    ]);
     if (error) throw new Error(error.message);
+    if (addons.error) throw new Error(addons.error.message);
     const types = (data ?? []).map((t) => ({ ...t, base_rate_omr: Number(t.base_rate_omr) }));
 
     const initialIn = isIsoDateParam(checkIn) ? checkIn : today;
@@ -37,6 +42,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
     return (
       <NewBookingForm
         types={types}
+        addons={(addons.data ?? []).map((a) => ({ ...a, price_omr: Number(a.price_omr) }))}
         today={today}
         initial={{
           room_type_id: roomType && UUID.test(roomType) ? roomType : (types.find((t) => t.is_active)?.id ?? ""),

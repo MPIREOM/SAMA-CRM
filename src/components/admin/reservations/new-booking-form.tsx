@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Car, Minus, Plus, Sparkles, Zap } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import { COUNTRY_CODES, normalizePhone } from "@/lib/phone";
@@ -18,7 +18,8 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createStaffBooking, freeRooms, quotePreview, type FreeRoom } from "@/app/(crm)/(app)/reservations/actions";
 import { InlineAlert } from "../load-error";
-import { STAFF_SOURCES, fmtDate, fmtMoney, localName, sourceLabel, nightsLabel } from "../shared";
+import { STAFF_SOURCES, addonUnitLabel, fmtDate, fmtMoney, localName, sourceLabel, nightsLabel } from "../shared";
+import type { AddonOption } from "./booking-addons";
 
 const STR = {
   title: { en: "New booking", ar: "حجز جديد" },
@@ -55,6 +56,13 @@ const STR = {
   errDates: { en: "Check-out must be after check-in.", ar: "يجب أن يكون تاريخ المغادرة بعد تاريخ الوصول." },
   confirmed: { en: "Confirmed", ar: "مؤكد" },
   pending: { en: "Pending (hold)", ar: "قيد الانتظار (حجز مبدئي)" },
+  addons: { en: "Add-ons", ar: "الإضافات" },
+  addonsHint: { en: "APEX Zipline, 4WD transfers — priced from the catalogue, paid with the room", ar: "أبكس زيبلاين ونقل الدفع الرباعي — تُسعّر من القائمة وتُدفع مع الغرفة" },
+  addonNote: { en: "Note for the team", ar: "ملاحظة للفريق" },
+  addonsTotal: { en: "Add-ons", ar: "الإضافات" },
+  decrease: { en: "Fewer", ar: "أقل" },
+  increase: { en: "More", ar: "أكثر" },
+  max: { en: "max", ar: "الحد الأقصى" },
 } satisfies Strings;
 
 export interface NewBookingType {
@@ -69,11 +77,21 @@ export interface NewBookingType {
 
 interface Props {
   types: NewBookingType[];
+  /** Active add-ons (empty when none are configured). */
+  addons: AddonOption[];
   today: string;
   initial: { room_type_id: string; room_id: string; check_in: string; check_out: string };
 }
 
-export function NewBookingForm({ types, initial }: Props) {
+type AddonPick = { quantity: number; note: string };
+
+function AddonIcon({ kind }: { kind: string }) {
+  if (kind === "transfer") return <Car className="h-4 w-4 shrink-0 text-maroon-500" />;
+  if (kind === "activity") return <Zap className="h-4 w-4 shrink-0 text-gold-600" />;
+  return <Sparkles className="h-4 w-4 shrink-0 text-maroon-400" />;
+}
+
+export function NewBookingForm({ types, addons, initial }: Props) {
   const { lang } = useLang();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -113,6 +131,23 @@ export function NewBookingForm({ types, initial }: Props) {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [rooms, setRooms] = useState<FreeRoom[] | null>(null);
 
+  // Add-on picks keyed by addon id; only quantities > 0 are sent.
+  const [picks, setPicks] = useState<Record<string, AddonPick>>({});
+  const pickOf = (id: string): AddonPick => picks[id] ?? { quantity: 0, note: "" };
+  const setPick = (id: string, patch: Partial<AddonPick>) => setPicks((p) => ({ ...p, [id]: { ...(p[id] ?? { quantity: 0, note: "" }), ...patch } }));
+  const selection = useMemo(
+    () =>
+      addons
+        .map((a) => {
+          const pick = picks[a.id] ?? { quantity: 0, note: "" };
+          return { addon_id: a.id, quantity: pick.quantity, note: pick.note.trim() || null };
+        })
+        .filter((a) => a.quantity > 0),
+    [addons, picks]
+  );
+  // Notes don't change the price — re-quote only when quantities do.
+  const quantitiesKey = selection.map((a) => `${a.addon_id}:${a.quantity}`).join(",");
+
   const type = types.find((t) => t.id === form.room_type_id) ?? null;
   const nights = nightsBetween(form.check_in, form.check_out);
   const datesOk = nights > 0;
@@ -132,6 +167,12 @@ export function NewBookingForm({ types, initial }: Props) {
         adults: form.adults,
         children: form.children,
         promoCode: form.promo_code || null,
+        addons: quantitiesKey
+          ? quantitiesKey.split(",").map((pair) => {
+              const [addon_id, qty] = pair.split(":");
+              return { addon_id, quantity: Number(qty) };
+            })
+          : [],
       }).then((r) => {
         if (!alive) return;
         if (r.ok) {
@@ -147,7 +188,7 @@ export function NewBookingForm({ types, initial }: Props) {
       alive = false;
       clearTimeout(t);
     };
-  }, [form.room_type_id, form.check_in, form.check_out, form.adults, form.children, form.promo_code, datesOk]);
+  }, [form.room_type_id, form.check_in, form.check_out, form.adults, form.children, form.promo_code, datesOk, quantitiesKey]);
 
   // Free rooms for the chosen type + dates.
   useEffect(() => {
@@ -193,6 +234,7 @@ export function NewBookingForm({ types, initial }: Props) {
         promo_code: form.promo_code.trim() || null,
         special_requests: form.special_requests.trim() || null,
         internal_notes: form.internal_notes.trim() || null,
+        addons: selection,
       });
       if (!r.ok) {
         setError(r.error);
@@ -351,6 +393,69 @@ export function NewBookingForm({ types, initial }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Add-ons */}
+          {addons.length > 0 && (
+            <Card data-testid="new-booking-addons">
+              <CardHeader>
+                <CardTitle>{STR.addons[lang]}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-maroon-400">{STR.addonsHint[lang]}</p>
+                <ul className="divide-y divide-maroon-100">
+                  {addons.map((a) => {
+                    const pick = pickOf(a.id);
+                    const hint = lang === "ar" ? a.note_hint_ar : a.note_hint_en;
+                    return (
+                      <li key={a.id} data-testid={`addon-${a.slug}`} className="space-y-2 py-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <AddonIcon kind={a.kind} />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-maroon-900">{localName(a, lang)}</p>
+                            <p className="text-xs text-maroon-500">
+                              {fmtMoney(a.price_omr, lang)} {addonUnitLabel(a.unit, lang)} · {STR.max[lang]} {a.max_quantity}
+                            </p>
+                          </div>
+                          <div className="inline-flex items-center rounded-lg border border-maroon-200 bg-white" role="group" aria-label={localName(a, lang)}>
+                            <button
+                              type="button"
+                              aria-label={`${STR.decrease[lang]} — ${localName(a, lang)}`}
+                              disabled={pick.quantity <= 0}
+                              onClick={() => setPick(a.id, { quantity: Math.max(0, pick.quantity - 1) })}
+                              className="flex h-9 w-9 items-center justify-center text-maroon-700 hover:bg-maroon-50 disabled:opacity-40"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span data-testid={`addon-qty-${a.slug}`} className="w-8 text-center text-sm font-bold text-maroon-900" aria-live="polite">
+                              {pick.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label={`${STR.increase[lang]} — ${localName(a, lang)}`}
+                              disabled={pick.quantity >= a.max_quantity}
+                              onClick={() => setPick(a.id, { quantity: Math.min(a.max_quantity, pick.quantity + 1) })}
+                              className="flex h-9 w-9 items-center justify-center text-maroon-700 hover:bg-maroon-50 disabled:opacity-40"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        {pick.quantity > 0 && (
+                          <div>
+                            <Label htmlFor={`n-addon-note-${a.slug}`} className="text-xs">
+                              {STR.addonNote[lang]}
+                              {hint ? <span className="font-normal text-maroon-400"> — {hint}</span> : null}
+                            </Label>
+                            <Input id={`n-addon-note-${a.slug}`} value={pick.note} onChange={(e) => setPick(a.id, { note: e.target.value })} placeholder={hint ?? undefined} />
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Quote */}
@@ -409,6 +514,22 @@ export function NewBookingForm({ types, initial }: Props) {
                       <dt className="text-maroon-500">{STR.vat[lang]}</dt>
                       <dd>{fmtMoney(quote.vat, lang)}</dd>
                     </div>
+                    {quote.addons.length > 0 && (
+                      <div className="border-t border-maroon-100 pt-1" data-testid="quote-addons">
+                        {quote.addons.map((a) => (
+                          <div key={a.addon_id} className="flex justify-between text-xs">
+                            <dt className="text-maroon-500">
+                              {lang === "ar" ? a.name_ar : a.name_en} ×{a.quantity}
+                            </dt>
+                            <dd>{fmtMoney(a.total, lang)}</dd>
+                          </div>
+                        ))}
+                        <div className="flex justify-between">
+                          <dt className="text-maroon-500">{STR.addonsTotal[lang]}</dt>
+                          <dd>{fmtMoney(quote.addons_total, lang)}</dd>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex justify-between border-t border-maroon-200 pt-1 text-lg font-extrabold text-maroon-900">
                       <dt>{COMMON.total[lang]}</dt>
                       <dd>{fmtMoney(quote.total, lang)}</dd>
