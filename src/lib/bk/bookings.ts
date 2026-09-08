@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { BkBooking, BkRoomType, BkRoom, BkScheduledMessage, BkMessageLog, Json } from "@/lib/database.types";
+import type { BkAddon, BkBooking, BkBookingAddon, BkRoomType, BkRoom, BkScheduledMessage, BkMessageLog, Json } from "@/lib/database.types";
+import type { AddonSelection } from "./types";
 
 // Booking writes always go through the SECURITY DEFINER RPCs with the service
 // role. Reads for the guest confirmation page also use the service role but
@@ -25,6 +26,8 @@ export interface CreateBookingInput {
   status?: "pending" | "confirmed";
   room_id?: string | null;
   created_by?: string | null;
+  /** Optional add-ons (APEX Zipline, transfers); priced server-side from bk_addons. */
+  addons?: AddonSelection[] | null;
 }
 
 export type CreateBookingError =
@@ -39,6 +42,8 @@ export type CreateBookingError =
   | "room_type_not_found"
   | "room_unavailable"
   | "room_invalid"
+  | "addon_not_found"
+  | "addon_quantity"
   | "unknown";
 
 const KNOWN_ERRORS: CreateBookingError[] = [
@@ -53,6 +58,8 @@ const KNOWN_ERRORS: CreateBookingError[] = [
   "room_type_not_found",
   "room_unavailable",
   "room_invalid",
+  "addon_not_found",
+  "addon_quantity",
 ];
 
 export function mapBookingError(message: string): CreateBookingError {
@@ -83,16 +90,24 @@ export async function cancelBooking(
   return { booking: data as unknown as BkBooking, error: null };
 }
 
+export interface BookingAddonWithAddon extends BkBookingAddon {
+  addon: BkAddon | null;
+}
+
 export interface BookingWithRelations extends BkBooking {
   room_type: BkRoomType | null;
   room: BkRoom | null;
+  /** Present when loaded through getBookingByRef / getBookingById. */
+  addons?: BookingAddonWithAddon[];
 }
+
+const BOOKING_SELECT = "*, room_type:bk_room_types(*), room:bk_rooms(*), addons:bk_booking_addons(*, addon:bk_addons(*))";
 
 export async function getBookingByRef(ref: string): Promise<BookingWithRelations | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("bk_bookings")
-    .select("*, room_type:bk_room_types(*), room:bk_rooms(*)")
+    .select(BOOKING_SELECT)
     .eq("ref", ref.trim().toUpperCase())
     .maybeSingle();
   if (error) throw new Error(`booking read failed: ${error.message}`);
@@ -103,7 +118,7 @@ export async function getBookingById(id: string): Promise<BookingWithRelations |
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("bk_bookings")
-    .select("*, room_type:bk_room_types(*), room:bk_rooms(*)")
+    .select(BOOKING_SELECT)
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`booking read failed: ${error.message}`);

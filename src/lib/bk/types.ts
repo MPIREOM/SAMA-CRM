@@ -99,6 +99,29 @@ export type PublicSettings = Pick<
   "times" | "cancellation" | "contact" | "booking" | "taxes" | "reviews" | "hotel"
 >;
 
+/** One priced add-on line inside a quote (from bk_quote). */
+export interface QuoteAddonLine {
+  addon_id: string;
+  slug: string;
+  kind: "activity" | "transfer" | "other";
+  name_en: string;
+  name_ar: string;
+  unit: "per_person" | "per_car" | "per_booking" | "per_night";
+  quantity: number;
+  unit_price: number;
+  total: number;
+  taxable: boolean;
+  note: string | null;
+}
+
+/** What the caller sends to bk_quote / bk_create_booking for add-ons. */
+export interface AddonSelection {
+  addon_id?: string;
+  slug?: string;
+  quantity: number;
+  note?: string | null;
+}
+
 /** Shape returned by the bk_quote() RPC. */
 export interface QuoteResult {
   room_type_id: string;
@@ -114,6 +137,8 @@ export interface QuoteResult {
   promo_valid: boolean;
   discount_pct: number;
   discount: number;
+  addons: QuoteAddonLine[];
+  addons_total: number;
   service_charge: number;
   tourism_fee: number;
   vat: number;

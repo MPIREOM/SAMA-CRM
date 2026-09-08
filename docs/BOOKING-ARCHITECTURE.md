@@ -65,3 +65,11 @@ Room photos are real but thin: Sama Suites reuse Deluxe shots; Deluxe Mountain r
 ## Brand
 Pomegranate Maroon `maroon-800 #3B171B`, Sama Gold `gold-500 #C5A04F`, Maroon `crimson-700 #841424`, Al-Jabal Green `jabal-600 #098E4B`, Stone Brown `#B28855` (`stone`), Deep Blue Sky `#327DD8` (`sky`). Fonts: Nunito Sans (EN) + Tajawal (AR) — self-hosted via `src/fonts` (`font-sans`, `font-arabic`).
 Guest site feel: premium, calm, warm; generous whitespace; big photography; maroon/gold/stone; no purple, no generic template look.
+
+## Add-ons (migration 0010)
+- `bk_addons` (public read when active): slug, kind `activity|transfer|other`, bilingual names/taglines/descriptions, `price_omr`, `unit` `per_person|per_car|per_booking|per_night`, `max_quantity`, `taxable` (false = final price added after room taxes; true = joins the taxable base), `requires_note` + bilingual `note_hint_*`, `image`, `details` jsonb, `is_active`, `sort_order`.
+  Seeded: `apex-zipline` (OMR 5 per person, details length_m 310 / height_m 20 / speed_kmh 60 / max_weight_kg 120 / website), `transfer-up` and `transfer-down` (OMR 15 per car, up to 4 guests, note = time).
+- `bk_booking_addons`: booking × addon, quantity, unit_price_omr, total_omr, taxable, note, status `requested|confirmed|done|cancelled` (cancelled automatically when the booking is cancelled). `bk_bookings.addons_omr` holds the add-ons total; `total_omr` includes it.
+- RPCs: `bk_quote(..., p_promo_code, p_addons jsonb)` where `p_addons = [{"slug"|"addon_id", "quantity", "note"}]` returns `addons: [{addon_id, slug, kind, name_en, name_ar, unit, quantity, unit_price, total, taxable, note}]` and `addons_total`; `bk_create_booking(p)` reads `p.addons` with the same shape and writes `bk_booking_addons`. Prices always come from the catalogue.
+- TS: `getAddons()` / `getAddonBySlug()` (`src/lib/bk/catalogue.ts`), `getQuote({ addons })`, `createBooking({ addons })`, `BookingWithRelations.addons` (with `addon`), `quoteFromNightly(nightly, taxes, discountPct, addonInputs)` in `pricing.ts` (`AddonLineInput`), types `QuoteAddonLine` / `AddonSelection` in `src/lib/bk/types.ts`.
+- Images: `public/images/addons/apex-zipline.jpg`, `transfer.jpg` (placeholders from the hotel set until APEX supplies photos).

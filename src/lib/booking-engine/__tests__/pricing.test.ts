@@ -154,3 +154,49 @@ describe("quote", () => {
     expect(q.total).toBe(0);
   });
 });
+
+describe("add-ons (APEX Zipline, 4WD transfers)", () => {
+  // Verified against bk_quote on the live DB on 2026-09-08: Fri 18 + Sat 19 Sep chalet
+  // (78 + 65 = 143), zipline ×2 (5 each), transfer up + down (15 each):
+  // service 11.440, tourism 5.720, VAT 8.008, add-ons 40, total 208.168.
+  const nightly = [
+    { date: "2026-09-18", rate: 78 },
+    { date: "2026-09-19", rate: 65 },
+  ];
+  it("untaxed add-ons are added after the room taxes", () => {
+    const q = quoteFromNightly(nightly, DEFAULT_TAXES, 0, [
+      { quantity: 2, unit_price: 5, unit: "per_person", taxable: false },
+      { quantity: 1, unit_price: 15, unit: "per_car", taxable: false },
+      { quantity: 1, unit_price: 15, unit: "per_car", taxable: false },
+    ]);
+    expect(q.room_subtotal).toBe(143);
+    expect(q.addons_total).toBe(40);
+    expect(q.service_charge).toBe(11.44);
+    expect(q.tourism_fee).toBe(5.72);
+    expect(q.vat).toBe(8.008);
+    expect(q.total).toBe(208.168);
+    expect(q.addons.map((a) => a.total)).toEqual([10, 15, 15]);
+  });
+
+  it("taxable add-ons join the taxable base; per_night multiplies by nights; zero quantities drop out", () => {
+    const q = quoteFromNightly(nightly, DEFAULT_TAXES, 0, [
+      { quantity: 1, unit_price: 10, unit: "per_night", taxable: true },
+      { quantity: 0, unit_price: 5, unit: "per_person", taxable: false },
+    ]);
+    expect(q.addons).toHaveLength(1);
+    expect(q.addons[0].total).toBe(20);
+    expect(q.addons_total).toBe(20);
+    // taxable base 163 → 13.04 + 6.52 + VAT on 182.56 = 9.128
+    expect(q.service_charge).toBe(13.04);
+    expect(q.tourism_fee).toBe(6.52);
+    expect(q.vat).toBe(9.128);
+    expect(q.total).toBe(191.688);
+  });
+
+  it("a stay without add-ons is unchanged", () => {
+    const q = quoteFromNightly(nightly, DEFAULT_TAXES);
+    expect(q.addons).toEqual([]);
+    expect(q.addons_total).toBe(0);
+    expect(q.total).toBe(168.168);
+  });
+});

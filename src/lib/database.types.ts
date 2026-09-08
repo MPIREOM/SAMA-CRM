@@ -51,6 +51,81 @@ export type Database = {
         }
         Relationships: []
       }
+      bk_addons: {
+        Row: {
+          created_at: string
+          description_ar: string | null
+          description_en: string | null
+          details: Json
+          id: string
+          image: string | null
+          is_active: boolean
+          kind: string
+          max_quantity: number
+          name_ar: string
+          name_en: string
+          note_hint_ar: string | null
+          note_hint_en: string | null
+          price_omr: number
+          requires_note: boolean
+          slug: string
+          sort_order: number
+          tagline_ar: string | null
+          tagline_en: string | null
+          taxable: boolean
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          details?: Json
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          kind?: string
+          max_quantity?: number
+          name_ar: string
+          name_en: string
+          note_hint_ar?: string | null
+          note_hint_en?: string | null
+          price_omr: number
+          requires_note?: boolean
+          slug: string
+          sort_order?: number
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          taxable?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_ar?: string | null
+          description_en?: string | null
+          details?: Json
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          kind?: string
+          max_quantity?: number
+          name_ar?: string
+          name_en?: string
+          note_hint_ar?: string | null
+          note_hint_en?: string | null
+          price_omr?: number
+          requires_note?: boolean
+          slug?: string
+          sort_order?: number
+          tagline_ar?: string | null
+          tagline_en?: string | null
+          taxable?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bk_audit_log: {
         Row: {
           action: string
@@ -84,8 +159,66 @@ export type Database = {
         }
         Relationships: []
       }
+      bk_booking_addons: {
+        Row: {
+          addon_id: string
+          booking_id: string
+          created_at: string
+          id: string
+          note: string | null
+          quantity: number
+          status: string
+          taxable: boolean
+          total_omr: number
+          unit_price_omr: number
+          updated_at: string
+        }
+        Insert: {
+          addon_id: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quantity: number
+          status?: string
+          taxable?: boolean
+          total_omr: number
+          unit_price_omr: number
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          quantity?: number
+          status?: string
+          taxable?: boolean
+          total_omr?: number
+          unit_price_omr?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bk_booking_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "bk_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bk_booking_addons_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bk_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bk_bookings: {
         Row: {
+          addons_omr: number
           adults: number
           cancel_reason: string | null
           cancelled_at: string | null
@@ -122,6 +255,7 @@ export type Database = {
           vat_omr: number
         }
         Insert: {
+          addons_omr?: number
           adults?: number
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -158,6 +292,7 @@ export type Database = {
           vat_omr?: number
         }
         Update: {
+          addons_omr?: number
           adults?: number
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -882,6 +1017,7 @@ export type Database = {
       bk_public_settings: { Args: never; Returns: Json }
       bk_quote: {
         Args: {
+          p_addons?: Json
           p_adults?: number
           p_check_in: string
           p_check_out: string
@@ -1070,6 +1206,8 @@ export type BkSetting = Tables<"bk_settings">
 export type BkScheduledMessage = Tables<"bk_scheduled_messages">
 export type BkMessageLog = Tables<"bk_message_log">
 export type BkAuditLog = Tables<"bk_audit_log">
+export type BkAddon = Tables<"bk_addons">
+export type BkBookingAddon = Tables<"bk_booking_addons">
 
 export type BkBookingStatus =
   | "pending"
@@ -1089,3 +1227,6 @@ export type BkScheduledStatus =
   | "cancelled"
   | "skipped"
 export type BkLocale = "en" | "ar"
+export type BkAddonKind = "activity" | "transfer" | "other"
+export type BkAddonUnit = "per_person" | "per_car" | "per_booking" | "per_night"
+export type BkBookingAddonStatus = "requested" | "confirmed" | "done" | "cancelled"

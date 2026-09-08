@@ -45,16 +45,38 @@ export interface NightlyRate {
   rate: number;
 }
 
+/** One add-on line as priced (mirror of the `addons` entries bk_quote returns). */
+export interface AddonLineInput {
+  quantity: number;
+  unit_price: number;
+  /** per_night add-ons multiply by the number of nights. */
+  unit?: "per_person" | "per_car" | "per_booking" | "per_night";
+  /** true → joins the taxable base (service charge, tourism fee, VAT apply). */
+  taxable: boolean;
+}
+
+export interface AddonLine extends AddonLineInput {
+  total: number;
+}
+
 export interface Quote {
   nights: number;
   nightly: NightlyRate[];
   room_subtotal: number;
   discount_pct: number;
   discount: number;
+  addons: AddonLine[];
+  addons_total: number;
   service_charge: number;
   tourism_fee: number;
   vat: number;
   total: number;
+}
+
+/** Line total for one add-on — mirror of the SQL: per_night × nights, otherwise × quantity. */
+export function addonLineTotal(line: AddonLineInput, nights: number): number {
+  const units = line.unit === "per_night" ? line.quantity * nights : line.quantity;
+  return roundOmr(line.unit_price * units);
 }
 
 /** Postgres-compatible round(x, 3): half away from zero. */
@@ -158,11 +180,17 @@ export function nightlyRates(
 export function quoteFromNightly(
   nightly: NightlyRate[],
   taxes: TaxSettings = DEFAULT_TAXES,
-  discountPct = 0
+  discountPct = 0,
+  addonInputs: AddonLineInput[] = []
 ): Quote {
   const subtotal = roundOmr(nightly.reduce((s, n) => s + n.rate, 0));
   const discount = discountPct > 0 ? roundOmr((subtotal * discountPct) / 100) : 0;
-  const taxable = subtotal - discount;
+  const addons: AddonLine[] = addonInputs
+    .filter((a) => a.quantity > 0)
+    .map((a) => ({ ...a, total: addonLineTotal(a, nightly.length) }));
+  const addonsTaxable = roundOmr(addons.filter((a) => a.taxable).reduce((s, a) => s + a.total, 0));
+  const addonsUntaxed = roundOmr(addons.filter((a) => !a.taxable).reduce((s, a) => s + a.total, 0));
+  const taxable = subtotal - discount + addonsTaxable;
   const service = taxes.service_charge_enabled
     ? roundOmr((taxable * taxes.service_charge_pct) / 100)
     : 0;
@@ -174,13 +202,15 @@ export function quoteFromNightly(
     const base = taxes.vat_on_fees ? taxable + service + tourism : taxable;
     vat = roundOmr((base * taxes.vat_pct) / 100);
   }
-  const total = roundOmr(taxable + service + tourism + vat);
+  const total = roundOmr(taxable + service + tourism + vat + addonsUntaxed);
   return {
     nights: nightly.length,
     nightly,
     room_subtotal: subtotal,
     discount_pct: discountPct,
     discount,
+    addons,
+    addons_total: roundOmr(addonsTaxable + addonsUntaxed),
     service_charge: service,
     tourism_fee: tourism,
     vat,
@@ -195,12 +225,14 @@ export function quote(
   checkIn: string,
   checkOut: string,
   taxes: TaxSettings = DEFAULT_TAXES,
-  discountPct = 0
+  discountPct = 0,
+  addons: AddonLineInput[] = []
 ): Quote {
   return quoteFromNightly(
     nightlyRates(baseRate, plans, roomTypeId, checkIn, checkOut),
     taxes,
-    discountPct
+    discountPct,
+    addons
   );
 }
 
