@@ -12,8 +12,8 @@
     "bookRoomTitle": "Book {name}",
     "confirmationTitle": "Booking {ref}",
     "manageTitle": "Manage booking {ref}",
-    "peekTitle": "The Peek — coffee shop",
-    "peekDescription": "The Peek is Sama Hotel's speciality coffee shop on the terrace above the canyon, open daily 07:00–22:00.",
+    "peakTitle": "The Peak — coffee shop",
+    "peakDescription": "The Peak is Sama Hotel's speciality coffee shop on the terrace above the canyon, open daily 07:00–22:00.",
     "contactTitle": "Contact us",
     "contactDescription": "Phone, WhatsApp, email and directions for Sama Hotel, Sayq, Jabal Al Akhdar, Oman.",
     "policiesTitle": "Hotel policies",
@@ -24,7 +24,7 @@
   "nav": {
     "home": "Home",
     "rooms": "Rooms",
-    "peek": "The Peek",
+    "peak": "The Peak",
     "apex": "APEX Zipline",
     "contact": "Contact",
     "policies": "Policies",
@@ -52,8 +52,8 @@
         "title": "Views from 2,000 m",
         "body": "Every room faces either the canyon and the sunset or Sayq village and the sunrise."
       },
-      "peek": {
-        "title": "The Peek coffee shop",
+      "peak": {
+        "title": "The Peak coffee shop",
         "body": "Speciality coffee on the terrace above the canyon, open 07:00–22:00 every day."
       },
       "season": {
@@ -82,7 +82,7 @@
       "kids": "Children's park",
       "gym": "Fitness centre",
       "majlis": "Traditional majlis",
-      "peek": "The Peek coffee shop"
+      "peak": "The Peak coffee shop"
     },
     "locationEyebrow": "Getting here",
     "locationTitle": "About two hours from Muscat",
@@ -356,17 +356,17 @@
     },
     "policyTitle": "Cancellation policy"
   },
-  "peek": {
-    "eyebrow": "The Peek",
+  "peak": {
+    "eyebrow": "The Peak",
     "title": "Coffee above the canyon",
-    "intro": "The Peek is our speciality coffee shop on the terrace — the best seat on the mountain for sunrise, sunset and everything in between.",
+    "intro": "The Peak is our speciality coffee shop on the terrace — the best seat on the mountain for sunrise, sunset and everything in between.",
     "hoursLabel": "Opening hours",
     "hours": "Every day, 07:00–22:00",
     "body1": "Single-origin espresso, pour-overs, Omani coffee with dates, fresh juices and a short menu of cakes and light bites. In the evening the terrace turns into the quietest spot to watch the lights of Sayq come on.",
     "body2": "Open to hotel guests and visitors alike. No reservation needed — arrive early for a seat at the edge on weekends.",
-    "imageAlt1": "The Peek terrace at sunset",
-    "imageAlt2": "The Peek terrace in the evening",
-    "imageAlt3": "The courtyard by The Peek",
+    "imageAlt1": "The Peak terrace at sunset",
+    "imageAlt2": "The Peak terrace in the evening",
+    "imageAlt3": "The courtyard by The Peak",
     "cta": "Stay the night"
   },
   "contact": {
@@ -381,7 +381,7 @@
     "address": "Address",
     "maps": "Open in Google Maps",
     "hoursLabel": "Reservations desk",
-    "hours": "Every day, 08:00–22:00 (Muscat time)",
+    "hours": "Open 24 hours, every day",
     "checkTimes": "Check-in from {checkIn} · Check-out by {checkOut}",
     "mailSubject": "Enquiry — Sama Hotel"
   },

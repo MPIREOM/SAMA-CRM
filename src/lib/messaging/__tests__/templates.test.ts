@@ -189,7 +189,7 @@ describe("Emails", () => {
     const ctx = sampleContext("en");
     ctx.booking.addons = [];
     const { email } = buildMessage("pre_arrival", ctx, "en");
-    for (const s of ["4WD is mandatory", "Birkat Al Mouz", "warm layers", "Fuel up", "Directions", "The Peek", "2:00 PM"]) {
+    for (const s of ["4WD is mandatory", "Birkat Al Mouz", "warm layers", "Fuel up", "Directions", "The Peak", "2:00 PM"]) {
       expect(email.html).toContain(s);
     }
     expect(email.html).toContain(`href="${SAMPLE_SETTINGS.contact.maps_link}"`);

@@ -83,7 +83,7 @@ We'll message you 3 days before arrival with directions and tips. Reply here any
 |---|---|---|
 | `{{1}}` | guest name | `Ahmed Al Nabhani` |
 | `{{2}}` | check-in long date | `Thu, 17 Sep 2026` |
-| `{{3}}` | directions link (`settings.contact.maps_link`) | `https://www.google.com/maps/place/Sama+Al+Akhdar+Hotel,+Sayq/...` |
+| `{{3}}` | directions link (`settings.contact.maps_link`) | `https://maps.app.goo.gl/YC7RXydtYz61cFZj9` |
 
 ### en
 ```
@@ -165,7 +165,7 @@ The five-point guide from `docs/hotel-facts.md`:
 2. 🧥 **Warm layers** — 10–15 °C cooler than Muscat; evenings are cold in winter.
 3. ⛽ **Fuel up** in Nizwa or Birkat Al Mouz — the last petrol station before the climb.
 4. 📍 **Directions** button (maps link) · check-in from 2:00 PM · running late? just let us know.
-5. ☕ **While you're here** — pomegranate & rose season activities, The Peek speciality coffee shop (07:00–22:00), Sama Restaurant. WhatsApp / phone for anything at all.
+5. ☕ **While you're here** — pomegranate & rose season activities, The Peak speciality coffee shop (07:00–22:00), Sama Restaurant. WhatsApp / phone for anything at all.
 
 Plus booking summary (ref, room, dates, and an **Add-ons** row such as `APEX Zipline × 2 · 4WD transfer up — Birkat Al Mouz to the hotel × 1` when any were booked) and the contacts block.
 

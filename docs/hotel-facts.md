@@ -7,9 +7,9 @@ reviewed by the owner before launch.
 ## Property
 - Name: **Sama Hotel** (Arabic: **فندق سما**). Legal entity: Riyadha Al Jabal Al Akhdar Trading Co. L.L.C (Sama Hotels), PO Box 20, PC 621, Jabal Akhdar, Sultanate of Oman.
 - Location: Sayq, Jabal Al Akhdar (الجبل الأخضر), Ad Dakhiliyah, Oman — ~2,000–2,500 m altitude, about 2 hours' drive from Muscat.
-- Google Maps: https://www.google.com/maps/place/Sama+Al+Akhdar+Hotel,+Sayq/@23.0722417,57.6665111,17z
+- Google Maps: https://maps.app.goo.gl/YC7RXydtYz61cFZj9
 - 3-star mountain resort, **60 units** (incl. 14 chalets), canyon/mountain views, sunrise & sunset sides.
-- Facilities: Sama Restaurant (multi-cuisine, 06:00–22:00, 60 seats), **The Peek** speciality coffee shop (07:00–22:00), lounge & pergola seating, outdoor swimming pool & jacuzzi on the cliff edge, children's park, Sama Tower, fitness centre, Diana Point, free Wi-Fi, laundry, room service (12 h), shisha area, banquet hall.
+- Facilities: Sama Restaurant (multi-cuisine, 06:00–22:00, 60 seats), **The Peak** speciality coffee shop (07:00–22:00), lounge & pergola seating, outdoor swimming pool & jacuzzi on the cliff edge, children's park, Sama Tower, fitness centre, Diana Point, free Wi-Fi, laundry, room service (12 h), shisha area, banquet hall.
 - Family services: babysitter on request (free), children playground (free), children pool (common). **APEX Zipline** add-on OMR 5.
 - Meals (OMR): breakfast 5, lunch 8, dinner 8. Kids menu and packed meals available.
 
@@ -50,7 +50,7 @@ reviewed by the owner before launch.
 2. Warm layers — 10–15 °C cooler than Muscat; cold evenings in winter.
 3. Fuel up in Nizwa / Birkat Al Mouz — last petrol station before the climb.
 4. Directions link; check-in from 14:00; late arrival → reply to the message.
-5. WhatsApp/phone; pomegranate & rose season activities; The Peek coffee shop.
+5. WhatsApp/phone; pomegranate & rose season activities; The Peak coffee shop.
 
 ## Post-stay
 Thank-you, Google review link, optional TripAdvisor, returning-guest code **SAMA10** (10 % off direct bookings, valid 12 months).

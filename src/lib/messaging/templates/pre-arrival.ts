@@ -106,8 +106,8 @@ export function buildPreArrival(ctx: TemplateContext, locale: Locale): BuiltMess
           emoji: "☕",
           title: pick(locale, { en: "While you're here", ar: "خلال إقامتكم" }),
           text: pick(locale, {
-            en: `Sunrise from the terraces, The Peek speciality coffee shop (07:00–22:00), Sama Restaurant, and — in season — pomegranate and rose activities in the villages nearby. Anything at all: WhatsApp us on ${whatsapp}.`,
-            ar: `شروق الشمس من الشرفات، مقهى The Peek للقهوة المختصة (07:00–22:00)، مطعم سما، وفي الموسم أنشطة الرمان والورد في القرى المجاورة. لأي طلب: راسلونا على واتساب ${whatsapp}.`,
+            en: `Sunrise from the terraces, The Peak speciality coffee shop (07:00–22:00), Sama Restaurant, and — in season — pomegranate and rose activities in the villages nearby. Anything at all: WhatsApp us on ${whatsapp}.`,
+            ar: `شروق الشمس من الشرفات، مقهى The Peak للقهوة المختصة (07:00–22:00)، مطعم سما، وفي الموسم أنشطة الرمان والورد في القرى المجاورة. لأي طلب: راسلونا على واتساب ${whatsapp}.`,
           }),
         },
       ],

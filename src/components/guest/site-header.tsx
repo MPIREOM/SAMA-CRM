@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
 
 const NAV = [
+  { href: "/", key: "home" },
   { href: "/rooms", key: "rooms" },
-  { href: "/the-peek", key: "peek" },
+  { href: "/the-peak", key: "peak" },
   { href: "/apex-zipline", key: "apex" },
   { href: "/contact", key: "contact" },
 ] as const;
@@ -103,11 +104,11 @@ export function SiteHeader() {
         className="border-t border-gold-500/20 bg-maroon-900 md:hidden"
       >
         <nav aria-label={t("mobileNav")} className="g-container flex flex-col py-3">
-          {[{ href: "/", key: "home" } as const, ...NAV].map((item) => (
+          {NAV.map((item) => (
             <Link
               key={item.key}
               href={item.href}
-              aria-current={isActive(item.href) && item.href !== "/" ? "page" : undefined}
+              aria-current={isActive(item.href) ? "page" : undefined}
               className="rounded-xl px-3 py-3 text-base font-bold text-gold-100 hover:bg-gold-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
             >
               {t(item.key)}

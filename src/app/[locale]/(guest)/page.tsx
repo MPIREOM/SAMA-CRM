@@ -30,13 +30,13 @@ const FACILITIES = [
   { key: "restaurant", src: "/images/hotel/restaurant-new.jpg" },
   { key: "kids", src: "/images/hotel/kids-park-new.jpg" },
   { key: "gym", src: "/images/hotel/gym.jpg" },
-  { key: "peek", src: "/images/hotel/peek-4.jpg" },
+  { key: "peak", src: "/images/hotel/peak-4.jpg" },
   { key: "majlis", src: "/images/hotel/majlis.jpg" },
 ] as const;
 
 const HIGHLIGHTS = [
   { key: "altitude", Icon: Mountain },
-  { key: "peek", Icon: Coffee },
+  { key: "peak", Icon: Coffee },
   { key: "season", Icon: Flower2 },
   { key: "cool", Icon: Sparkles },
   { key: "pool", Icon: Waves },

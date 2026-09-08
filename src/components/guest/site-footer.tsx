@@ -75,8 +75,8 @@ export async function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/the-peek" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {tNav("peek")}
+              <Link href="/the-peak" className="text-gold-100/85 hover:text-gold-100 hover:underline">
+                {tNav("peak")}
               </Link>
             </li>
             <li>

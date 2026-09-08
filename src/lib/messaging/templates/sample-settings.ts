@@ -20,7 +20,7 @@ export const SAMPLE_SETTINGS: AllSettings = {
     phone: "+96822507681",
     whatsapp: "+96899475688",
     email: "reservations@samahotel.net",
-    maps_link: "https://www.google.com/maps/place/Sama+Al+Akhdar+Hotel,+Sayq/@23.0722417,57.6665111,17z",
+    maps_link: "https://maps.app.goo.gl/YC7RXydtYz61cFZj9",
     address_en: "Sayq, Jabal Al Akhdar, Ad Dakhiliyah, Sultanate of Oman",
     address_ar: "سيق، الجبل الأخضر، محافظة الداخلية، سلطنة عُمان",
     instagram: "",

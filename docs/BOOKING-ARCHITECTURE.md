@@ -9,7 +9,7 @@ src/app/(crm)/(app)/…          Authenticated staff pages (sidebar). Add new ba
                                /reservations, /calendar, /rooms, /rates, /blocks, /messaging, /settings, /audit
 src/app/(crm)/login, checkin, terms
 src/app/[locale]/              Guest site root layout (next-intl; <html lang dir> from URL). locales: en, ar
-src/app/[locale]/(guest)/…     Guest pages: / rooms rooms/[slug] book book/[slug] booking/[ref] booking/[ref]/manage the-peek contact policies
+src/app/[locale]/(guest)/…     Guest pages: / rooms rooms/[slug] book book/[slug] booking/[ref] booking/[ref]/manage the-peak contact policies
 src/app/api/…                  Route handlers. /api/cron/dispatch, /api/webhooks/whatsapp, /api/bk/* (public)
 src/components/guest/…         Guest-site components (owned by the guest build)
 src/components/admin/…         Back-office components (owned by the back-office build)

@@ -175,7 +175,7 @@ export async function loginAs(page: Page, who: keyof typeof STAFF, next = "/dash
 }
 
 /** Message keys leaking into the page (e.g. "booking.errors.sold_out") — should never render. */
-export const RAW_KEY_RE = /\b(?:meta|nav|home|widget|rooms|search|booking|confirmation|manage|peek|contact|policies|footer|errors|amenities|common)\.[a-zA-Z]+(?:\.[a-zA-Z_]+)*\b/;
+export const RAW_KEY_RE = /\b(?:meta|nav|home|widget|rooms|search|booking|confirmation|manage|peak|contact|policies|footer|errors|amenities|common)\.[a-zA-Z]+(?:\.[a-zA-Z_]+)*\b/;
 
 export async function expectNoRawKeys(page: Page): Promise<void> {
   const text = await page.locator("body").innerText();
