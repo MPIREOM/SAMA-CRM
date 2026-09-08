@@ -50,9 +50,10 @@ describe("WhatsApp template parameters", () => {
       "Thu, 17 Sep 2026",
       "Sat, 19 Sep 2026",
       "2",
-      "155.232",
+      "180.232",
     ]);
-    expect(whatsapp.body).toContain("Total: OMR 155.232 — payable at the hotel");
+    // 155.232 for the room + 25.000 of add-ons: the WhatsApp total already includes them.
+    expect(whatsapp.body).toContain("Total: OMR 180.232 — payable at the hotel");
   });
 
   it("confirmation (ar) uses the Arabic room name and an Arabic long date with Latin digits", () => {
@@ -61,7 +62,7 @@ describe("WhatsApp template parameters", () => {
     expect(whatsapp.params[2]).toBe("غرفة ديلوكس بإطلالة على الجبل");
     expect(whatsapp.params[3]).toMatch(/2026/);
     expect(whatsapp.params[3]).toMatch(/سبتمبر/);
-    expect(whatsapp.params[6]).toBe("155.232");
+    expect(whatsapp.params[6]).toBe("180.232");
   });
 
   it("pre-arrival params are (name, check-in date, maps link)", () => {
@@ -111,7 +112,7 @@ describe("Emails", () => {
       const { email } = buildMessage("confirmation", ctx, locale);
       expect(email.subject).toContain("SAMA-26-K7P3QX");
       expect(email.html).toContain("SAMA-26-K7P3QX");
-      expect(email.html).toContain("155.232");
+      expect(email.html).toContain("180.232");
       expect(email.html).toContain(`lang="${locale}"`);
       expect(email.html).toContain(`dir="${locale === "ar" ? "rtl" : "ltr"}"`);
       expect(email.html).toContain("#3b171b");
@@ -120,7 +121,7 @@ describe("Emails", () => {
       expect(email.html).toContain("/manage?token=");
       expect(email.html).toContain(SAMPLE_SETTINGS.contact.maps_link);
       expect(email.text).toContain("SAMA-26-K7P3QX");
-      expect(email.text).toContain("155.232");
+      expect(email.text).toContain("180.232");
       if (locale === "en") {
         expect(email.html).toContain("Pay at the hotel");
         expect(email.text).toContain("Pay at the hotel");
@@ -135,6 +136,45 @@ describe("Emails", () => {
     });
   }
 
+  it("confirmation email itemises the add-ons with their notes and subtotal, then mentions the booked pickup", () => {
+    const ctx = sampleContext("en");
+    const { email } = buildMessage("confirmation", ctx, "en");
+    expect(email.html).toContain("APEX Zipline × 2 — Arrival day, afternoon");
+    expect(email.html).toContain("4WD transfer up — Birkat Al Mouz to the hotel × 1");
+    expect(email.html).toContain("Add-ons (paid at the hotel)");
+    expect(email.html).toContain("25.000");
+    expect(email.html).toContain("Your 4WD pickup at the Birkat Al Mouz checkpoint is booked");
+    expect(email.text).toContain("Add-ons (paid at the hotel): OMR 25.000");
+    // The add-on subtotal comes after the tax lines and before the total.
+    const order = ["VAT 5 %", "APEX Zipline × 2", "Add-ons (paid at the hotel)", "Total"].map((s) => email.html.indexOf(s));
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+
+    const ar = buildMessage("confirmation", sampleContext("ar"), "ar").email.html;
+    expect(ar).toContain("أبكس زيبلاين × 2");
+    expect(ar).toContain("الخدمات الإضافية (تُدفع في الفندق)");
+  });
+
+  it("confirmation email without add-ons keeps the plain 4WD reminder and no add-on rows", () => {
+    const ctx = sampleContext("en");
+    ctx.booking.addons = [];
+    ctx.booking.addons_omr = 0;
+    ctx.booking.total_omr = 155.232;
+    const { email } = buildMessage("confirmation", ctx, "en");
+    expect(email.html).not.toContain("Add-ons (paid at the hotel)");
+    expect(email.html).not.toContain("pickup at the Birkat Al Mouz checkpoint is booked");
+    expect(email.html).toContain("a 4WD is required for the climb");
+    expect(email.html).toContain("155.232");
+  });
+
+  it("cancelled add-on rows disappear from the emails", () => {
+    const ctx = sampleContext("en");
+    ctx.booking.addons = (ctx.booking.addons ?? []).map((a) => (a.addon?.slug === "transfer-up" ? { ...a, status: "cancelled" } : a));
+    const { email } = buildMessage("confirmation", ctx, "en");
+    expect(email.html).toContain("APEX Zipline × 2");
+    expect(email.html).not.toContain("4WD transfer up");
+    expect(email.html).not.toContain("pickup at the Birkat Al Mouz checkpoint is booked");
+  });
+
   it("confirmation email shows the discount line only when there is one", () => {
     const ctx = sampleContext("en");
     expect(buildMessage("confirmation", ctx, "en").email.html).not.toContain("Discount");
@@ -146,12 +186,24 @@ describe("Emails", () => {
   });
 
   it("pre-arrival email has the 5-point guide and directions button", () => {
-    const { email } = buildMessage("pre_arrival", sampleContext("en"), "en");
+    const ctx = sampleContext("en");
+    ctx.booking.addons = [];
+    const { email } = buildMessage("pre_arrival", ctx, "en");
     for (const s of ["4WD is mandatory", "Birkat Al Mouz", "warm layers", "Fuel up", "Directions", "The Peek", "2:00 PM"]) {
       expect(email.html).toContain(s);
     }
     expect(email.html).toContain(`href="${SAMPLE_SETTINGS.contact.maps_link}"`);
     expect(email.text).toContain(SAMPLE_SETTINGS.contact.maps_link);
+    expect(email.html).not.toContain("Add-ons");
+  });
+
+  it("pre-arrival email with a transfer up swaps the 4WD warning for the booked pickup and lists the add-ons", () => {
+    const { email } = buildMessage("pre_arrival", sampleContext("en"), "en");
+    expect(email.html).toContain("Your 4WD pickup is booked");
+    expect(email.html).toContain("we will confirm the time on WhatsApp");
+    expect(email.html).not.toContain("4WD is mandatory");
+    expect(email.html).toContain("APEX Zipline × 2 · 4WD transfer up — Birkat Al Mouz to the hotel × 1");
+    expect(email.text).toContain("Add-ons: APEX Zipline × 2");
   });
 
   it("post-stay email has review button(s) and the SAMA10 code", () => {

@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import {
+  MOCK_URL,
   MockDb,
   ROOM_TYPES,
+  SERVICE_ROLE_KEY,
   confirmBooking,
   expectNoRawKeys,
   fillGuestDetails,
@@ -11,6 +13,14 @@ import {
 
 // Guest booking journey against the local Supabase emulator. Runs on the
 // desktop and the mobile (Pixel 7) projects.
+
+// Add-on message keys leaking into the page ("addons.pickerTitle", "apex.cta") — should never render.
+const ADDON_RAW_KEY_RE = /\b(?:addons|apex)\.[a-zA-Z]+(?:\.[a-zA-Z_]+)*\b/;
+
+/** "OMR 123.456" → 123.456 */
+function omr(text: string): number {
+  return Number(text.replace(/[^\d.]/g, ""));
+}
 
 test.describe("guest booking", () => {
   let db: MockDb;
@@ -64,8 +74,45 @@ test.describe("guest booking", () => {
     await expect(page.locator('[aria-current="step"]')).toHaveText("2");
     await expect(page.getByText("Pay at the hotel — no payment is taken now")).toBeVisible();
     await expect(page.getByText(guestName)).toBeVisible();
+    const total = page.locator("dd[dir=ltr].text-xl").first();
+    const confirm = page.locator('form button[type="submit"].g-btn-gold');
+    await expect(confirm).toBeEnabled({ timeout: 20_000 });
+    const roomTotal = omr(await total.innerText());
+    await expect(page.getByTestId("price-addon")).toHaveCount(0);
+
+    // Add-ons: APEX Zipline × 2 (+ note) and 4WD transfer up × 1 (+ note).
+    await expect(page.getByRole("heading", { name: "Add to your stay" })).toBeVisible();
+    const apexCard = page.locator("li").filter({ has: page.getByRole("group", { name: "APEX Zipline" }) });
+    await expect(apexCard.getByText(/OMR 5 per rider/)).toBeVisible();
+    const apexPlus = page.getByRole("button", { name: "Add one — APEX Zipline" });
+    await apexPlus.click();
+    await apexPlus.click();
+    await expect(apexCard.locator("output")).toHaveText("2");
+    await apexCard.getByLabel("Tell us more").fill("Arrival day, afternoon — one rider is 14");
+
+    const transferCard = page.locator("li").filter({ has: page.getByRole("group", { name: /4WD transfer up/ }) });
+    await expect(transferCard.getByText(/OMR 15 per car/)).toBeVisible();
+    await transferCard.getByRole("button", { name: /^Add one — 4WD transfer up/ }).click();
+    await expect(transferCard.locator("output")).toHaveText("1");
+    await transferCard.getByLabel("Tell us more").fill("Arriving at the checkpoint around 1 PM, 3 guests");
+    // Stepper never goes below zero: the − button is disabled at 0 and the + button at max_quantity.
+    await expect(page.getByRole("button", { name: /^Remove one — 4WD transfer down/ })).toBeDisabled();
+
+    // The quote re-runs with the add-ons: one line each, a subtotal and the grand total = room + 25.
+    await expect(confirm).toBeEnabled({ timeout: 20_000 });
+    // Scoped to the form: the sticky "Your stay" aside repeats the same lines.
+    const priceBlock = page.locator("form").filter({ has: confirm });
+    await expect(priceBlock.getByTestId("price-addon")).toHaveCount(2);
+    await expect(priceBlock.getByText("APEX Zipline × 2", { exact: true })).toBeVisible();
+    await expect(priceBlock.getByText(/4WD transfer up — Birkat Al Mouz to the hotel × 1/)).toBeVisible();
+    const addonLines = priceBlock.getByTestId("price-addon");
+    await expect(addonLines.nth(0).locator("dd")).toHaveText("OMR 10.000");
+    await expect(addonLines.nth(1).locator("dd")).toHaveText("OMR 15.000");
+    await expect(priceBlock.getByTestId("price-addons-subtotal").locator("dd")).toHaveText("OMR 25.000");
+    await expect(total).toHaveText(`OMR ${(roomTotal + 25).toFixed(3)}`);
     // Total on the review step must match what the DB will store.
-    const reviewTotal = await page.locator("dd[dir=ltr].text-xl").first().innerText();
+    const reviewTotal = await total.innerText();
+    expect(ADDON_RAW_KEY_RE.exec(await page.locator("body").innerText())).toBeNull();
 
     // Step 3 (confirm) → confirmation page
     const ref = await confirmBooking(page);
@@ -75,9 +122,23 @@ test.describe("guest booking", () => {
     await expect(page.getByText(/Pay at the hotel by cash or card/)).toBeVisible();
     await expect(page.getByText("Total for your stay")).toBeVisible();
     await expectNoRawKeys(page);
+    expect(ADDON_RAW_KEY_RE.exec(await page.locator("body").innerText())).toBeNull();
+
+    // Confirmation shows both add-ons with quantity, note and status, plus the booked pickup.
+    const yourAddons = page.getByRole("region", { name: "Your add-ons" });
+    await expect(yourAddons).toBeVisible();
+    await expect(yourAddons.getByText("APEX Zipline × 2")).toBeVisible();
+    await expect(yourAddons.getByText(/4WD transfer up — Birkat Al Mouz to the hotel × 1/)).toBeVisible();
+    await expect(yourAddons.getByText("Arrival day, afternoon — one rider is 14")).toBeVisible();
+    await expect(yourAddons.getByText("Requested — we will confirm by WhatsApp")).toHaveCount(2);
+    await expect(yourAddons.getByText(/Park at the Birkat Al Mouz checkpoint car park/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your 4WD pickup is booked" })).toBeVisible();
+    await expect(page.getByText(/we will confirm the time on WhatsApp/).first()).toBeVisible();
+    await expect(page.getByTestId("price-addon")).toHaveCount(2);
+    await expect(page.getByTestId("price-addons-subtotal").locator("dd")).toHaveText("OMR 25.000");
 
     // DB rows
-    const [booking] = await db.rows<{ id: string; status: string; total_omr: number; guest_email: string; source: string; nights: number }>(
+    const [booking] = await db.rows<{ id: string; status: string; total_omr: number; addons_omr: number; guest_email: string; source: string; nights: number }>(
       "bk_bookings",
       `select=*&ref=eq.${ref}`
     );
@@ -86,7 +147,27 @@ test.describe("guest booking", () => {
     expect(booking.source).toBe("website");
     expect(booking.nights).toBe(2);
     expect(Number(booking.total_omr).toFixed(3)).toBe(reviewTotal.replace(/[^\d.]/g, ""));
+    expect(Number(booking.addons_omr)).toBe(25);
     await expect(page.locator("dd[dir=ltr].text-xl").first()).toHaveText(`OMR ${Number(booking.total_omr).toFixed(3)}`);
+
+    // bk_booking_addons: two rows priced from the catalogue. Falls back to
+    // addons_omr (asserted above) while the emulator does not expose the table.
+    const addonProbe = await page.request.get(`${MOCK_URL}/rest/v1/bk_booking_addons?select=id&limit=1`, {
+      headers: { apikey: SERVICE_ROLE_KEY, authorization: `Bearer ${SERVICE_ROLE_KEY}` },
+    });
+    if (addonProbe.ok()) {
+      const addonRows = await db.rows<{ addon_id: string; quantity: number; unit_price_omr: number; total_omr: number; status: string; note: string | null }>(
+        "bk_booking_addons",
+        `select=*&booking_id=eq.${booking.id}&order=total_omr.asc`
+      );
+      expect(addonRows).toHaveLength(2);
+      expect(addonRows.map((r) => [Number(r.quantity), Number(r.unit_price_omr), Number(r.total_omr), r.status])).toEqual([
+        [2, 5, 10, "requested"],
+        [1, 15, 15, "requested"],
+      ]);
+      expect(addonRows[0].note).toBe("Arrival day, afternoon — one rider is 14");
+      expect(addonRows[1].note).toBe("Arriving at the checkpoint around 1 PM, 3 guests");
+    }
 
     const scheduled = await db.rows<{ channel: string; kind: string; status: string }>("bk_scheduled_messages", `select=channel,kind,status&booking_id=eq.${booking.id}`);
     expect(scheduled).toHaveLength(6);
@@ -151,6 +232,52 @@ test.describe("guest booking", () => {
     const [booking] = await db.rows<{ preferred_lang: string; nationality: string }>("bk_bookings", `select=preferred_lang,nationality&ref=eq.${ref}`);
     expect(booking.preferred_lang).toBe("ar");
     expect(booking.nationality).toBe("Saudi");
+  });
+
+  test("APEX Zipline page, home add-on cards and the transfers policy render from the catalogue", async ({ page }) => {
+    await page.goto("/en");
+    const addonsSection = page.locator("section").filter({ has: page.getByRole("heading", { name: "Two things worth booking with your room" }) });
+    await expect(addonsSection).toBeVisible();
+    await expect(addonsSection.getByText("OMR 5 per rider")).toBeVisible();
+    await expect(addonsSection.getByText("OMR 15 per car")).toBeVisible();
+    await expect(addonsSection.getByRole("link", { name: "How transfers work" })).toHaveAttribute("href", /\/en\/policies#transfers$/);
+    await addonsSection.getByRole("link", { name: "About the zipline" }).click();
+    await page.waitForURL(/\/en\/apex-zipline$/);
+
+    await expect(page.getByRole("heading", { level: 1, name: "310 metres over the canyon" })).toBeVisible();
+    // The desktop nav is display:none on the mobile project, hence includeHidden.
+    await expect(
+      page.getByRole("navigation", { name: "Main navigation", includeHidden: true }).getByRole("link", { name: "APEX Zipline", includeHidden: true })
+    ).toHaveAttribute("aria-current", "page");
+    const facts = page.getByRole("region", { name: "Zipline facts" });
+    for (const value of ["310", "20", "60", "120"]) await expect(facts.getByText(value, { exact: false }).first()).toBeVisible();
+    await expect(page.getByText("OMR 5", { exact: false }).first()).toBeVisible();
+    await expect(page.getByText(/Closed-toe shoes are required/)).toBeVisible();
+    const external = page.getByRole("link", { name: /apexzipline\.com/ });
+    await expect(external).toHaveAttribute("href", "https://www.apexzipline.com");
+    await expect(external).toHaveAttribute("target", "_blank");
+    await expect(external).toHaveAttribute("rel", /noopener/);
+    expect(await page.locator("body").innerText()).not.toMatch(/OMR 9\b/);
+    expect(ADDON_RAW_KEY_RE.exec(await page.locator("body").innerText())).toBeNull();
+    await expectNoRawKeys(page);
+    await expect(page.getByRole("link", { name: "Add it when you book" })).toHaveAttribute("href", /\/en#availability$/);
+
+    await page.goto("/en/policies#transfers");
+    const transfers = page.locator("article#transfers");
+    await expect(transfers.getByRole("heading", { name: "Transfers & activities" })).toBeVisible();
+    await expect(transfers.getByText(/not allowed past the Birkat Al Mouz police checkpoint/)).toBeVisible();
+    await expect(transfers.getByText(/OMR 15 per car \(up to 4 guests\)/)).toBeVisible();
+    await expect(transfers.getByText(/OMR 5 per rider/)).toBeVisible();
+    await expect(transfers.getByText(/Maximum rider weight is 120 kg/)).toBeVisible();
+    await expect(transfers.getByText(/Cancelling a booking cancels its add-ons too/)).toBeVisible();
+
+    // Arabic page: RTL, Arabic copy, Latin digits.
+    await page.goto("/ar/apex-zipline");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("310");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/[؀-ۿ]/);
+    expect(await page.locator("body").innerText()).not.toMatch(/[٠-٩]/);
+    await expectNoRawKeys(page);
   });
 
   test("sold-out and min-stay states render on the results page", async ({ page }) => {

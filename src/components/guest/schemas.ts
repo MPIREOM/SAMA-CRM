@@ -189,6 +189,91 @@ export function storedNationality(d: Pick<GuestDetails, "nationality" | "otherNa
   return d.nationality === "OTHER" ? d.otherNationality : NATIONALITY_STORED[d.nationality];
 }
 
+// ---------------------------------------------------------------------------
+// Add-ons (APEX Zipline, transfers) chosen on the review step
+// ---------------------------------------------------------------------------
+
+export const ADDON_NOTE_MAX = 200;
+/** Absolute ceiling; the real per-add-on limit is bk_addons.max_quantity. */
+export const ADDON_QUANTITY_HARD_MAX = 50;
+export const ADDON_SLUG_RE = /^[a-z0-9-]{1,60}$/;
+
+export const addonSelectionSchema = z.object({
+  slug: z.string().regex(ADDON_SLUG_RE, "addon_not_found"),
+  quantity: z.coerce
+    .number({ invalid_type_error: "addon_quantity" })
+    .int("addon_quantity")
+    .min(0, "addon_quantity")
+    .max(ADDON_QUANTITY_HARD_MAX, "addon_quantity"),
+  note: z
+    .string()
+    .trim()
+    .max(ADDON_NOTE_MAX, "addonNote")
+    .default("")
+    .transform((v) => v.replace(/\s+/g, " ")),
+});
+
+/** Raw (pre-validation) shape: quantities arrive as strings from hidden fields. */
+export interface AddonSelectionInput {
+  slug: string;
+  quantity: number | string;
+  note?: string;
+}
+export type AddonSelectionValue = z.infer<typeof addonSelectionSchema>;
+
+export interface AddonLimit {
+  slug: string;
+  max_quantity: number;
+}
+
+/**
+ * The list a guest may send: known slugs only, each at most once, quantity
+ * within the catalogue limit. Zero-quantity entries are dropped so the caller
+ * can pass the whole picker state without filtering first.
+ */
+export function addonSelectionsSchema(limits: AddonLimit[]) {
+  const max = new Map(limits.map((l) => [l.slug, l.max_quantity]));
+  return z
+    .array(addonSelectionSchema)
+    .max(20, "addon_not_found")
+    .transform((list) => list.filter((a) => a.quantity > 0))
+    .superRefine((list, ctx) => {
+      const seen = new Set<string>();
+      list.forEach((a, i) => {
+        const limit = max.get(a.slug);
+        if (limit === undefined || seen.has(a.slug)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "addon_not_found", path: [i, "slug"] });
+          return;
+        }
+        seen.add(a.slug);
+        if (a.quantity > limit) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "addon_quantity", path: [i, "quantity"] });
+        }
+      });
+    });
+}
+
+/** Hidden-field names used by the review form: addon.<slug>.quantity / addon.<slug>.note. */
+export function addonFieldName(slug: string, field: "quantity" | "note"): string {
+  return `addon.${slug}.${field}`;
+}
+
+const ADDON_FIELD_RE = /^addon\.([a-z0-9-]{1,60})\.quantity$/;
+
+/** Read the add-on hidden fields back out of a FormData (raw strings; validate with addonSelectionsSchema). */
+export function addonsFromFormData(fd: Pick<FormData, "get" | "keys">): AddonSelectionInput[] {
+  const out: AddonSelectionInput[] = [];
+  for (const key of Array.from(fd.keys())) {
+    const m = ADDON_FIELD_RE.exec(key);
+    if (!m) continue;
+    const slug = m[1];
+    const qty = fd.get(key);
+    const note = fd.get(addonFieldName(slug, "note"));
+    out.push({ slug, quantity: typeof qty === "string" ? qty : "0", note: typeof note === "string" ? note : "" });
+  }
+  return out;
+}
+
 /** Everything the confirm action needs: guest details + stay + consent. */
 export const createBookingSchema = guestDetailsSchema.and(
   z.object({

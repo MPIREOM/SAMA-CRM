@@ -3,11 +3,11 @@
 import { headers } from "next/headers";
 import { z } from "zod";
 import { redirect } from "@/i18n/routing";
-import { getQuote, getRoomTypeBySlug } from "@/lib/bk/catalogue";
+import { getAddons, getQuote, getRoomTypeBySlug } from "@/lib/bk/catalogue";
 import { createBooking, type CreateBookingError } from "@/lib/bk/bookings";
 import { getPublicSettings } from "@/lib/bk/settings";
 import { checkRateLimit, clientIp } from "@/lib/bk/rate-limit";
-import type { QuoteResult } from "@/lib/bk/types";
+import type { AddonSelection, QuoteResult } from "@/lib/bk/types";
 import { bookingToken } from "@/lib/booking-engine/tokens";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { addDays, nightsBetween } from "@/lib/booking-engine/pricing";
@@ -16,11 +16,15 @@ import { logger } from "@/lib/logger";
 import {
   MAX_ADULTS,
   MAX_CHILDREN,
+  addonSelectionSchema,
+  addonSelectionsSchema,
+  addonsFromFormData,
   createBookingSchema,
   fieldErrors,
   isoDate,
   storedNationality,
   toE164,
+  type AddonSelectionValue,
 } from "@/components/guest/schemas";
 
 // Server actions for the 3-step booking flow. Every input is re-validated
@@ -33,7 +37,13 @@ const quoteInputSchema = z.object({
   adults: z.number().int().min(1).max(MAX_ADULTS),
   children: z.number().int().min(0).max(MAX_CHILDREN),
   promoCode: z.string().trim().max(30).optional(),
+  addons: z.array(addonSelectionSchema).max(20).optional(),
 });
+
+/** What bk_quote / bk_create_booking receive: slug + quantity, note only when given. */
+function toAddonSelections(list: AddonSelectionValue[]): AddonSelection[] {
+  return list.filter((a) => a.quantity > 0).map((a) => ({ slug: a.slug, quantity: a.quantity, note: a.note || null }));
+}
 
 export type QuoteState = { quote: QuoteResult; error: null } | { quote: null; error: "quote_failed" | "unknown" };
 
@@ -50,6 +60,7 @@ export async function getQuoteAction(input: unknown): Promise<QuoteState> {
       adults: parsed.data.adults,
       children: parsed.data.children,
       promoCode: parsed.data.promoCode?.trim() ? parsed.data.promoCode.trim().toUpperCase() : null,
+      addons: toAddonSelections(parsed.data.addons ?? []),
     });
     if (res.error !== null) {
       logger.warn("guest.quote", "bk_quote failed", { error: res.error });
@@ -112,6 +123,36 @@ export async function createBookingAction(prev: CreateBookingState | FormData, m
     return { error: "unknown" };
   }
 
+  // Add-ons: known slugs, within max_quantity, note ≤ 200 chars. The RPC
+  // re-checks all of this; validating here gives the guest a precise message.
+  // The catalogue is only read when something was actually selected, so a
+  // room-only booking never depends on it.
+  const rawAddons = addonsFromFormData(formData);
+  let addons: AddonSelection[] = [];
+  if (rawAddons.some((a) => Number(a.quantity) > 0)) {
+    let addonLimits: { slug: string; max_quantity: number }[];
+    try {
+      addonLimits = (await getAddons()).map((a) => ({ slug: a.slug, max_quantity: a.max_quantity }));
+    } catch (err) {
+      logger.error("guest.book", "add-on catalogue unavailable", { error: err instanceof Error ? err.message : String(err) });
+      return { error: "unknown" };
+    }
+    const addonsParsed = addonSelectionsSchema(addonLimits).safeParse(rawAddons);
+    if (!addonsParsed.success) {
+      const issue = addonsParsed.error.issues[0];
+      if (issue?.message === "addon_not_found" || issue?.message === "addon_quantity") return { error: issue.message };
+      // A note problem maps back onto that add-on's field ("addon.<slug>").
+      const fields: Record<string, string> = {};
+      for (const i of addonsParsed.error.issues) {
+        const idx = typeof i.path[0] === "number" ? i.path[0] : -1;
+        const slug = rawAddons[idx]?.slug;
+        if (slug && !fields[`addon.${slug}`]) fields[`addon.${slug}`] = i.message;
+      }
+      return Object.keys(fields).length > 0 ? { error: "validation", fields } : { error: "addon_not_found" };
+    }
+    addons = toAddonSelections(addonsParsed.data);
+  }
+
   if (!checkRateLimit(clientIp(headers()), settings.booking.rate_limit_per_min)) {
     return { error: "rate_limited" };
   }
@@ -148,6 +189,7 @@ export async function createBookingAction(prev: CreateBookingState | FormData, m
       special_requests: data.specialRequests || null,
       promo_code: data.promoCode || null,
       source: "website",
+      addons: addons.length > 0 ? addons : null,
     });
     if (res.error) {
       logger.warn("guest.book", "bk_create_booking rejected", { error: res.error, detail: res.detail });

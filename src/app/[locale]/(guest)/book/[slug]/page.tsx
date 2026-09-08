@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowRight } from "lucide-react";
 import { Link, isLocale, redirect, type Locale } from "@/i18n/routing";
-import { getQuote, getRoomTypeBySlug } from "@/lib/bk/catalogue";
+import { getAddons, getQuote, getRoomTypeBySlug } from "@/lib/bk/catalogue";
 import { getPublicSettings } from "@/lib/bk/settings";
 import { muscatToday } from "@/lib/booking-engine/dates";
+import { logger } from "@/lib/logger";
 import { BookingFlow } from "@/components/guest/booking-flow";
 import { pageMetadata } from "@/components/guest/metadata";
-import { localizeRoom, n } from "@/components/guest/lib";
+import { localizeAddon, localizeRoom, n } from "@/components/guest/lib";
 import { parseSearchQuery, searchParamsFor } from "@/components/guest/schemas";
 import { createBookingAction, getQuoteAction } from "./actions";
 
@@ -51,6 +52,14 @@ export default async function BookRoomPage({ params, searchParams }: Props) {
   if (quoteRes.error !== null) throw new Error(`bk_quote failed: ${quoteRes.error}`);
   const quote = quoteRes.quote;
 
+  // Add-ons are optional extras: if the catalogue is unavailable the room can still be booked.
+  let addons: ReturnType<typeof localizeAddon>[] = [];
+  try {
+    addons = (await getAddons()).map((a) => localizeAddon(a, locale));
+  } catch (err) {
+    logger.warn("guest.book", "add-ons unavailable", { error: err instanceof Error ? err.message : String(err) });
+  }
+
   const soldOut = quote.available_count <= 0;
   const minStayFail = quote.nights < quote.min_stay;
   const capacityFail = !quote.fits_capacity;
@@ -87,6 +96,7 @@ export default async function BookRoomPage({ params, searchParams }: Props) {
             cancellationPolicy={locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}
             maxAdvanceDays={settings.booking.max_advance_days}
             whatsapp={settings.contact.whatsapp}
+            addons={addons}
             actions={{ getQuote: getQuoteAction, createBooking: createBookingAction }}
           />
         </div>

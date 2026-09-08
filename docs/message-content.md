@@ -27,6 +27,11 @@ code sent to Meta and the email language.
   `settings.reviews.tripadvisor`, else `settings.contact.website`. Never empty.
 - Directions link (pre-arrival `{{3}}`): `settings.contact.maps_link`.
 - Pay at the hotel — say it everywhere. No online payment exists.
+- Add-ons (APEX Zipline, 4WD transfers — `bk_booking_addons`, migration 0010):
+  `bk_bookings.total_omr` already includes them, so the WhatsApp totals are
+  right without touching the approved Meta bodies. Only the **emails** list
+  them (`addonItemRows` / `addonSummaryRow` / `transferUpLine` in
+  `templates/shared.ts`); rows with status `cancelled` never appear.
 - Every send writes `bk_message_log` and (real sends only) a CRM `messages` row
   so the inbox shows the message under the guest.
 
@@ -142,9 +147,9 @@ Subject — AR: `تم تأكيد حجزكم — {ref} · فندق سما، ال�
 
 1. Greeting: *Hello {name}, your stay at Sama Hotel, Jabal Al Akhdar is confirmed.*
 2. Booking details: ref · guest · room · check-in (day name, from 2:00 PM) · check-out (day name, by 12:00 PM) · nights · adults / children · special requests (if any).
-3. Itemised table: room subtotal · discount (only when > 0, with promo code) · service charge 8 % · tourism fee 4 % · VAT 5 % · **Total OMR** (all via `formatOmr`).
+3. Itemised table: room subtotal · discount (only when > 0, with promo code) · service charge 8 % · tourism fee 4 % · VAT 5 % · one line per add-on `name × qty — note` with its line total · **Add-ons (paid at the hotel)** subtotal (`addons_omr`) · **Total OMR** (all via `formatOmr`). Add-ons are untaxed, so they sit after the tax lines; the block is omitted entirely when nothing was booked.
 4. Big callout: **Pay at the hotel — no payment needed now.** Cash or card on arrival.
-5. What happens next: we message you 3 days before arrival with directions and tips (4WD required); check-in from 2:00 PM; reply on WhatsApp anytime.
+5. What happens next: we message you 3 days before arrival with directions and tips (4WD required); check-in from 2:00 PM; reply on WhatsApp anytime. When a `transfer-up` add-on is booked the 4WD remark is replaced by *Your 4WD pickup at the Birkat Al Mouz checkpoint is booked — we will confirm the time on WhatsApp. Park at the checkpoint car park and message us when you arrive.*
 6. Cancellation policy summary: `settings.cancellation.policy_{locale}`.
 7. Buttons: **Manage booking** (manage URL) · View booking.
 8. Hotel contacts: phone, WhatsApp link, email, address, Google Maps link.
@@ -156,13 +161,13 @@ Subject — AR: `قبل الانطلاق — إقامتكم في فندق سما
 
 The five-point guide from `docs/hotel-facts.md`:
 
-1. 🚙 **4WD is mandatory** — the police checkpoint at Birkat Al Mouz does not allow 2WD cars up. No 4WD? Park at the checkpoint and arrange a transfer with us in advance — reply to this message.
+1. 🚙 **4WD is mandatory** — the police checkpoint at Birkat Al Mouz does not allow 2WD cars up. No 4WD? Park at the checkpoint and arrange a transfer with us in advance — reply to this message. With a `transfer-up` add-on this item becomes 🚙 **Your 4WD pickup is booked** — *Your 4WD pickup at the Birkat Al Mouz checkpoint is booked — we will confirm the time on WhatsApp. Park at the checkpoint car park and message us when you arrive.* (and the preheader says "4WD pickup booked").
 2. 🧥 **Warm layers** — 10–15 °C cooler than Muscat; evenings are cold in winter.
 3. ⛽ **Fuel up** in Nizwa or Birkat Al Mouz — the last petrol station before the climb.
 4. 📍 **Directions** button (maps link) · check-in from 2:00 PM · running late? just let us know.
 5. ☕ **While you're here** — pomegranate & rose season activities, The Peek speciality coffee shop (07:00–22:00), Sama Restaurant. WhatsApp / phone for anything at all.
 
-Plus booking summary (ref, room, dates) and the contacts block.
+Plus booking summary (ref, room, dates, and an **Add-ons** row such as `APEX Zipline × 2 · 4WD transfer up — Birkat Al Mouz to the hotel × 1` when any were booked) and the contacts block.
 
 ### Post-stay email
 

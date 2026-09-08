@@ -17,12 +17,15 @@
     "contactTitle": "Contact us",
     "contactDescription": "Phone, WhatsApp, email and directions for Sama Hotel, Sayq, Jabal Al Akhdar, Oman.",
     "policiesTitle": "Hotel policies",
-    "policiesDescription": "Check-in and check-out times, cancellation, children, pets, smoking, payment and taxes at Sama Hotel."
+    "policiesDescription": "Check-in and check-out times, cancellation, children, pets, smoking, payment, taxes, 4WD transfers and activities at Sama Hotel.",
+    "apexTitle": "APEX Zipline — 310 m over the canyon",
+    "apexDescription": "Fly 310 metres across the Jabal Al Akhdar canyon at up to 60 km/h. The launch platform is a short walk from Sama Hotel — book your ride with your room at a special rate for hotel guests."
   },
   "nav": {
     "home": "Home",
     "rooms": "Rooms",
     "peek": "The Peek",
+    "apex": "APEX Zipline",
     "contact": "Contact",
     "policies": "Policies",
     "bookNow": "Book now",
@@ -85,7 +88,7 @@
     "locationTitle": "About two hours from Muscat",
     "locationBody": "Sama Hotel is in Sayq, Jabal Al Akhdar, in the Ad Dakhiliyah governorate. Take the road through Nizwa and Birkat Al Mouz, then the climb up the mountain — the last stretch is the best part of the drive.",
     "fourWdTitle": "A 4WD is required",
-    "fourWdBody": "The police checkpoint at Birkat Al Mouz does not allow two-wheel-drive cars up the mountain. If you do not have a 4WD, park at the checkpoint and message us in advance to arrange a transfer.",
+    "fourWdBody": "The police checkpoint at Birkat Al Mouz does not allow two-wheel-drive cars up the mountain. If you do not have a 4WD, park at the checkpoint car park and let us bring you up.",
     "fuelTip": "Fill up in Nizwa or Birkat Al Mouz — it is the last petrol station before the climb.",
     "openMaps": "Open in Google Maps",
     "stickyCta": "Check availability",
@@ -264,7 +267,8 @@
       "nationality": "Please choose a nationality.",
       "otherNationality": "Please tell us your nationality.",
       "consent": "Please accept the policies to continue.",
-      "requests": "Special requests can be up to 500 characters."
+      "requests": "Special requests can be up to 500 characters.",
+      "addonNote": "Notes for add-ons can be up to 200 characters."
     },
     "errors": {
       "sold_out": "Sorry — the last room of this type was booked a moment ago. Please search again for other options.",
@@ -276,7 +280,9 @@
       "invalid_phone": "The mobile number does not look right. Please check it.",
       "rate_limited": "Too many attempts in a short time. Please wait a minute and try again.",
       "quote_failed": "We could not calculate the price. Please try again.",
-      "unknown": "Something went wrong and your booking was not made. Nothing has been charged. Please try again, or message us on WhatsApp and we will book it for you."
+      "unknown": "Something went wrong and your booking was not made. Nothing has been charged. Please try again, or message us on WhatsApp and we will book it for you.",
+      "addon_not_found": "One of the add-ons you chose is no longer available. Please remove it and try again.",
+      "addon_quantity": "You have asked for more of an add-on than we can take in one booking. Please reduce the quantity."
     }
   },
   "confirmation": {
@@ -303,10 +309,14 @@
     "priceDetails": "Price details",
     "whatNext": "What happens next",
     "next1": "You will receive a confirmation by email and WhatsApp within a few minutes.",
+    "nextTransfer": "Your 4WD pickup at the Birkat Al Mouz checkpoint is booked — we will confirm the time on WhatsApp.",
     "next2": "Three days before arrival we will send a short pre-arrival guide with directions and tips.",
     "next3": "Pay at the hotel by cash or card when you check in. Nothing has been charged.",
     "fourWdTitle": "Remember: 4WD only",
     "fourWdBody": "The Birkat Al Mouz checkpoint does not let two-wheel-drive cars up the mountain. No 4WD? Park at the checkpoint and message us in advance for a transfer.",
+    "transferLink": "How our 4WD transfer works",
+    "transferBookedTitle": "Your 4WD pickup is booked",
+    "transferBookedBody": "Your 4WD pickup at the Birkat Al Mouz checkpoint is booked — we will confirm the time on WhatsApp. Park at the checkpoint car park and message us when you arrive; the drive up takes about 45 minutes.",
     "addToCalendar": "Add to calendar",
     "whatsapp": "WhatsApp us",
     "call": "Call the hotel",
@@ -324,6 +334,7 @@
     "requestCancel": "Request cancellation",
     "cancelTitle": "Cancel this booking?",
     "cancelBody": "Your booking for {dates} will be cancelled and the room released. This cannot be undone.",
+    "cancelAddonsNote": "Any add-ons on this booking (zipline, transfers) will be cancelled with it.",
     "reason": "Reason (optional)",
     "reasonPlaceholder": "Change of plans, weather, dates…",
     "confirmCancel": "Yes, cancel my booking",
@@ -392,7 +403,107 @@
     "taxesTitle": "Taxes & fees",
     "taxesBody": "Prices are shown per night before taxes. A service charge of {service}%, a tourism fee of {tourism}% and VAT of {vat}% are added as separate lines on your quote and on your bill.",
     "fourWdTitle": "Getting up the mountain",
-    "fourWdBody": "A 4WD vehicle is required by the police checkpoint at Birkat Al Mouz. Guests without a 4WD can park at the checkpoint and arrange a transfer with us in advance."
+    "fourWdBody": "A 4WD vehicle is required by the police checkpoint at Birkat Al Mouz. Guests without a 4WD can park at the checkpoint car park and book our 4WD transfer with their room — see Transfers & activities below."
+  },
+  "addons": {
+    "pickerTitle": "Add to your stay",
+    "pickerHint": "Optional extras, booked with your room and paid at the hotel. We confirm each one by WhatsApp.",
+    "pickerFootnote": "Add-ons are requested with your booking and confirmed by the hotel. They are paid at the hotel with your room and follow the same cancellation policy.",
+    "unit": {
+      "per_rider": "per rider",
+      "per_person": "per person",
+      "per_car": "per car",
+      "per_booking": "per booking",
+      "per_night": "per night"
+    },
+    "maxQuantity": "Up to {n} per booking",
+    "decrease": "Remove one — {name}",
+    "increase": "Add one — {name}",
+    "quantityLabel": "Quantity — {name}",
+    "lineTotal": "{qty} selected · OMR {amount}",
+    "noteLabel": "Tell us more",
+    "noteHint": "Anything that helps us arrange it — a preferred day or time.",
+    "priceLine": "{name} × {qty}",
+    "subtotal": "Add-ons (paid at the hotel)",
+    "totalHint": "OMR, including all taxes and add-ons",
+    "yourAddons": "Your add-ons",
+    "yourAddonsHint": "Requested with your booking — the hotel confirms each one by WhatsApp.",
+    "status": {
+      "requested": "Requested — we will confirm by WhatsApp",
+      "confirmed": "Confirmed",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "transferUpInstruction": "Park at the Birkat Al Mouz checkpoint car park — 2WD cars are not allowed past the checkpoint. Our 4WD collects you there and drives you up to the hotel (about 45 minutes).",
+    "transferDownInstruction": "On your check-out day our 4WD takes you and your luggage back down to your car at the checkpoint car park.",
+    "paidAtHotel": "Add-ons are paid at the hotel together with your room. Nothing has been charged.",
+    "homeEyebrow": "Add to your stay",
+    "homeTitle": "Two things worth booking with your room",
+    "homeIntro": "Pick them on the review step when you book. Both are confirmed by the hotel and paid with your room when you arrive.",
+    "homeFootnote": "Prices are for hotel guests and are added to your bill at the hotel.",
+    "apexCardTitle": "APEX Zipline",
+    "apexCardBody": "310 m over the canyon at up to 60 km/h — the launch platform is a short walk from the hotel.",
+    "apexCardCta": "About the zipline",
+    "transferCardTitle": "4WD transfers",
+    "transferCardBody": "No 4WD? Park at the Birkat Al Mouz checkpoint and our 4WD brings you up — and back down after check-out.",
+    "transferCardCta": "How transfers work",
+    "transferTeaser": "Book our 4WD transfer with your room — per car, up to 4 guests.",
+    "transferTeaserPriced": "Book our 4WD transfer with your room — {price} per car each way, up to 4 guests.",
+    "transferTeaserLink": "Transfer details",
+    "policy": {
+      "title": "Transfers & activities",
+      "checkpoint": "Two-wheel-drive cars are not allowed past the Birkat Al Mouz police checkpoint. Guests without a 4WD park at the checkpoint car park; the drive up to the hotel takes about 45 minutes.",
+      "transfer": "Our 4WD transfer is priced per car (up to {guests} guests) each way — up from the checkpoint on arrival and back down after check-out. Add it when you book and tell us your expected arrival time.",
+      "transferPriced": "Our 4WD transfer costs {price} per car (up to {guests} guests) each way — up from the checkpoint on arrival and back down after check-out. Add it when you book and tell us your expected arrival time.",
+      "apex": "APEX Zipline rides are booked with your room at a special rate for hotel guests. Maximum rider weight is {kg} kg; children ride with a guardian's consent; closed-toe shoes are required and rides depend on the weather.",
+      "apexPriced": "APEX Zipline rides are {price} per rider when booked with your room — a special rate for hotel guests. Maximum rider weight is {kg} kg; children ride with a guardian's consent; closed-toe shoes are required and rides depend on the weather.",
+      "confirmation": "Add-ons are requested with your booking and confirmed by the hotel, usually on WhatsApp within a few hours. They are paid at the hotel together with your room — nothing is charged online.",
+      "cancellation": "Cancelling a booking cancels its add-ons too, under the same cancellation policy as the room. To change only an add-on, message us on WhatsApp.",
+      "apexLink": "About APEX Zipline",
+      "bookLink": "Check availability"
+    }
+  },
+  "apex": {
+    "eyebrow": "APEX Zipline · Jabal Al Akhdar",
+    "title": "310 metres over the canyon",
+    "subtitle": "A zipline that starts a short walk from the hotel and flies over the terraces at up to 60 km/h.",
+    "heroAlt": "A rider on the APEX Zipline above the Jabal Al Akhdar canyon",
+    "stats": {
+      "label": "Zipline facts",
+      "length": "Length",
+      "height": "Height",
+      "speed": "Top speed",
+      "weight": "Max rider weight",
+      "metres": "m",
+      "kmh": "km/h",
+      "kg": "kg"
+    },
+    "aboutEyebrow": "The ride",
+    "aboutTitle": "From the hotel to Layali Al Jabal Al Akhdar",
+    "fallbackDescription": "Fly 310 metres across the canyon, about 20 metres above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room.",
+    "routeTitle": "The route",
+    "route": {
+      "start": "Launch platform — a short walk from Sama Hotel.",
+      "over": "310 m across the canyon, about 20 m above the terraces of Al Aqar, Al Shraija and Al Ain.",
+      "end": "Landing at Layali Al Jabal Al Akhdar, a few minutes' walk back."
+    },
+    "safetyTitle": "Good to know",
+    "safety": {
+      "shoes": "Closed-toe shoes are required.",
+      "weather": "Rides depend on the weather — in strong wind or rain the operator reschedules.",
+      "children": "Children ride with a guardian's consent; tell us their ages when you book.",
+      "weight": "Maximum rider weight {kg} kg."
+    },
+    "operatedBy": "Operated by {operator} ·",
+    "priceEyebrow": "Hotel-guest rate",
+    "perRider": "per rider",
+    "priceUnavailable": "Special rate for hotel guests — ask us for today's price.",
+    "priceNote": "A special rate for Sama Hotel guests, added to your room bill and paid at the hotel.",
+    "howStep1": "Choose your dates and room, then add riders on the review step.",
+    "howStep2": "Tell us your preferred day and any riders under 16 — we book the slot with APEX.",
+    "howStep3": "We confirm by WhatsApp; you pay with your room at check-out.",
+    "cta": "Add it when you book",
+    "ctaHint": "Already booked? Message us on WhatsApp and we will add it."
   },
   "footer": {
     "tagline": "A mountain resort at 2,000 m in Jabal Al Akhdar, Oman.",

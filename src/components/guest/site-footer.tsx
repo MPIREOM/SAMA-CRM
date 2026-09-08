@@ -80,6 +80,11 @@ export async function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/apex-zipline" className="text-gold-100/85 hover:text-gold-100 hover:underline">
+                {tNav("apex")}
+              </Link>
+            </li>
+            <li>
               <Link href="/contact" className="text-gold-100/85 hover:text-gold-100 hover:underline">
                 {tNav("contact")}
               </Link>

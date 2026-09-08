@@ -168,7 +168,7 @@ export default async function BookPage({ params, searchParams }: Props) {
                     </div>
 
                     <div className="border-t border-stone-200 bg-stone-50 p-5 sm:p-6 lg:border-s lg:border-t-0">
-                      {quote ? <PriceSummary quote={quote} taxes={settings.taxes} locale={locale} compact /> : null}
+                      {quote ? <PriceSummary quote={{ ...quote, addons: [] }} taxes={settings.taxes} locale={locale} compact /> : null}
                       <div className="mt-4">
                         {ok ? (
                           <Link href={{ pathname: `/book/${room.slug}`, query: searchParamsFor(query) }} className="g-btn-primary w-full">

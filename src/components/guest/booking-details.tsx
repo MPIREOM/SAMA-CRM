@@ -5,7 +5,7 @@ import type { BookingWithRelations } from "@/lib/bk/bookings";
 import type { PublicSettings } from "@/lib/bk/types";
 import { formatLongDate } from "@/lib/booking-engine/dates";
 import { PriceSummary } from "./price-summary";
-import { localizeRoom, n } from "./lib";
+import { bookingAddonLines, localizeRoom, n } from "./lib";
 
 // Booking summary card shared by the confirmation and manage pages.
 
@@ -85,6 +85,8 @@ export async function BookingDetails({ booking, settings, locale }: { booking: B
                 tourism_fee: Number(booking.tourism_fee_omr),
                 vat: Number(booking.vat_omr),
                 total: Number(booking.total_omr),
+                addons: bookingAddonLines(booking.addons, locale),
+                addons_total: Number(booking.addons_omr ?? 0),
               }}
               taxes={settings.taxes}
               locale={locale}

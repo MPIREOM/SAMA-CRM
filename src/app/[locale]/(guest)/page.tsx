@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowRight, Car, Coffee, Flower2, MapPin, Mountain, Sparkles, Waves, Wallet } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
-import { getRoomTypes } from "@/lib/bk/catalogue";
+import { getAddons, getRoomTypes } from "@/lib/bk/catalogue";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { logger } from "@/lib/logger";
 import { AvailabilityWidget } from "@/components/guest/availability-widget";
@@ -12,7 +12,7 @@ import { StickyCta } from "@/components/guest/sticky-cta";
 import { JsonLd } from "@/components/guest/json-ld";
 import { safePublicSettings, siteUrl } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
-import { localizeRoom, prettyPhone, telLink, waLink } from "@/components/guest/lib";
+import { APEX_SLUG, TRANSFER_UP_SLUG, addonUnitKey, formatRate, localizeAddon, localizeRoom, prettyPhone, telLink, waLink, type LocalizedAddon } from "@/components/guest/lib";
 import type { BkRoomType } from "@/lib/database.types";
 
 // Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
@@ -45,11 +45,12 @@ const HIGHLIGHTS = [
 export default async function HomePage({ params }: { params: { locale: string } }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [t, tRooms, tMeta, tc, settings] = await Promise.all([
+  const [t, tRooms, tMeta, tc, ta, settings] = await Promise.all([
     getTranslations("home"),
     getTranslations("rooms"),
     getTranslations("meta"),
     getTranslations("common"),
+    getTranslations("addons"),
     safePublicSettings(),
   ]);
 
@@ -61,6 +62,39 @@ export default async function HomePage({ params }: { params: { locale: string } 
     logger.warn("guest.home", "room types unavailable", { error: err instanceof Error ? err.message : String(err) });
   }
   const rooms = roomTypes?.map((rt) => localizeRoom(rt, locale)) ?? null;
+
+  // Add-on teasers (APEX Zipline, 4WD transfer) — prices from the catalogue, never hard-coded.
+  let apex: LocalizedAddon | null = null;
+  let transfer: LocalizedAddon | null = null;
+  try {
+    const addons = (await getAddons()).map((a) => localizeAddon(a, locale));
+    apex = addons.find((a) => a.slug === APEX_SLUG) ?? null;
+    transfer = addons.find((a) => a.slug === TRANSFER_UP_SLUG) ?? null;
+  } catch (err) {
+    logger.warn("guest.home", "add-ons unavailable", { error: err instanceof Error ? err.message : String(err) });
+  }
+  const priceTag = (a: LocalizedAddon | null) =>
+    a ? `${tc("omrAmount", { amount: formatRate(a.price) })} ${ta(`unit.${addonUnitKey(a.unit, a.kind)}`)}` : null;
+  const addonCards = [
+    {
+      key: "apex",
+      href: { pathname: "/apex-zipline" } as const,
+      src: apex?.image ?? "/images/addons/apex-zipline.jpg",
+      title: apex?.name ?? ta("apexCardTitle"),
+      body: apex?.tagline || ta("apexCardBody"),
+      price: priceTag(apex),
+      cta: ta("apexCardCta"),
+    },
+    {
+      key: "transfer",
+      href: { pathname: "/policies", hash: "transfers" } as const,
+      src: transfer?.image ?? "/images/addons/transfer.jpg",
+      title: ta("transferCardTitle"),
+      body: transfer?.tagline || ta("transferCardBody"),
+      price: priceTag(transfer),
+      cta: ta("transferCardCta"),
+    },
+  ];
   const today = muscatToday();
   const { contact, hotel, times } = settings;
   const rates = rooms?.map((r) => r.baseRate) ?? [];
@@ -215,6 +249,38 @@ export default async function HomePage({ params }: { params: { locale: string } 
         </ul>
       </section>
 
+      {/* Add to your stay -------------------------------------------------- */}
+      <section className="g-container pt-20 sm:pt-24" aria-labelledby="home-addons">
+        <p className="g-eyebrow">{ta("homeEyebrow")}</p>
+        <h2 id="home-addons" className="g-h2 mt-3">
+          {ta("homeTitle")}
+        </h2>
+        <p className="g-lead mt-3 max-w-2xl">{ta("homeIntro")}</p>
+        <ul className="mt-10 grid gap-6 md:grid-cols-2">
+          {addonCards.map((card) => (
+            <li key={card.key} className="g-card flex flex-col overflow-hidden sm:flex-row">
+              <div className="relative aspect-[16/10] bg-stone-100 sm:aspect-auto sm:w-2/5 sm:shrink-0">
+                <Image src={card.src} alt="" fill sizes="(min-width: 1024px) 240px, (min-width: 640px) 40vw, 100vw" className="object-cover" />
+              </div>
+              <div className="flex flex-1 flex-col p-5 sm:p-6">
+                <h3 className="text-lg font-extrabold text-maroon-900">{card.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-maroon-700">{card.body}</p>
+                {card.price && (
+                  <p className="mt-3 text-sm font-bold text-maroon-800 tabular-nums" dir="ltr">
+                    {card.price}
+                  </p>
+                )}
+                <Link href={card.href} className="g-link mt-auto inline-flex items-center gap-1.5 pt-4 text-sm no-underline hover:underline">
+                  {card.cta}
+                  <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-6 text-sm text-maroon-600">{ta("homeFootnote")}</p>
+      </section>
+
       {/* Location ---------------------------------------------------------- */}
       <section className="g-container grid items-center gap-10 pt-20 sm:pt-24 lg:grid-cols-2 lg:gap-16" aria-labelledby="home-location">
         <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-stone-100 lg:order-2">
@@ -232,6 +298,12 @@ export default async function HomePage({ params }: { params: { locale: string } 
               <div>
                 <h3 className="font-extrabold text-maroon-900">{t("fourWdTitle")}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-maroon-800">{t("fourWdBody")}</p>
+                <p className="mt-2 text-sm leading-relaxed text-maroon-800">
+                  {transfer ? ta("transferTeaserPriced", { price: tc("omrAmount", { amount: formatRate(transfer.price) }) }) : ta("transferTeaser")}{" "}
+                  <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-link">
+                    {ta("transferTeaserLink")}
+                  </Link>
+                </p>
                 <p className="mt-2 text-sm leading-relaxed text-maroon-700">{t("fuelTip")}</p>
               </div>
             </div>

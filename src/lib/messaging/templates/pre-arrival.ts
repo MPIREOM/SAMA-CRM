@@ -3,14 +3,17 @@
 import type { BuiltMessage, Locale, TemplateContext } from "../types";
 import { renderEmail, type Block } from "./email-shell";
 import {
+  addonSummaryRow,
   bookingSummaryRows,
   contactsBlock,
   emailFooter,
   friendlyTime,
   guestName,
+  hasTransferUp,
   hotelName,
   longDate,
   pick,
+  transferUpLine,
 } from "./shared";
 import { cleanParam, DEFAULT_TEMPLATE_NAMES, renderWhatsAppBody } from "./whatsapp-bodies";
 
@@ -38,6 +41,10 @@ export function buildPreArrival(ctx: TemplateContext, locale: Locale): BuiltMess
   const h = ctx.settings.hotel.drive_from_muscat_h;
   const driveEn = h === 1 ? "1 hour" : `${h} hours`;
   const driveAr = h === 1 ? "ساعة واحدة" : h === 2 ? "ساعتين" : `${h} ساعات`;
+  const transferUp = hasTransferUp(ctx);
+  const summary = bookingSummaryRows(ctx, locale);
+  const addonsRow = addonSummaryRow(ctx, locale);
+  if (addonsRow) summary.push(addonsRow);
 
   const blocks: Block[] = [
     {
@@ -57,14 +64,20 @@ export function buildPreArrival(ctx: TemplateContext, locale: Locale): BuiltMess
     {
       type: "guide",
       items: [
-        {
-          emoji: "🚙",
-          title: pick(locale, { en: "A 4WD is mandatory", ar: "سيارة الدفع الرباعي إلزامية" }),
-          text: pick(locale, {
-            en: "The police checkpoint at Birkat Al Mouz does not allow 2WD cars up the mountain. No 4WD? Park at the checkpoint and arrange a transfer with us in advance — just reply to our WhatsApp message.",
-            ar: "نقطة التفتيش في بركة الموز لا تسمح بصعود سيارات الدفع الثنائي. لا تملكون دفع رباعي؟ يمكنكم ركن السيارة عند نقطة التفتيش وترتيب خدمة النقل معنا مسبقاً — راسلونا على واتساب.",
-          }),
-        },
+        transferUp
+          ? {
+              emoji: "🚙",
+              title: pick(locale, { en: "Your 4WD pickup is booked", ar: "تم حجز سيارة الدفع الرباعي لاستقبالكم" }),
+              text: transferUpLine(locale),
+            }
+          : {
+              emoji: "🚙",
+              title: pick(locale, { en: "A 4WD is mandatory", ar: "سيارة الدفع الرباعي إلزامية" }),
+              text: pick(locale, {
+                en: "The police checkpoint at Birkat Al Mouz does not allow 2WD cars up the mountain. No 4WD? Park at the checkpoint and arrange a transfer with us in advance — just reply to our WhatsApp message.",
+                ar: "نقطة التفتيش في بركة الموز لا تسمح بصعود سيارات الدفع الثنائي. لا تملكون دفع رباعي؟ يمكنكم ركن السيارة عند نقطة التفتيش وترتيب خدمة النقل معنا مسبقاً — راسلونا على واتساب.",
+              }),
+            },
         {
           emoji: "🧥",
           title: pick(locale, { en: "Bring warm layers", ar: "أحضروا ملابس دافئة" }),
@@ -106,7 +119,7 @@ export function buildPreArrival(ctx: TemplateContext, locale: Locale): BuiltMess
         { label: pick(locale, { en: "View booking", ar: "عرض الحجز" }), url: ctx.links.booking, secondary: true },
       ],
     },
-    { type: "details", rows: bookingSummaryRows(ctx, locale) },
+    { type: "details", rows: summary },
     {
       type: "callout",
       title: pick(locale, { en: "Pay at the hotel", ar: "الدفع في الفندق" }),
@@ -123,8 +136,8 @@ export function buildPreArrival(ctx: TemplateContext, locale: Locale): BuiltMess
     locale,
     title: preArrivalSubject(ctx, locale),
     preheader: pick(locale, {
-      en: "4WD required · warm layers · fuel up in Nizwa · directions inside",
-      ar: "يلزم دفع رباعي · ملابس دافئة · عبّئوا الوقود في نزوى · الاتجاهات بالداخل",
+      en: `${transferUp ? "4WD pickup booked" : "4WD required"} · warm layers · fuel up in Nizwa · directions inside`,
+      ar: `${transferUp ? "تم حجز سيارة الدفع الرباعي" : "يلزم دفع رباعي"} · ملابس دافئة · عبّئوا الوقود في نزوى · الاتجاهات بالداخل`,
     }),
     blocks,
     footer: emailFooter(ctx, locale),
