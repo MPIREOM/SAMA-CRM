@@ -3,7 +3,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fromWaId } from "@/lib/phone";
 import { logger } from "@/lib/logger";
-import { whatsappEnv } from "@/lib/whatsapp-env";
+import { getSettings, updateSetting } from "@/lib/bk/settings";
+import { whatsappEnv, type WhatsAppEnv } from "@/lib/whatsapp-env";
 import { forwardWebhook, signWebhookBody, splitWebhookPayload, type SplitResult } from "@/lib/whatsapp-forward";
 
 // Meta WhatsApp Cloud API webhook.
@@ -48,13 +49,39 @@ interface WaStatus {
 
 interface WaValue {
   messaging_product?: string;
+  metadata?: { display_phone_number?: string; phone_number_id?: string };
   contacts?: { profile?: { name?: string } }[];
   messages?: WaMessage[];
   statuses?: WaStatus[];
 }
 
 interface WaPayload {
-  entry?: { changes?: { value?: WaValue }[] }[];
+  entry?: { id?: string; changes?: { value?: WaValue }[] }[];
+}
+
+/**
+ * Every WhatsApp webhook names the WhatsApp Business Account in `entry.id`.
+ * When no account id is configured yet, remember the one that carries our
+ * phone number so the setup page's template step works without anyone
+ * looking it up in Meta. One settings read per request; writes only once.
+ */
+async function learnBusinessAccountId(
+  admin: ReturnType<typeof createAdminClient>,
+  payload: WaPayload,
+  env: WhatsAppEnv
+): Promise<void> {
+  if (env.businessAccountId || !env.phoneNumberId) return;
+  const entry = (payload.entry ?? []).find(
+    (e) =>
+      /^\d{6,}$/.test(String(e?.id ?? "")) &&
+      (e.changes ?? []).some((c) => c?.value?.metadata?.phone_number_id === env.phoneNumberId)
+  );
+  if (!entry?.id) return;
+  const settings = await getSettings();
+  if (settings.messaging.whatsapp_business_account_id) return;
+  await updateSetting("messaging", { whatsapp_business_account_id: String(entry.id) }, null);
+  logger.info("whatsapp.webhook", "learned WhatsApp Business Account id from webhook", { waba_id: String(entry.id) });
+  void admin; // settings helpers create their own client; kept for symmetry with the other handlers
 }
 
 // Keywords that revoke marketing consent. Matching is tolerant: the inbound
@@ -148,6 +175,10 @@ export async function POST(req: Request) {
 
   try {
     const admin = createAdminClient();
+
+    await learnBusinessAccountId(admin, received, env).catch((err) =>
+      logger.warn("whatsapp.webhook", "could not store the account id", { error: (err as Error).message })
+    );
 
     for (const entry of split.local.entry ?? []) {
       for (const change of entry?.changes ?? []) {

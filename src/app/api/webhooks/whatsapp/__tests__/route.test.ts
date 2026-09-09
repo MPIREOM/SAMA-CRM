@@ -21,10 +21,28 @@ function table(name: string) {
       inserted.push({ table: name, row });
       return { select: () => ({ single: async () => ({ data: { id: "contact-1" }, error: null }) }) };
     },
+    upsert: async (row: Record<string, unknown>) => {
+      inserted.push({ table: name, row });
+      return { error: null };
+    },
+    then: undefined,
   });
   return chain;
 }
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: (name: string) => table(name) }) }));
+
+// Settings helpers use React's request cache (unavailable outside Next) —
+// stub them: a stored account id of "" until updateSetting writes one.
+const settingsState = { whatsapp_business_account_id: "" };
+const updateSetting = vi.fn(async (_key: string, patch: Record<string, unknown>) => {
+  Object.assign(settingsState, patch);
+  inserted.push({ table: "bk_settings", row: { key: _key, value: { ...settingsState } } });
+  return settingsState;
+});
+vi.mock("@/lib/bk/settings", () => ({
+  getSettings: async () => ({ messaging: { ...settingsState } }),
+  updateSetting: (key: string, patch: Record<string, unknown>) => updateSetting(key, patch),
+}));
 
 const SECRET = "app-secret";
 const ADMIN = "96877332220";
@@ -39,7 +57,7 @@ function payload() {
     object: "whatsapp_business_account",
     entry: [
       {
-        id: "WABA",
+        id: "112233445566778",
         changes: [
           {
             field: "messages",
@@ -70,6 +88,8 @@ describe("POST /api/webhooks/whatsapp (shared number)", () => {
   beforeEach(() => {
     vi.resetModules();
     inserted.length = 0;
+    settingsState.whatsapp_business_account_id = "";
+    updateSetting.mockClear();
     process.env = {
       ...env,
       WHATSAPP_APP_SECRET: SECRET,
@@ -77,6 +97,8 @@ describe("POST /api/webhooks/whatsapp (shared number)", () => {
       WHATSAPP_VERIFY_TOKEN: "",
       WHATSAPP_FORWARD_URL: "https://saas.example/api/webhooks/whatsapp",
       WHATSAPP_FORWARD_SENDERS: `+968 7733 2220`,
+      WHATSAPP_PHONE_NUMBER_ID: "PHONE",
+      WHATSAPP_BUSINESS_ACCOUNT_ID: "",
     };
     fetchMock = vi.fn(async () => new Response("ok", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -154,5 +176,35 @@ describe("POST /api/webhooks/whatsapp (shared number)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     // Without forwarding, both senders are treated as guests (hotel inbox).
     expect(inserted.filter((i) => i.table === "messages")).toHaveLength(2);
+  });
+
+  it("learns the WhatsApp Business Account id from entry.id when none is configured", async () => {
+    const { POST } = await import("../route");
+    const body = payload();
+    await POST(
+      new Request("https://hotel.example/api/webhooks/whatsapp", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-hub-signature-256": sign(body) },
+        body,
+      })
+    );
+    const saved = inserted.find((i) => i.table === "bk_settings");
+    expect(saved).toBeDefined();
+    expect(saved!.row.key).toBe("messaging");
+    expect((saved!.row.value as { whatsapp_business_account_id: string }).whatsapp_business_account_id).toBe("112233445566778");
+  });
+
+  it("does not touch settings when the account id is configured in the environment", async () => {
+    process.env.WHATSAPP_BUSINESS_ACCOUNT_ID = "999999999";
+    const { POST } = await import("../route");
+    const body = payload();
+    await POST(
+      new Request("https://hotel.example/api/webhooks/whatsapp", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-hub-signature-256": sign(body) },
+        body,
+      })
+    );
+    expect(inserted.find((i) => i.table === "bk_settings")).toBeUndefined();
   });
 });
