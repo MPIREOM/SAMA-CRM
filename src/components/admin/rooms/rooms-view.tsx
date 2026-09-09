@@ -18,6 +18,7 @@ import { deleteRoom, updateRoom } from "@/app/(crm)/(app)/rooms/actions";
 import { InlineAlert } from "../load-error";
 import { fmtMoney, localName } from "../shared";
 import { RoomTypeDialog, type RoomTypeRow } from "./room-type-dialog";
+import { asBedType, bedLabel } from "@/lib/booking-engine/beds";
 import { RoomDialog } from "./room-dialog";
 
 const STR = {
@@ -31,6 +32,7 @@ const STR = {
   addRoom: { en: "Add room", ar: "إضافة غرفة" },
   number: { en: "Room no.", ar: "رقم الغرفة" },
   floor: { en: "Floor", ar: "الطابق" },
+  beds: { en: "Beds", ar: "الأسرّة" },
   activeToggle: { en: "Active (off = maintenance)", ar: "نشطة (إيقاف = صيانة)" },
   noRooms: { en: "No rooms yet", ar: "لا توجد غرف بعد" },
   noRoomsDesc: { en: "Add the physical rooms so bookings can be assigned.", ar: "أضف الغرف الفعلية حتى يمكن تخصيص الحجوزات." },
@@ -179,6 +181,7 @@ export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types
                   <TH>{STR.number[lang]}</TH>
                   <TH>{COMMON.roomType[lang]}</TH>
                   <TH>{STR.floor[lang]}</TH>
+                  <TH>{STR.beds[lang]}</TH>
                   <TH>{STR.sortOrder[lang]}</TH>
                   <TH>{COMMON.status[lang]}</TH>
                   <TH>{COMMON.notes[lang]}</TH>
@@ -191,6 +194,7 @@ export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types
                     <TD className="font-bold text-maroon-900">{r.room_number}</TD>
                     <TD>{localName(typeById.get(r.room_type_id) ?? null, lang)}</TD>
                     <TD>{r.floor ?? "—"}</TD>
+                    <TD>{asBedType(r.bed_type) ? bedLabel(asBedType(r.bed_type)!, lang) : <span className="text-maroon-400">—</span>}</TD>
                     <TD className="text-maroon-400">{r.sort_order}</TD>
                     <TD>
                       <div className="flex items-center gap-2">

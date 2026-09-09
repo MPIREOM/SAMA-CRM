@@ -1,4 +1,5 @@
 // Helpers shared by the three template builders.
+import { asBedType, bedLabel } from "@/lib/booking-engine/beds";
 import { formatLongDate } from "@/lib/booking-engine/dates";
 import { formatOmr, nightsBetween } from "@/lib/booking-engine/pricing";
 import type { BookingAddonWithAddon } from "@/lib/bk/bookings";
@@ -28,6 +29,18 @@ export function roomName(ctx: TemplateContext, locale: Locale): string {
   const rt = ctx.booking.room_type;
   if (!rt) return pick(locale, { en: "Room", ar: "غرفة" });
   return cleanParam(locale === "ar" ? rt.name_ar || rt.name_en : rt.name_en || rt.name_ar);
+}
+
+/** The bed layout the guest chose (twin / king), localised; null when the type has one fixed layout. */
+export function bedChoice(ctx: TemplateContext, locale: Locale): string | null {
+  const bed = asBedType(ctx.booking.bed_preference);
+  return bed ? bedLabel(bed, locale) : null;
+}
+
+/** Room name plus the chosen bed layout — the WhatsApp {{room}} parameter, so approved bodies need no change. */
+export function roomNameWithBeds(ctx: TemplateContext, locale: Locale): string {
+  const bed = bedChoice(ctx, locale);
+  return cleanParam(bed ? `${roomName(ctx, locale)} · ${bed}` : roomName(ctx, locale));
 }
 
 export function nightsOf(ctx: TemplateContext): number {
@@ -168,6 +181,7 @@ export function bookingSummaryRows(
     { label: pick(locale, { en: "Booking ref", ar: "رقم الحجز" }), value: b.ref, ltr: true },
     { label: pick(locale, { en: "Guest", ar: "الضيف" }), value: guestName(ctx) },
     { label: pick(locale, { en: "Room", ar: "الغرفة" }), value: roomName(ctx, locale) },
+    ...(bedChoice(ctx, locale) ? [{ label: pick(locale, { en: "Beds", ar: "الأسرّة" }), value: bedChoice(ctx, locale) as string }] : []),
     { label: pick(locale, { en: "Check-in", ar: "تسجيل الوصول" }), value: checkIn },
     { label: pick(locale, { en: "Check-out", ar: "تسجيل المغادرة" }), value: checkOut },
     { label: pick(locale, { en: "Nights", ar: "عدد الليالي" }), value: String(nightsOf(ctx)) },

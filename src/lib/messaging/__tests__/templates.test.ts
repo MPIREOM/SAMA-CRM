@@ -46,7 +46,7 @@ describe("WhatsApp template parameters", () => {
     expect(whatsapp.params).toEqual([
       "Ahmed Al Nabhani",
       "SAMA-26-K7P3QX",
-      "Deluxe Room — Mountain & Sunset View",
+      "Deluxe Room — Mountain & Sunset View · Twin beds",
       "Thu, 17 Sep 2026",
       "Sat, 19 Sep 2026",
       "2",
@@ -59,10 +59,18 @@ describe("WhatsApp template parameters", () => {
   it("confirmation (ar) uses the Arabic room name and an Arabic long date with Latin digits", () => {
     const ctx = sampleContext("ar");
     const { whatsapp } = buildMessage("confirmation", ctx, "ar");
-    expect(whatsapp.params[2]).toBe("غرفة ديلوكس بإطلالة على الجبل");
+    expect(whatsapp.params[2]).toBe("غرفة ديلوكس بإطلالة على الجبل · سريران منفصلان");
     expect(whatsapp.params[3]).toMatch(/2026/);
     expect(whatsapp.params[3]).toMatch(/سبتمبر/);
     expect(whatsapp.params[6]).toBe("180.232");
+  });
+
+  it("the room parameter carries the bed layout only when the guest chose one", () => {
+    const ctx = sampleContext("en");
+    const plain = { ...ctx, booking: { ...ctx.booking, bed_preference: null } };
+    expect(buildMessage("confirmation", plain, "en").whatsapp.params[2]).toBe("Deluxe Room — Mountain & Sunset View");
+    expect(buildMessage("confirmation", plain, "en").email.text).not.toContain("Beds");
+    expect(buildMessage("confirmation", ctx, "en").email.text).toContain("Twin beds");
   });
 
   it("pre-arrival params are (name, check-in date, maps link)", () => {

@@ -136,6 +136,8 @@ Migrations live in `supabase/migrations/` (`0005_booking_engine.sql` … `0010_b
 5b. **Add-ons:** on a reservation, confirm the zipline / transfer request once APEX or the driver is booked; the dashboard shows "4WD pickup" on arrivals so the desk knows who to collect at the checkpoint.
 6. **See what was sent:** `/messaging` (queue + log) or the guest's thread in the WhatsApp inbox.
 
+**Twin or king (Deluxe rooms).** Both Deluxe types offer a choice of bed layout: the guest must pick *Twin beds* or *King bed* when booking (the two Deluxe rooms only, at launch — tick the layouts a type offers on `/rooms` → room type → *Guest chooses the bed layout*). The choice is stored on the booking, shown on the reservation, the calendar drawer and in the confirmation messages, and the room-assignment lists put rooms with that layout first. For that to work, record each Deluxe room's actual layout once: `/rooms` → Rooms tab → Edit → *Beds*. Rooms left as *not recorded* are listed after the matching ones. Migration `0013_bed_options.sql`.
+
 ## 12. Files worth knowing
 
 `docs/BOOKING-ARCHITECTURE.md` (how it fits together) · `docs/hotel-facts.md` (facts used) · `docs/message-content.md` (exact message texts) · `docs/existing-schema.md` · `docs/qa-report.md` · `DECISIONS.md` · `scripts/mock-supabase/README.md` (local emulator).

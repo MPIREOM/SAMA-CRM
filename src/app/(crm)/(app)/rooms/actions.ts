@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStaff, ADMIN_ROLES } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import type { Json } from "@/lib/database.types";
+import { cleanBedOptions } from "@/lib/booking-engine/beds";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
 
@@ -34,6 +35,8 @@ const RoomTypeSchema = z.object({
   view_ar: z.string().trim().max(120).nullable(),
   bed_config_en: z.string().trim().max(120).nullable(),
   bed_config_ar: z.string().trim().max(120).nullable(),
+  /** Layouts the guest may choose (twin, king); empty = one fixed layout. */
+  bed_options: z.array(z.enum(["twin", "king"])).max(2),
   size_sqm: z.number().min(0).max(1000).nullable(),
   max_adults: z.number().int().min(1).max(10),
   max_children: z.number().int().min(0).max(10),
@@ -53,7 +56,7 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
     if (!before) return { ok: false, error: "room_type_not_found" };
     const { error } = await admin
       .from("bk_room_types")
-      .update({ ...patch, amenities: patch.amenities as unknown as Json })
+      .update({ ...patch, amenities: patch.amenities as unknown as Json, bed_options: cleanBedOptions(patch.bed_options) })
       .eq("id", id);
     if (error) return { ok: false, error: error.message };
     const diff: Record<string, unknown> = {};
@@ -121,6 +124,8 @@ const RoomSchema = z.object({
   room_number: z.string().trim().min(1).max(20),
   room_type_id: uuid,
   floor: z.string().trim().max(40).nullable(),
+  /** Physical bed layout, so assignment can match the guest's choice. */
+  bed_type: z.enum(["twin", "king"]).nullable(),
   status: z.enum(["active", "maintenance"]),
   notes: z.string().trim().max(500).nullable(),
   sort_order: z.number().int().min(0).max(10000),

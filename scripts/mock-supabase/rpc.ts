@@ -414,6 +414,15 @@ function bkCreateBooking(db: Db, a: Args): Row {
   if (!rt || rt.is_active !== true) throw invalid("room_type_not_found");
   const rtId = rt.id as string;
   if (source === "website" && (adults > Number(rt.max_adults) || children > Number(rt.max_children))) throw invalid("capacity_exceeded");
+  // Migration 0013: bed layout only for types that offer a choice; missing → first option, unknown → rejected.
+  const bedOptions = Array.isArray(rt.bed_options) ? (rt.bed_options as string[]) : [];
+  let bed: string | null = typeof p.bed_preference === "string" && p.bed_preference.trim() !== "" ? p.bed_preference.trim() : null;
+  if (bedOptions.length > 0) {
+    if (bed === null) bed = bedOptions[0];
+    else if (!bedOptions.includes(bed)) throw invalid("invalid_bed_preference");
+  } else {
+    bed = null;
+  }
 
   // pg_advisory_xact_lock(hashtext(room_type_id)): this function is synchronous
   // end-to-end, so concurrent calls are serialised by the event loop.
@@ -468,6 +477,7 @@ function bkCreateBooking(db: Db, a: Args): Row {
       promo_code: quote.promo_code,
       special_requests: trimOrNull(p.special_requests),
       internal_notes: trimOrNull(p.internal_notes),
+      bed_preference: bed,
       source,
       created_by: toUuid(p.created_by),
     },

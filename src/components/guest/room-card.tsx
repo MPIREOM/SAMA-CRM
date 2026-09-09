@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { ArrowRight, Users } from "lucide-react";
+import { ArrowRight, BedDouble, Users } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { formatRate, n, type LocalizedRoom } from "./lib";
@@ -35,6 +35,12 @@ export function RoomCard({ room, priority = false, className }: { room: Localize
           <Users className="h-4 w-4 text-gold-700" aria-hidden="true" />
           <span>{t("sleepsShort", { a: n(room.maxAdults), c: n(room.maxChildren) })}</span>
         </div>
+        {room.bedOptions.length > 1 && (
+          <div className="mt-2 flex items-center gap-2 text-sm text-maroon-600">
+            <BedDouble className="h-4 w-4 text-gold-700" aria-hidden="true" />
+            <span>{room.bed}</span>
+          </div>
+        )}
         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
           <p className="text-maroon-900">
             <span className="text-xs font-semibold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("from")}</span>

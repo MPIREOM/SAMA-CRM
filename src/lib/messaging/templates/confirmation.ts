@@ -15,6 +15,7 @@ import {
   nightsOf,
   pick,
   roomName,
+  roomNameWithBeds,
   transferUpLine,
 } from "./shared";
 import { cleanParam, DEFAULT_TEMPLATE_NAMES, renderWhatsAppBody } from "./whatsapp-bodies";
@@ -28,7 +29,7 @@ export function confirmationParams(ctx: TemplateContext, locale: Locale): string
   return [
     guestName(ctx),
     cleanParam(b.ref),
-    roomName(ctx, locale),
+    roomNameWithBeds(ctx, locale),
     longDate(b.check_in, locale),
     longDate(b.check_out, locale),
     String(nightsOf(ctx)),

@@ -1,3 +1,4 @@
+import { asBedType, bedLabel } from "@/lib/booking-engine/beds";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
@@ -36,6 +37,12 @@ export async function BookingDetails({ booking, settings, locale }: { booking: B
             <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("room")}</dt>
             <dd className="mt-1 text-base font-bold text-maroon-900">{room?.name ?? booking.room_type_id}</dd>
           </div>
+          {asBedType(booking.bed_preference) && (
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("beds")}</dt>
+              <dd className="mt-1 font-bold text-maroon-900">{bedLabel(asBedType(booking.bed_preference)!, locale)}</dd>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("checkIn")}</dt>

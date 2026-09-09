@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Loader2, MessageCircle, Wallet } from "lucide-react";
 import { Link, type Locale } from "@/i18n/routing";
 import { COUNTRY_CODES } from "@/lib/phone";
+import { bedLabel, type BedType } from "@/lib/booking-engine/beds";
 import { formatLongDate } from "@/lib/booking-engine/dates";
 import { nightsBetween, type TaxSettings } from "@/lib/booking-engine/pricing";
 import type { QuoteResult } from "@/lib/bk/types";
@@ -57,6 +58,8 @@ interface FormValues {
   nationality: NationalityCode | "";
   otherNationality: string;
   preferredLang: "en" | "ar";
+  /** Chosen bed layout; "" until the guest picks one (only for rooms that offer a choice). */
+  bedPreference: BedType | "";
   specialRequests: string;
   promoCode: string;
 }
@@ -78,6 +81,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
     nationality: "",
     otherNationality: "",
     preferredLang: locale,
+    bedPreference: "",
     specialRequests: "",
     promoCode: "",
   });
@@ -121,11 +125,14 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
     if (addonErrors[slug]) setAddonErrors((e) => ({ ...e, [slug]: "" }));
   }
 
+  const offersBeds = room.bedOptions.length > 1;
+
   function toReview(e: FormEvent) {
     e.preventDefault();
     const parsed = guestDetailsSchema.safeParse(details);
-    if (!parsed.success) {
-      const fe = fieldErrors(parsed.error);
+    const fe = parsed.success ? {} : fieldErrors(parsed.error);
+    if (offersBeds && !details.bedPreference) fe.bedPreference = "bed";
+    if (Object.keys(fe).length > 0) {
       setErrors(fe);
       const first = Object.keys(fe)[0];
       document.getElementById(`${uid}-${first}`)?.focus();
@@ -381,6 +388,43 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                   </div>
                 </fieldset>
 
+                {offersBeds && (
+                  <fieldset>
+                    <legend className="g-label">{t("bedPreference")}</legend>
+                    <div className="flex gap-3" id={`${uid}-bedPreference`}>
+                      {room.bedOptions.map((bed) => (
+                        <label
+                          key={bed}
+                          className={cn(
+                            "flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 text-sm font-bold transition-colors",
+                            "focus-within:ring-2 focus-within:ring-gold-400",
+                            details.bedPreference === bed ? "border-maroon-800 bg-maroon-800 text-gold-100" : "border-stone-300 bg-white text-maroon-800 hover:bg-stone-50",
+                            errors.bedPreference && "border-crimson-600"
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="bedPreference"
+                            value={bed}
+                            required
+                            checked={details.bedPreference === bed}
+                            onChange={() => update("bedPreference", bed)}
+                            className="sr-only"
+                          />
+                          {bed === "twin" ? t("bedTwin") : t("bedKing")}
+                        </label>
+                      ))}
+                    </div>
+                    {errors.bedPreference ? (
+                      <p className="g-error" role="alert">
+                        {t(`validation.${errors.bedPreference}`)}
+                      </p>
+                    ) : (
+                      <p className="g-hint">{t("bedHint")}</p>
+                    )}
+                  </fieldset>
+                )}
+
                 <Field id={`${uid}-specialRequests`} label={t("specialRequests")} optional hint={t("specialRequestsHint")} error={errors.specialRequests && t(`validation.${errors.specialRequests}`)}>
                   <textarea
                     id={`${uid}-specialRequests`}
@@ -442,6 +486,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
               <input type="hidden" name="nationality" value={details.nationality} />
               <input type="hidden" name="otherNationality" value={details.otherNationality} />
               <input type="hidden" name="preferredLang" value={details.preferredLang} />
+              <input type="hidden" name="bedPreference" value={details.bedPreference} />
               <input type="hidden" name="specialRequests" value={details.specialRequests} />
               <input type="hidden" name="promoCode" value={cleanPromo} />
               <input type="hidden" name="slug" value={room.slug} />
@@ -463,6 +508,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                   {details.nationality === "OTHER" ? details.otherNationality : details.nationality ? t(`nationalities.${details.nationality}`) : ""}
                 </ReviewRow>
                 <ReviewRow label={t("preferredLang")}>{details.preferredLang === "ar" ? t("langAr") : t("langEn")}</ReviewRow>
+                {offersBeds && details.bedPreference && <ReviewRow label={t("bedPreference")}>{bedLabel(details.bedPreference, locale)}</ReviewRow>}
                 {details.specialRequests && <ReviewRow label={t("specialRequests")}>{details.specialRequests}</ReviewRow>}
               </dl>
               <button type="button" onClick={() => setStep(1)} className="g-link mt-3 text-sm">
@@ -588,6 +634,12 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                   <dt className="text-maroon-600">{t("nights")}</dt>
                   <dd className="font-semibold text-maroon-900">{tc("nights", { count: nights, n: n(nights) })}</dd>
                 </div>
+                {offersBeds && details.bedPreference && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-maroon-600">{t("bedPreference")}</dt>
+                    <dd className="font-semibold text-maroon-900">{bedLabel(details.bedPreference, locale)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between gap-3">
                   <dt className="text-maroon-600">{t("guests")}</dt>
                   <dd className="text-end font-semibold text-maroon-900">

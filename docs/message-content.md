@@ -47,7 +47,7 @@ Parameters (order is contractual — `{{n}}` ↔ index `n-1` of `params`):
 |---|---|---|
 | `{{1}}` | guest name | `Ahmed Al Nabhani` |
 | `{{2}}` | booking ref | `SAMA-26-K7P3QX` |
-| `{{3}}` | room type name in the guest's language | `Deluxe Room — Mountain & Sunset View` |
+| `{{3}}` | room type name in the guest's language, plus the chosen bed layout when the type offers one (`· Twin beds` / `· سريران منفصلان`) | `Deluxe Room — Mountain & Sunset View · Twin beds` |
 | `{{4}}` | check-in long date | `Thu, 17 Sep 2026` |
 | `{{5}}` | check-out long date | `Sat, 19 Sep 2026` |
 | `{{6}}` | nights | `2` |

@@ -17,13 +17,15 @@ reviewed by the owner before launch.
 | slug | CRM value | EN name | AR name | size | bed | capacity | units* | base OMR* |
 |---|---|---|---|---|---|---|---|---|
 | chalet | Chalet | Chalet | شاليه | — | King | 2 adults + 1 child | 14 | 65 |
-| deluxe-mountain-view | Deluxe Room Mountain View | Deluxe Room — Mountain & Sunset View | غرفة ديلوكس بإطلالة على الجبل | 27 m² | Twin | 2 + 1 | 14 | 55 |
-| deluxe-city-view | Deluxe Room City View | Deluxe Room — City & Sunrise View | غرفة ديلوكس بإطلالة على المدينة | 27 m² | King | 2 + 1 | 14 | 50 |
+| deluxe-mountain-view | Deluxe Room Mountain View | Deluxe Room — Mountain & Sunset View | غرفة ديلوكس بإطلالة على الجبل | 27 m² | Twin or king (guest's choice) | 2 + 1 | 14 | 55 |
+| deluxe-city-view | Deluxe Room City View | Deluxe Room — City & Sunrise View | غرفة ديلوكس بإطلالة على المدينة | 27 m² | Twin or king (guest's choice) | 2 + 1 | 14 | 50 |
 | family-deluxe | Family Deluxe | Family Deluxe Room | غرفة عائلية ديلوكس | 27 m² | King | 2 + 2 | 8 | 70 |
 | sama-suite-city-view | Sama Suite City View | Sama Suite — City View | جناح سما بإطلالة على المدينة | 29 m² | King | 2 + 1 | 5 | 85 |
 | sama-suite-mountain-view | Sama Suite Mountain View | Sama Suite — Mountain View with Jacuzzi | جناح سما بإطلالة على الجبل | 29 m² | Twin | 2 + 1 | 5 | 95 |
 
 \* Unit split (14/14/14/8/5/5 = 60) and rates are **placeholders** — only the total of 60 and the 14 chalets are confirmed. Fix them in `/rooms` and `/rates`.
+
+Bed layouts: the two Deluxe types offer **twin beds or a king bed** (`bk_room_types.bed_options`, migration 0013). The guest picks one when booking; staff assign a room with that layout, so each physical Deluxe room's layout should be recorded on `/rooms` (Rooms tab → Edit → Beds). Other types have one fixed layout (the *bed* column).
 
 ## Policies (defaults in `bk_settings`)
 - Check-in 14:00, check-out 12:00.

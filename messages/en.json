@@ -228,6 +228,10 @@
     "preferredLang": "Language for messages",
     "langEn": "English",
     "langAr": "Arabic",
+    "bedPreference": "Bed layout",
+    "bedHint": "This room comes with twin beds or a king bed — we will prepare it the way you choose.",
+    "bedTwin": "Twin beds",
+    "bedKing": "King bed",
     "specialRequests": "Special requests",
     "specialRequestsHint": "Late arrival, a cot, a quiet room, dietary needs — we will do our best.",
     "promoCode": "Promo code",
@@ -268,6 +272,7 @@
       "otherNationality": "Please tell us your nationality.",
       "consent": "Please accept the policies to continue.",
       "requests": "Special requests can be up to 500 characters.",
+      "bed": "Please choose the bed layout.",
       "addonNote": "Notes for add-ons can be up to 200 characters."
     },
     "errors": {
@@ -302,6 +307,7 @@
     "fromTime": "from {time}",
     "byTime": "by {time}",
     "room": "Room",
+    "beds": "Beds",
     "guests": "Guests",
     "nights": "Nights",
     "guest": "Guest name",

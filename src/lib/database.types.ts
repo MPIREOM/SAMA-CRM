@@ -220,6 +220,7 @@ export type Database = {
         Row: {
           addons_omr: number
           adults: number
+          bed_preference: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           check_in: string
@@ -257,6 +258,7 @@ export type Database = {
         Insert: {
           addons_omr?: number
           adults?: number
+          bed_preference?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           check_in: string
@@ -294,6 +296,7 @@ export type Database = {
         Update: {
           addons_omr?: number
           adults?: number
+          bed_preference?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           check_in?: string
@@ -522,6 +525,7 @@ export type Database = {
       bk_room_types: {
         Row: {
           amenities: Json
+          bed_options: string[]
           base_rate_omr: number
           bed_config_ar: string | null
           bed_config_en: string | null
@@ -547,6 +551,7 @@ export type Database = {
         }
         Insert: {
           amenities?: Json
+          bed_options?: string[]
           base_rate_omr: number
           bed_config_ar?: string | null
           bed_config_en?: string | null
@@ -572,6 +577,7 @@ export type Database = {
         }
         Update: {
           amenities?: Json
+          bed_options?: string[]
           base_rate_omr?: number
           bed_config_ar?: string | null
           bed_config_en?: string | null
@@ -601,6 +607,7 @@ export type Database = {
         Row: {
           created_at: string
           floor: string | null
+          bed_type: string | null
           id: string
           notes: string | null
           room_number: string
@@ -612,6 +619,7 @@ export type Database = {
         Insert: {
           created_at?: string
           floor?: string | null
+          bed_type?: string | null
           id?: string
           notes?: string | null
           room_number: string
@@ -623,6 +631,7 @@ export type Database = {
         Update: {
           created_at?: string
           floor?: string | null
+          bed_type?: string | null
           id?: string
           notes?: string | null
           room_number?: string
@@ -1236,6 +1245,7 @@ export type BkScheduledStatus =
   | "cancelled"
   | "skipped"
 export type BkLocale = "en" | "ar"
+export type BkBedType = "twin" | "king"
 export type BkAddonKind = "activity" | "transfer" | "other"
 export type BkAddonUnit = "per_person" | "per_car" | "per_booking" | "per_night"
 export type BkBookingAddonStatus = "requested" | "confirmed" | "done" | "cancelled"

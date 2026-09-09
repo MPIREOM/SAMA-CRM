@@ -398,6 +398,31 @@ test.describe("guest booking", () => {
     // the service-role key before go-live.
   });
 
+  test("Deluxe room: the guest must choose twin or king; the choice shows on review and confirmation", async ({ page }) => {
+    const checkin = muscatDate(20);
+    const checkout = muscatDate(21);
+    const guestName = `E2E-Beds ${Date.now()}`;
+    await page.goto(`/en/book/deluxe-mountain-view?checkin=${checkin}&checkout=${checkout}&adults=2&children=0`);
+    await expect(page.getByRole("heading", { name: "Complete your booking" })).toBeVisible();
+    await expect(page.getByText("Bed layout")).toBeVisible();
+
+    // No choice → the form stays on step 1 with the bed error.
+    await fillGuestDetails(page, { fullName: guestName, phone: "91234567", bedPreference: "skip" });
+    await expect(page.getByText("Please choose the bed layout.")).toBeVisible();
+    await expect(page.locator('[aria-current="step"]')).toHaveText("1");
+
+    // Choose King and continue.
+    await page.locator('input[name="bedPreference"][value="king"]').check({ force: true });
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.getByRole("heading", { name: "Review your booking" })).toBeVisible();
+    await expect(page.locator("dl").filter({ hasText: "Bed layout" }).first()).toContainText("King bed");
+
+    const ref = await confirmBooking(page);
+    expect(ref).toMatch(/^SAMA-/);
+    await expect(page.getByText("Beds", { exact: true })).toBeVisible();
+    await expect(page.getByText("King bed", { exact: true }).first()).toBeVisible();
+  });
+
   test("guest manage page: cancel within policy → cancelled; check-in tomorrow → contact us", async ({ page }) => {
     const mk = async (offset: number, name: string) => {
       const r = await db.createBooking({

@@ -25,7 +25,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
   try {
     const admin = createAdminClient();
     const [{ data, error }, addons] = await Promise.all([
-      admin.from("bk_room_types").select("id, name_en, name_ar, max_adults, max_children, base_rate_omr, is_active").order("sort_order"),
+      admin.from("bk_room_types").select("id, name_en, name_ar, max_adults, max_children, base_rate_omr, is_active, bed_options").order("sort_order"),
       admin
         .from("bk_addons")
         .select("id, slug, kind, name_en, name_ar, price_omr, unit, max_quantity, taxable, requires_note, note_hint_en, note_hint_ar")

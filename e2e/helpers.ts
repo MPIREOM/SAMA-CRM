@@ -139,6 +139,8 @@ export interface GuestDetails {
   nationality?: string;
   promoCode?: string;
   specialRequests?: string;
+  /** Bed layout for room types that offer a choice; "skip" leaves the radio untouched. */
+  bedPreference?: "twin" | "king" | "skip";
 }
 
 /** Fill step 1 of the booking form and continue to the review step. */
@@ -147,6 +149,12 @@ export async function fillGuestDetails(page: Page, d: GuestDetails): Promise<voi
   if (d.email) await page.locator('input[name="email"]').fill(d.email);
   await page.locator('input[name="phone"]').fill(d.phone ?? "91234567");
   await page.locator('select[name="nationality"]').selectOption(d.nationality ?? "OM");
+  // Room types with a bed choice show a radio group; pick the requested layout (default: the first).
+  const beds = page.locator('input[name="bedPreference"]');
+  if (d.bedPreference !== "skip" && (await beds.count()) > 0) {
+    const target = d.bedPreference ? page.locator(`input[name="bedPreference"][value="${d.bedPreference}"]`) : beds.first();
+    await target.check({ force: true });
+  }
   if (d.specialRequests) await page.locator('textarea[name="specialRequests"]').fill(d.specialRequests);
   if (d.promoCode) await page.locator('input[name="promoCode"]').fill(d.promoCode);
   await page.locator('form button[type="submit"]').click();

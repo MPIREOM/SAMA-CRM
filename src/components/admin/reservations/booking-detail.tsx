@@ -56,6 +56,7 @@ import {
   statusVariant,
   nightsLabel,
 } from "../shared";
+import { asBedType, bedLabel, cleanBedOptions, sortRoomsForBed } from "@/lib/booking-engine/beds";
 
 const STR = {
   back: { en: "All reservations", ar: "كل الحجوزات" },
@@ -70,6 +71,9 @@ const STR = {
   saveDates: { en: "Update stay", ar: "تحديث الإقامة" },
   datesHint: { en: "Availability is re-checked and the price recalculated.", ar: "يُعاد التحقق من التوفر ويُعاد احتساب السعر." },
   roomAssign: { en: "Assigned room", ar: "الغرفة المخصصة" },
+  bedPreference: { en: "Bed layout", ar: "ترتيب الأسرّة" },
+  bedAsked: { en: "Guest asked for", ar: "طلب النزيل" },
+  bedNone: { en: "— no preference —", ar: "— بلا تفضيل —" },
   noRoom: { en: "— not assigned —", ar: "— غير مخصص —" },
   assign: { en: "Assign", ar: "تخصيص" },
   confirm: { en: "Confirm booking", ar: "تأكيد الحجز" },
@@ -142,6 +146,7 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
     preferred_lang: booking.preferred_lang === "ar" ? "ar" : "en",
     special_requests: booking.special_requests ?? "",
     internal_notes: booking.internal_notes ?? "",
+    bed_preference: asBedType(booking.bed_preference) ?? "",
   });
   // Stay form
   const [stay, setStay] = useState({
@@ -164,6 +169,7 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
       preferred_lang: booking.preferred_lang === "ar" ? "ar" : "en",
       special_requests: booking.special_requests ?? "",
       internal_notes: booking.internal_notes ?? "",
+      bed_preference: asBedType(booking.bed_preference) ?? "",
     });
     setStay({ check_in: booking.check_in, check_out: booking.check_out, adults: booking.adults, children: booking.children });
     setRoomChoice(booking.room_id ?? "");
@@ -213,6 +219,7 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
         preferred_lang: guest.preferred_lang,
         special_requests: guest.special_requests || null,
         internal_notes: guest.internal_notes || null,
+        ...(bedOptions.length > 0 ? { bed_preference: asBedType(guest.bed_preference) } : {}),
       })
     );
   }
@@ -226,11 +233,14 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
   const nightly = Array.isArray(booking.nightly_rates)
     ? (booking.nightly_rates as { date?: string; rate?: number | string }[])
     : [];
-  const roomOptions: FreeRoom[] = [...(free ?? [])];
-  if (booking.room && !roomOptions.some((r) => r.id === booking.room?.id)) {
-    roomOptions.unshift({ id: booking.room.id, room_number: booking.room.room_number, floor: booking.room.floor });
+  const bedOptions = cleanBedOptions(booking.room_type?.bed_options);
+  const bedPreference = asBedType(booking.bed_preference);
+  const roomOptionsRaw: FreeRoom[] = [...(free ?? [])];
+  if (booking.room && !roomOptionsRaw.some((r) => r.id === booking.room?.id)) {
+    roomOptionsRaw.unshift({ id: booking.room.id, room_number: booking.room.room_number, floor: booking.room.floor, bed_type: booking.room.bed_type });
   }
-  roomOptions.sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true }));
+  // Rooms with the guest's bed layout first, unknown layouts next, the rest last.
+  const roomOptions = sortRoomsForBed(roomOptionsRaw, bedPreference);
 
   const canConfirm = booking.status === "pending";
   const canCheckIn = (booking.status === "confirmed" || booking.status === "pending") && booking.check_in <= today;
@@ -339,6 +349,19 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
                     <option value="ar">العربية</option>
                   </Select>
                 </div>
+                {bedOptions.length > 0 && (
+                  <div>
+                    <Label htmlFor="g-bed">{STR.bedPreference[lang]}</Label>
+                    <Select id="g-bed" value={guest.bed_preference} onChange={(e) => setGuest({ ...guest, bed_preference: asBedType(e.target.value) ?? "" })}>
+                      <option value="">{STR.bedNone[lang]}</option>
+                      {bedOptions.map((bed) => (
+                        <option key={bed} value={bed}>
+                          {bedLabel(bed, lang)}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="g-req">{STR.requests[lang]}</Label>
@@ -402,6 +425,7 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
                       <option key={r.id} value={r.id}>
                         {r.room_number}
                         {r.floor ? ` · ${r.floor}` : ""}
+                        {asBedType(r.bed_type) ? ` · ${bedLabel(asBedType(r.bed_type)!, lang)}` : ""}
                       </option>
                     ))}
                   </Select>
@@ -414,11 +438,22 @@ export function BookingDetail({ booking, catalogue, scheduled, log, auditRows, t
                     {STR.assign[lang]}
                   </Button>
                 </div>
+                {bedPreference && (
+                  <p className="mt-1 text-xs text-maroon-500">
+                    {STR.bedAsked[lang]}: <span className="font-semibold text-maroon-800">{bedLabel(bedPreference, lang)}</span>
+                  </p>
+                )}
               </div>
             )}
             {!live && (
               <p className="text-sm text-maroon-600">
                 {COMMON.room[lang]}: <span className="font-semibold">{booking.room?.room_number ?? COMMON.unassigned[lang]}</span>
+                {bedPreference && (
+                  <>
+                    {" · "}
+                    {STR.bedPreference[lang]}: <span className="font-semibold">{bedLabel(bedPreference, lang)}</span>
+                  </>
+                )}
               </p>
             )}
 

@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { setRoomTypeImages, updateRoomType, uploadRoomTypeImage } from "@/app/(crm)/(app)/rooms/actions";
 import { InlineAlert } from "../load-error";
 import { AMENITIES } from "../shared";
+import { BED_TYPES, bedLabel, cleanBedOptions } from "@/lib/booking-engine/beds";
 
 export type RoomTypeRow = Omit<BkRoomType, "base_rate_omr" | "size_sqm" | "amenities"> & {
   base_rate_omr: number;
@@ -35,6 +36,11 @@ const STR = {
   viewAr: { en: "View (AR)", ar: "الإطلالة (عربي)" },
   bedEn: { en: "Bed config (EN)", ar: "الأسرّة (إنجليزي)" },
   bedAr: { en: "Bed config (AR)", ar: "الأسرّة (عربي)" },
+  bedOptions: { en: "Guest chooses the bed layout", ar: "النزيل يختار ترتيب الأسرّة" },
+  bedOptionsHint: {
+    en: "Tick the layouts this type offers. Website guests must pick one when booking; a phone booking without a choice gets the first ticked one. With one or none ticked, the bed config text above is shown instead.",
+    ar: "حدّدوا الترتيبات المتاحة لهذا النوع. يجب على نزلاء الموقع اختيار أحدها عند الحجز؛ وحجز الهاتف بلا اختيار يأخذ الأول. مع خيار واحد أو بلا خيارات، يُعرض نص الأسرّة أعلاه.",
+  },
   size: { en: "Size (m²)", ar: "المساحة (م²)" },
   maxAdults: { en: "Max adults", ar: "الحد الأقصى للبالغين" },
   maxChildren: { en: "Max children", ar: "الحد الأقصى للأطفال" },
@@ -89,6 +95,7 @@ export function RoomTypeDialog({ type, onClose }: { type: RoomTypeRow | null; on
         view_ar: f.view_ar || null,
         bed_config_en: f.bed_config_en || null,
         bed_config_ar: f.bed_config_ar || null,
+        bed_options: cleanBedOptions(f.bed_options),
         size_sqm: f.size_sqm,
         max_adults: f.max_adults,
         max_children: f.max_children,
@@ -189,6 +196,20 @@ export function RoomTypeDialog({ type, onClose }: { type: RoomTypeRow | null; on
           <div>
             <Label htmlFor="rt-bed-ar">{STR.bedAr[lang]}</Label>
             <Input id="rt-bed-ar" dir="rtl" value={f.bed_config_ar ?? ""} onChange={(e) => set("bed_config_ar", e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>{STR.bedOptions[lang]}</Label>
+            <div className="flex flex-wrap gap-4">
+              {BED_TYPES.map((bed) => (
+                <Checkbox
+                  key={bed}
+                  label={bedLabel(bed, lang)}
+                  checked={cleanBedOptions(f.bed_options).includes(bed)}
+                  onChange={(e) => set("bed_options", cleanBedOptions(e.target.checked ? [...f.bed_options, bed] : f.bed_options.filter((b) => b !== bed)))}
+                />
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-maroon-400">{STR.bedOptionsHint[lang]}</p>
           </div>
         </div>
 

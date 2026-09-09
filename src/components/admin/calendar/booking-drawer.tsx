@@ -24,6 +24,7 @@ import {
 import { InlineAlert } from "../load-error";
 import { fmtDate, fmtMoney, localName, sourceLabel, statusLabel, statusVariant, nightsLabel } from "../shared";
 import type { CalendarBooking, CalendarRoom, CalendarRoomType } from "./layout";
+import { asBedType, bedLabel, sortRoomsForBed } from "@/lib/booking-engine/beds";
 
 const STR = {
   stay: { en: "Stay", ar: "الإقامة" },
@@ -41,6 +42,7 @@ const STR = {
   needsRoom: { en: "Assign a room to check in", ar: "خصّص غرفة لتسجيل الوصول" },
   requests: { en: "Special requests", ar: "طلبات خاصة" },
   internal: { en: "Internal notes", ar: "ملاحظات داخلية" },
+  beds: { en: "Beds", ar: "الأسرّة" },
   done: { en: "Done", ar: "تم" },
 } satisfies Strings;
 
@@ -117,11 +119,13 @@ export function BookingDrawer({ booking, rooms, types, today, onClose }: Props) 
   const canMove = booking.status !== "checked_out";
 
   // Include the current room in the list even when it is "busy" with this very booking.
-  const options: FreeRoom[] = [...(free ?? [])];
-  if (currentRoom && !options.some((r) => r.id === currentRoom.id)) {
-    options.unshift({ id: currentRoom.id, room_number: currentRoom.room_number, floor: currentRoom.floor });
+  const bedPreference = asBedType(booking.bed_preference);
+  const optionsRaw: FreeRoom[] = [...(free ?? [])];
+  if (currentRoom && !optionsRaw.some((r) => r.id === currentRoom.id)) {
+    optionsRaw.unshift({ id: currentRoom.id, room_number: currentRoom.room_number, floor: currentRoom.floor, bed_type: currentRoom.bed_type ?? null });
   }
-  options.sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true }));
+  // Rooms with the guest's bed layout first, unknown layouts next, the rest last.
+  const options = sortRoomsForBed(optionsRaw, bedPreference);
 
   return (
     <Drawer
@@ -170,6 +174,12 @@ export function BookingDrawer({ booking, rooms, types, today, onClose }: Props) 
           </dd>
           <dt className="text-maroon-400">{COMMON.room[lang]}</dt>
           <dd className="font-semibold text-maroon-900">{currentRoom?.room_number ?? COMMON.unassigned[lang]}</dd>
+          {bedPreference && (
+            <>
+              <dt className="text-maroon-400">{STR.beds[lang]}</dt>
+              <dd className="font-semibold text-maroon-900">{bedLabel(bedPreference, lang)}</dd>
+            </>
+          )}
         </dl>
 
         {booking.special_requests && (
@@ -198,6 +208,7 @@ export function BookingDrawer({ booking, rooms, types, today, onClose }: Props) 
                   <option key={r.id} value={r.id}>
                     {r.room_number}
                     {r.floor ? ` · ${r.floor}` : ""}
+                    {asBedType(r.bed_type) ? ` · ${bedLabel(asBedType(r.bed_type)!, lang)}` : ""}
                   </option>
                 ))}
               </Select>

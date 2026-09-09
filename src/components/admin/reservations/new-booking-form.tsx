@@ -20,6 +20,7 @@ import { createStaffBooking, freeRooms, quotePreview, type FreeRoom } from "@/ap
 import { InlineAlert } from "../load-error";
 import { STAFF_SOURCES, addonUnitLabel, fmtDate, fmtMoney, localName, sourceLabel, nightsLabel } from "../shared";
 import type { AddonOption } from "./booking-addons";
+import { asBedType, bedLabel, cleanBedOptions, sortRoomsForBed, type BedType } from "@/lib/booking-engine/beds";
 
 const STR = {
   title: { en: "New booking", ar: "حجز جديد" },
@@ -35,6 +36,7 @@ const STR = {
   roomOptional: { en: "Room (optional)", ar: "الغرفة (اختياري)" },
   noRoom: { en: "— assign later —", ar: "— التخصيص لاحقاً —" },
   noFreeRooms: { en: "No free rooms of this type for these dates", ar: "لا توجد غرف متاحة من هذا النوع لهذه التواريخ" },
+  bedPreference: { en: "Bed layout", ar: "ترتيب الأسرّة" },
   promo: { en: "Promo code (optional)", ar: "رمز الخصم (اختياري)" },
   requests: { en: "Special requests", ar: "طلبات خاصة" },
   internal: { en: "Internal notes (staff only)", ar: "ملاحظات داخلية (للموظفين)" },
@@ -73,6 +75,8 @@ export interface NewBookingType {
   max_children: number;
   base_rate_omr: number;
   is_active: boolean;
+  /** Layouts the guest may choose (twin, king); empty = fixed layout. */
+  bed_options: string[];
 }
 
 interface Props {
@@ -115,6 +119,7 @@ export function NewBookingForm({ types, addons, initial }: Props) {
     promo_code: "",
     special_requests: "",
     internal_notes: "",
+    bed_preference: "" as BedType | "",
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -149,6 +154,8 @@ export function NewBookingForm({ types, addons, initial }: Props) {
   const quantitiesKey = selection.map((a) => `${a.addon_id}:${a.quantity}`).join(",");
 
   const type = types.find((t) => t.id === form.room_type_id) ?? null;
+  const bedOptions = cleanBedOptions(type?.bed_options);
+  const bedChoice: BedType | null = bedOptions.length > 0 ? (bedOptions.includes(form.bed_preference as BedType) ? (form.bed_preference as BedType) : bedOptions[0]) : null;
   const nights = nightsBetween(form.check_in, form.check_out);
   const datesOk = nights > 0;
 
@@ -234,6 +241,7 @@ export function NewBookingForm({ types, addons, initial }: Props) {
         promo_code: form.promo_code.trim() || null,
         special_requests: form.special_requests.trim() || null,
         internal_notes: form.internal_notes.trim() || null,
+        bed_preference: bedChoice,
         addons: selection,
       });
       if (!r.ok) {
@@ -289,14 +297,27 @@ export function NewBookingForm({ types, addons, initial }: Props) {
                 <Label htmlFor="n-children">{COMMON.children[lang]}</Label>
                 <Input id="n-children" type="number" min={0} max={20} value={form.children} onChange={(e) => set("children", parseInt(e.target.value, 10) || 0)} />
               </div>
+              {bedOptions.length > 1 && (
+                <div className="sm:col-span-2">
+                  <Label htmlFor="n-bed">{STR.bedPreference[lang]}</Label>
+                  <Select id="n-bed" value={bedChoice ?? ""} onChange={(e) => set("bed_preference", asBedType(e.target.value) ?? "")}>
+                    {bedOptions.map((bed) => (
+                      <option key={bed} value={bed}>
+                        {bedLabel(bed, lang)}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <Label htmlFor="n-room">{STR.roomOptional[lang]}</Label>
                 <Select id="n-room" value={form.room_id} onChange={(e) => set("room_id", e.target.value)} disabled={rooms === null}>
                   <option value="">{rooms === null ? COMMON.loading[lang] : STR.noRoom[lang]}</option>
-                  {(rooms ?? []).map((r) => (
+                  {sortRoomsForBed(rooms ?? [], bedChoice).map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.room_number}
                       {r.floor ? ` · ${r.floor}` : ""}
+                      {asBedType(r.bed_type) ? ` · ${bedLabel(asBedType(r.bed_type)!, lang)}` : ""}
                     </option>
                   ))}
                 </Select>

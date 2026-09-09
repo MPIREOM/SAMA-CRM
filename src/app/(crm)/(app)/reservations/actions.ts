@@ -204,6 +204,8 @@ const GuestSchema = z.object({
   preferred_lang: z.enum(["en", "ar"]),
   special_requests: z.string().trim().max(2000).nullable(),
   internal_notes: z.string().trim().max(2000).nullable(),
+  /** Omit to leave the bed layout untouched; null clears it. */
+  bed_preference: z.enum(["twin", "king"]).nullable().optional(),
 });
 
 export async function updateGuest(input: unknown): Promise<ActionResult> {
@@ -221,6 +223,7 @@ export async function updateGuest(input: unknown): Promise<ActionResult> {
       preferred_lang: data.preferred_lang,
       special_requests: data.special_requests || null,
       internal_notes: data.internal_notes || null,
+      ...(data.bed_preference !== undefined ? { bed_preference: data.bed_preference } : {}),
     };
     const admin = createAdminClient();
     const { error } = await admin.from("bk_bookings").update(patch).eq("id", data.bookingId);
@@ -559,7 +562,7 @@ const FreeRoomsSchema = z.object({
   excludeBookingId: uuid.nullable().optional(),
 });
 
-export type FreeRoom = { id: string; room_number: string; floor: string | null };
+export type FreeRoom = { id: string; room_number: string; floor: string | null; bed_type: string | null };
 
 export async function freeRooms(input: unknown): Promise<ActionResult<FreeRoom[]>> {
   return runAction("booking.free_rooms", async () => {
@@ -570,7 +573,7 @@ export async function freeRooms(input: unknown): Promise<ActionResult<FreeRoom[]
     const [rooms, taken, blocked] = await Promise.all([
       admin
         .from("bk_rooms")
-        .select("id, room_number, floor")
+        .select("id, room_number, floor, bed_type")
         .eq("room_type_id", data.roomTypeId)
         .eq("status", "active")
         .order("sort_order")
@@ -615,6 +618,8 @@ const CreateSchema = z.object({
   promo_code: z.string().trim().max(40).optional().nullable(),
   special_requests: z.string().trim().max(2000).optional().nullable(),
   internal_notes: z.string().trim().max(2000).optional().nullable(),
+  /** Bed layout for types that offer a choice; the RPC takes the type's first option when omitted. */
+  bed_preference: z.enum(["twin", "king"]).optional().nullable(),
   addons: AddonSelectionSchema,
 });
 
@@ -639,6 +644,7 @@ export async function createStaffBooking(input: unknown): Promise<ActionResult<{
       preferred_lang: data.preferred_lang,
       special_requests: data.special_requests || null,
       internal_notes: data.internal_notes || null,
+      bed_preference: data.bed_preference || null,
       promo_code: data.promo_code || null,
       source: data.source,
       status: data.status,
