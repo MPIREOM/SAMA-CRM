@@ -15,6 +15,7 @@ import {
   discoverWabaId,
   getPhoneNumber,
   listTemplates,
+  setPhoneWebhookOverride,
   setWabaWebhookOverride,
 } from "@/lib/whatsapp-admin";
 import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
@@ -65,32 +66,49 @@ export async function saveBusinessAccountId(input: unknown): Promise<ActionResul
   });
 }
 
-/** Point this WhatsApp Business Account's webhooks at this deployment (WABA-level override). */
-export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: string; wabaId: string }>> {
-  return runAction<{ callbackUrl: string; wabaId: string }>("whatsapp.webhook", async () => {
+/**
+ * Point this number's webhooks at this deployment. Phone-level override first
+ * (needs only the phone number id); account-level override as a fallback when
+ * Meta refuses the phone-level one and the account id is known.
+ */
+export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: string; level: "phone" | "account" }>> {
+  return runAction<{ callbackUrl: string; level: "phone" | "account" }>("whatsapp.webhook", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
     const env = await envWithStoredWaba();
+    if (!env.accessToken) return { ok: false, error: "WHATSAPP_ACCESS_TOKEN is not set in Vercel." };
+    if (!env.phoneNumberId) return { ok: false, error: "WHATSAPP_PHONE_NUMBER_ID is not set in Vercel." };
     if (!env.verifyToken) {
       return { ok: false, error: "WHATSAPP_VERIFY_TOKEN (or WHATSAPP_WEBHOOK_VERIFY_TOKEN) is not set in Vercel." };
     }
     if (!env.appSecret) {
       return { ok: false, error: "WHATSAPP_APP_SECRET is not set — the webhook would reject every delivery." };
     }
-    const waba = await wabaIdOrError(env);
-    if ("error" in waba) return { ok: false, error: waba.error };
 
     const callbackUrl = webhookCallbackUrl();
-    const r = await setWabaWebhookOverride(waba.wabaId, callbackUrl, env.verifyToken, env);
-    if (!r.ok) return { ok: false, error: r.error };
+    const phone = await setPhoneWebhookOverride(callbackUrl, env.verifyToken, env);
+    let level: "phone" | "account" = "phone";
+    let wabaId: string | null = null;
+    if (!phone.ok) {
+      const waba = await wabaIdOrError(env);
+      if ("error" in waba) {
+        return { ok: false, error: `Phone-level override failed: ${phone.error}. Account-level fallback: ${waba.error}` };
+      }
+      const acct = await setWabaWebhookOverride(waba.wabaId, callbackUrl, env.verifyToken, env);
+      if (!acct.ok) return { ok: false, error: `Phone-level override failed: ${phone.error}. Account-level override failed: ${acct.error}` };
+      level = "account";
+      wabaId = waba.wabaId;
+    }
 
     await audit(actor, "whatsapp.webhook_override", "bk_settings", "messaging", {
-      waba_id: waba.wabaId,
+      level,
+      phone_number_id: env.phoneNumberId,
+      waba_id: wabaId,
       callback_url: callbackUrl,
       forward_url: env.forwardUrl,
       forward_senders: env.forwardSenders.length,
     });
     revalidateSetup();
-    return { ok: true, data: { callbackUrl, wabaId: waba.wabaId } };
+    return { ok: true, data: { callbackUrl, level } };
   });
 }
 

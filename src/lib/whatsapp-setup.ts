@@ -8,6 +8,7 @@ import {
   discoverWabaId,
   getAppSubscriptions,
   getPhoneNumber,
+  getPhoneWebhookConfig,
   getWabaSubscribedApps,
   listTemplates,
   type TokenInfo,
@@ -32,7 +33,8 @@ export async function loadWhatsAppSetup(
   const wabaId = discovery.wabaId;
   const appId = env.appId ?? token?.appId ?? null;
 
-  const [appsRes, appSubRes, templatesRes] = await Promise.all([
+  const [phoneHookRes, appsRes, appSubRes, templatesRes] = await Promise.all([
+    getPhoneWebhookConfig(env),
     wabaId ? getWabaSubscribedApps(wabaId, env) : Promise.resolve(null),
     appId && env.appSecret ? getAppSubscriptions(appId, env) : Promise.resolve(null),
     wabaId ? listTemplates(wabaId, Object.values(templateNames), env) : Promise.resolve(null),
@@ -40,8 +42,12 @@ export async function loadWhatsAppSetup(
 
   const apps = appsRes?.ok ? appsRes.data : [];
   const appCallback = appSubRes?.ok ? (appSubRes.data.find((s) => s.object === "whatsapp_business_account") ?? null) : null;
-  const overrideHere = apps.some((a) => a.overrideCallbackUri === callbackUrl);
-  const appLevelHere = !apps.some((a) => a.overrideCallbackUri) && appCallback?.callbackUrl === callbackUrl;
+  const phoneHook = phoneHookRes.ok ? phoneHookRes.data : null;
+  // Meta's precedence: phone override → account override → app callback.
+  const effective = phoneHook
+    ? (phoneHook.phoneNumber ?? phoneHook.whatsappBusinessAccount ?? phoneHook.application)
+    : (apps.find((a) => a.overrideCallbackUri)?.overrideCallbackUri ?? appCallback?.callbackUrl ?? null);
+  const pointsHere = effective === callbackUrl;
 
   const defs = metaTemplateDefinitions(templateNames);
   const found = templatesRes?.ok ? templatesRes.data : [];
@@ -96,7 +102,9 @@ export async function loadWhatsAppSetup(
       apps: apps.map((a) => ({ id: a.id, name: a.name, overrideCallbackUri: a.overrideCallbackUri })),
       appCallbackUrl: appCallback?.callbackUrl ?? null,
       appCallbackError: appSubRes && !appSubRes.ok ? appSubRes.error : null,
-      pointsHere: overrideHere || appLevelHere,
+      pointsHere,
+      phone: phoneHook,
+      phoneError: phoneHookRes.ok ? null : phoneHookRes.error,
     },
     templates: {
       ok: Boolean(templatesRes?.ok),

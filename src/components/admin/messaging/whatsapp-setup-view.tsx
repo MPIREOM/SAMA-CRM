@@ -64,9 +64,14 @@ const STR = {
   subscribedApps: { en: "Apps subscribed to this account", ar: "التطبيقات المشتركة في هذا الحساب" },
   register: { en: "Point this number's webhooks here", ar: "توجيه Webhooks هذا الرقم إلى هنا" },
   registerHint: {
-    en: "Sets a callback override on the WhatsApp Business Account only — the SAAS app's own dashboard configuration is left untouched. Meta verifies the URL immediately using the verify token.",
-    ar: "يضبط تجاوزاً للاستدعاء على حساب واتساب للأعمال فقط — دون تغيير إعدادات تطبيق SAAS في لوحته. تتحقق Meta من العنوان فوراً باستخدام رمز التحقق.",
+    en: "Sets an alternate callback on the business phone number itself (Meta's most specific override) — the SAAS app's dashboard configuration is left untouched. Meta verifies the URL immediately using the verify token.",
+    ar: "يضبط استدعاءً بديلاً على رقم الهاتف نفسه (أدق تجاوز لدى Meta) — دون تغيير إعدادات تطبيق SAAS في لوحته. تتحقق Meta من العنوان فوراً باستخدام رمز التحقق.",
   },
+  effective: { en: "Where Meta sends this number's webhooks", ar: "وجهة Webhooks هذا الرقم لدى Meta" },
+  levelPhone: { en: "phone number override", ar: "تجاوز على مستوى الرقم" },
+  levelAccount: { en: "account override", ar: "تجاوز على مستوى الحساب" },
+  levelApp: { en: "app callback", ar: "استدعاء التطبيق" },
+  none: { en: "none", ar: "لا يوجد" },
   registered: { en: "Webhooks now point at this app.", ar: "أصبحت الـ Webhooks موجهة إلى هذا التطبيق." },
   forward: { en: "Relay to the SAAS app", ar: "التمرير إلى تطبيق SAAS" },
   forwardOn: {
@@ -311,6 +316,26 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               {status.callbackUrl}
             </code>
           </div>
+          {status.webhook.phone ? (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.effective[lang]}</p>
+              <ul className="mt-1 space-y-0.5 text-xs" dir="ltr">
+                {(
+                  [
+                    ["levelPhone", status.webhook.phone.phoneNumber],
+                    ["levelAccount", status.webhook.phone.whatsappBusinessAccount],
+                    ["levelApp", status.webhook.phone.application],
+                  ] as const
+                ).map(([key, value]) => (
+                  <li key={key} className={value === status.callbackUrl ? "text-jabal-700" : "text-maroon-700"}>
+                    <span className="text-maroon-400">{STR[key][lang]}:</span> {value ? <code className="break-all">{value}</code> : <span className="text-maroon-400">{STR.none[lang]}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            status.webhook.phoneError && <p className="text-xs text-crimson-700">{status.webhook.phoneError}</p>
+          )}
           {status.webhook.appCallbackUrl && (
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.appCallback[lang]}</p>

@@ -302,6 +302,64 @@ export async function setWabaWebhookOverride(
   return { ok: true, data: { success: Boolean(r.data.success) } };
 }
 
+/**
+ * Effective webhook targets for the business phone number, from Meta's
+ * `webhook_configuration` field: phone-level override → WABA-level override →
+ * the app's callback. Meta uses the most specific one that is set.
+ */
+export interface PhoneWebhookConfig {
+  phoneNumber: string | null;
+  whatsappBusinessAccount: string | null;
+  application: string | null;
+}
+
+export async function getPhoneWebhookConfig(env: WhatsAppEnv = whatsappEnv()): Promise<GraphResult<PhoneWebhookConfig>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  if (!env.phoneNumberId) {
+    return { ok: false, error: "WHATSAPP_PHONE_NUMBER_ID is not set", code: null, subcode: null, status: null };
+  }
+  const r = await graph<{
+    webhook_configuration?: { phone_number?: string; whatsapp_business_account?: string; application?: string };
+  }>(env.phoneNumberId, { token: env.accessToken!, query: { fields: "webhook_configuration" } });
+  if (!r.ok) return r;
+  const c = r.data.webhook_configuration ?? {};
+  return {
+    ok: true,
+    data: {
+      phoneNumber: c.phone_number ?? null,
+      whatsappBusinessAccount: c.whatsapp_business_account ?? null,
+      application: c.application ?? null,
+    },
+  };
+}
+
+/**
+ * Point this phone number's webhooks at `callbackUri` (phone-level override —
+ * needs only the phone number id, not the account id). Meta verifies the URL
+ * synchronously with the verify token. An empty `callbackUri` removes the override.
+ */
+export async function setPhoneWebhookOverride(
+  callbackUri: string,
+  verifyToken: string,
+  env: WhatsAppEnv = whatsappEnv()
+): Promise<GraphResult<{ success: boolean }>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  if (!env.phoneNumberId) {
+    return { ok: false, error: "WHATSAPP_PHONE_NUMBER_ID is not set", code: null, subcode: null, status: null };
+  }
+  const r = await graph<{ success?: boolean }>(env.phoneNumberId, {
+    token: env.accessToken!,
+    method: "POST",
+    json: {
+      webhook_configuration: callbackUri ? { override_callback_uri: callbackUri, verify_token: verifyToken } : { override_callback_uri: "" },
+    },
+  });
+  if (!r.ok) return r;
+  return { ok: true, data: { success: Boolean(r.data.success) } };
+}
+
 export interface AppSubscription {
   object: string | null;
   callbackUrl: string | null;
