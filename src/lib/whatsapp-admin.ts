@@ -1,6 +1,7 @@
 import "server-only";
 
 import { whatsappEnv, type WhatsAppEnv } from "./whatsapp-env";
+import type { MetaComponent, MetaTemplateSummary } from "./messaging/meta-template-model";
 
 // Meta Graph API *management* calls used by the back-office WhatsApp setup
 // page: token inspection, phone number info, WABA discovery, webhook
@@ -469,4 +470,162 @@ export async function createTemplate(
   });
   if (!r.ok) return r;
   return { ok: true, data: { id: r.data.id ?? null, status: r.data.status ?? null, category: r.data.category ?? null } };
+}
+
+// ---------------------------------------------------------------------------
+// Template management (Templates page + campaigns)
+// ---------------------------------------------------------------------------
+
+const TEMPLATE_FIELDS = "id,name,language,status,category,components,rejected_reason,quality_score";
+
+interface RawTemplate {
+  id?: string;
+  name?: string;
+  language?: string;
+  status?: string;
+  category?: string;
+  components?: MetaComponent[];
+  rejected_reason?: string;
+  quality_score?: { score?: string };
+}
+
+function toSummary(t: RawTemplate): MetaTemplateSummary {
+  return {
+    id: String(t.id ?? ""),
+    name: t.name ?? "",
+    language: t.language ?? "",
+    status: t.status ?? "UNKNOWN",
+    category: t.category ?? null,
+    rejectedReason: t.rejected_reason && t.rejected_reason !== "NONE" ? t.rejected_reason : null,
+    qualityScore: t.quality_score?.score && t.quality_score.score !== "UNKNOWN" ? t.quality_score.score : null,
+    components: t.components ?? [],
+  };
+}
+
+/** Every template on the account (all languages, all statuses), newest first as Meta returns them. */
+export async function listAllTemplates(wabaId: string, env: WhatsAppEnv = whatsappEnv()): Promise<GraphResult<MetaTemplateSummary[]>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const out: MetaTemplateSummary[] = [];
+  let after: string | undefined;
+  for (let page = 0; page < 20; page++) {
+    const r = await graph<{ data?: RawTemplate[]; paging?: { cursors?: { after?: string }; next?: string } }>(`${wabaId}/message_templates`, {
+      token: env.accessToken!,
+      query: { fields: TEMPLATE_FIELDS, limit: "100", ...(after ? { after } : {}) },
+    });
+    if (!r.ok) return r;
+    for (const t of r.data.data ?? []) out.push(toSummary(t));
+    if (!r.data.paging?.next || !r.data.paging.cursors?.after) break;
+    after = r.data.paging.cursors.after;
+  }
+  return { ok: true, data: out };
+}
+
+export async function getTemplate(templateId: string, env: WhatsAppEnv = whatsappEnv()): Promise<GraphResult<MetaTemplateSummary>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const r = await graph<RawTemplate>(templateId, { token: env.accessToken!, query: { fields: TEMPLATE_FIELDS } });
+  if (!r.ok) return r;
+  return { ok: true, data: toSummary(r.data) };
+}
+
+export interface TemplateSubmitInput {
+  name: string;
+  language: string;
+  category: "MARKETING" | "UTILITY" | "AUTHENTICATION";
+  components: MetaComponent[];
+}
+
+/** Create a template from ready-made components. `allow_category_change` lets Meta re-categorise instead of rejecting. */
+export async function createTemplateFromComponents(
+  wabaId: string,
+  input: TemplateSubmitInput,
+  env: WhatsAppEnv = whatsappEnv()
+): Promise<GraphResult<{ id: string | null; status: string | null; category: string | null }>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const r = await graph<{ id?: string; status?: string; category?: string }>(`${wabaId}/message_templates`, {
+    token: env.accessToken!,
+    method: "POST",
+    json: { name: input.name, language: input.language, category: input.category, allow_category_change: true, components: input.components },
+  });
+  if (!r.ok) return r;
+  return { ok: true, data: { id: r.data.id ?? null, status: r.data.status ?? null, category: r.data.category ?? null } };
+}
+
+/** Replace a template's components (allowed for APPROVED / REJECTED / PAUSED; approved ones ≤ 10 edits per 30 days). */
+export async function updateTemplateComponents(
+  templateId: string,
+  components: MetaComponent[],
+  env: WhatsAppEnv = whatsappEnv()
+): Promise<GraphResult<{ success: boolean }>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const r = await graph<{ success?: boolean }>(templateId, { token: env.accessToken!, method: "POST", json: { components } });
+  if (!r.ok) return r;
+  return { ok: true, data: { success: Boolean(r.data.success) } };
+}
+
+/** Delete one language variant (with `hsmId`) or every variant of a name. Deleted names are blocked for 30 days. */
+export async function deleteTemplate(
+  wabaId: string,
+  name: string,
+  hsmId: string | null,
+  env: WhatsAppEnv = whatsappEnv()
+): Promise<GraphResult<{ success: boolean }>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const url = new URL(`${GRAPH}/${wabaId}/message_templates`);
+  url.searchParams.set("name", name);
+  if (hsmId) url.searchParams.set("hsm_id", hsmId);
+  try {
+    const res = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${env.accessToken}` }, cache: "no-store" });
+    const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: { message?: string; code?: number; error_subcode?: number } };
+    if (!res.ok || data.error) {
+      const e = data.error;
+      return { ok: false, error: e?.code ? `(#${e.code}) ${e.message}` : (e?.message ?? `Meta API error (HTTP ${res.status})`), code: e?.code ?? null, subcode: e?.error_subcode ?? null, status: res.status };
+    }
+    return { ok: true, data: { success: Boolean(data.success) } };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message, code: null, subcode: null, status: null };
+  }
+}
+
+/**
+ * Meta's Resumable Upload API: turn a file into the handle a media header
+ * needs at template creation. Two calls: open a session on the app, then send
+ * the bytes. Needs the Meta app id (WHATSAPP_APP_ID, the saved app id, or the
+ * token's app).
+ */
+export async function uploadMediaHandle(
+  appId: string,
+  file: { name: string; type: string; bytes: ArrayBuffer },
+  env: WhatsAppEnv = whatsappEnv()
+): Promise<GraphResult<{ handle: string }>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const session = await graph<{ id?: string }>(`${appId}/uploads`, {
+    token: env.accessToken!,
+    method: "POST",
+    query: { file_name: file.name, file_length: String(file.bytes.byteLength), file_type: file.type },
+  });
+  if (!session.ok) return session;
+  const sessionId = session.data.id;
+  if (!sessionId) return { ok: false, error: "Meta did not return an upload session id", code: null, subcode: null, status: null };
+  try {
+    const res = await fetch(`${GRAPH}/${sessionId}`, {
+      method: "POST",
+      headers: { Authorization: `OAuth ${env.accessToken}`, file_offset: "0", "Content-Type": "application/octet-stream" },
+      body: file.bytes,
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as { h?: string; error?: { message?: string; code?: number; error_subcode?: number } };
+    if (!res.ok || data.error || !data.h) {
+      const e = data.error;
+      return { ok: false, error: e?.code ? `(#${e.code}) ${e.message}` : (e?.message ?? `Upload failed (HTTP ${res.status})`), code: e?.code ?? null, subcode: e?.error_subcode ?? null, status: res.status };
+    }
+    return { ok: true, data: { handle: data.h } };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message, code: null, subcode: null, status: null };
+  }
 }

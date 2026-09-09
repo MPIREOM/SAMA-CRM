@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
+import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveAppId, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
 import { InlineAlert } from "../load-error";
 import { kindLabel } from "../shared";
 import type { TemplateCreateOutcome, WhatsAppSetupStatus } from "./whatsapp-setup-types";
@@ -59,6 +59,12 @@ const STR = {
   wabaSaved: { en: "Account id saved.", ar: "تم حفظ معرّف الحساب." },
   discovery: { en: "discovery", ar: "الاكتشاف" },
   appId: { en: "Meta app", ar: "تطبيق Meta" },
+  appIdInput: { en: "Meta app ID", ar: "معرّف تطبيق Meta" },
+  appIdHint: {
+    en: "Needed to upload the sample image, video or PDF of a template header (Templates page). Only needed when the line above says unknown: Meta for Developers shows the app id at the top of the app dashboard. Saved here, no redeploy needed.",
+    ar: "مطلوب لرفع عيّنة الصورة أو الفيديو أو ملف PDF لترويسة القالب (صفحة القوالب). لا حاجة له إلا إذا ظهر «غير معروف»: يظهر معرّف التطبيق أعلى لوحة التطبيق في Meta for Developers. يُحفظ هنا دون إعادة نشر.",
+  },
+  appIdSaved: { en: "App id saved.", ar: "تم حفظ معرّف التطبيق." },
   unknown: { en: "unknown", ar: "غير معروف" },
   callback: { en: "This deployment's callback URL", ar: "عنوان الاستدعاء لهذا النشر" },
   pointsHere: { en: "Webhooks point here", ar: "الـ Webhooks موجهة إلى هنا" },
@@ -145,6 +151,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
   const [notice, setNotice] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<TemplateCreateOutcome[]>([]);
   const [wabaInput, setWabaInput] = useState(status.storedWabaId);
+  const [appIdInput, setAppIdInput] = useState(status.storedAppId);
 
   const env = status.env;
   const canRegister = env.accessToken && env.verifyToken && env.appSecret && Boolean(env.forwardUrl) && !pending;
@@ -305,6 +312,31 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               <dt className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.appId[lang]}</dt>
               <dd className="mt-1 text-maroon-800" dir="ltr">
                 {status.token.appId ?? <span className="text-maroon-400">{STR.unknown[lang]}</span>}
+              </dd>
+              <dd className="mt-2">
+                <label htmlFor="app-id" className="block text-xs font-semibold text-maroon-600">
+                  {STR.appIdInput[lang]}
+                </label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    id="app-id"
+                    dir="ltr"
+                    inputMode="numeric"
+                    placeholder="1234567890123456"
+                    value={appIdInput}
+                    onChange={(e) => setAppIdInput(e.target.value)}
+                    className="h-9 w-56 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pending || appIdInput.trim() === status.storedAppId}
+                    onClick={() => run(() => saveAppId({ id: appIdInput }), STR.appIdSaved[lang])}
+                  >
+                    {STR.save[lang]}
+                  </Button>
+                </div>
+                <p className="mt-1 max-w-md text-xs text-maroon-400">{STR.appIdHint[lang]}</p>
               </dd>
             </div>
           </dl>

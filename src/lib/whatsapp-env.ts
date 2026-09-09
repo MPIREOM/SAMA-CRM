@@ -75,6 +75,13 @@ export function withStoredBusinessAccountId(env: WhatsAppEnv, stored: string | n
   return id.length >= 6 ? { ...env, businessAccountId: id } : env;
 }
 
+/** Same idea for the Meta app id (media uploads for template headers). */
+export function withStoredAppId(env: WhatsAppEnv, stored: string | null | undefined): WhatsAppEnv {
+  if (env.appId) return env;
+  const id = (stored ?? "").replace(/\D/g, "");
+  return id.length >= 6 ? { ...env, appId: id } : env;
+}
+
 /** Public base URL of this deployment (no trailing slash). */
 export function appBaseUrl(): string {
   const raw = clean(process.env.NEXT_PUBLIC_APP_URL) ?? "https://sama-crm.vercel.app";

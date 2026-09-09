@@ -779,6 +779,9 @@ export type Database = {
           segment: string | null
           sent: number | null
           status: string | null
+          wa_template_language: string | null
+          wa_template_name: string | null
+          wa_template_params: Json | null
         }
         Insert: {
           body?: string | null
@@ -793,6 +796,9 @@ export type Database = {
           segment?: string | null
           sent?: number | null
           status?: string | null
+          wa_template_language?: string | null
+          wa_template_name?: string | null
+          wa_template_params?: Json | null
         }
         Update: {
           body?: string | null
@@ -807,6 +813,9 @@ export type Database = {
           segment?: string | null
           sent?: number | null
           status?: string | null
+          wa_template_language?: string | null
+          wa_template_name?: string | null
+          wa_template_params?: Json | null
         }
         Relationships: []
       }

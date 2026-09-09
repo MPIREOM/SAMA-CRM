@@ -7,6 +7,15 @@ import { sendToContact, type SendOutcome } from "@/lib/send-service";
 // composer uses for its live count, so preview and send can never diverge.
 import { campaignFilter, expandMarkets } from "@/components/campaigns/recipients";
 import type { Contact } from "@/lib/database.types";
+import { resolveTemplateEnv } from "@/lib/whatsapp-templates";
+import { listAllTemplates } from "@/lib/whatsapp-admin";
+import {
+  buildSendComponents,
+  pickTemplateLanguage,
+  renderTemplateText,
+  type MetaTemplateSummary,
+  type TemplateParamPlan,
+} from "@/lib/messaging/meta-template-model";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -20,7 +29,7 @@ const STALE_CLAIM_MS = 5 * 60 * 1000;
 
 type Recipient = Pick<
   Contact,
-  "id" | "phone" | "email" | "name" | "market" | "consent" | "last_inbound_at"
+  "id" | "phone" | "email" | "name" | "market" | "consent" | "last_inbound_at" | "lang" | "room_type"
 >;
 
 export async function POST(req: Request) {
@@ -97,6 +106,22 @@ export async function POST(req: Request) {
     let failed = 0;
 
     try {
+      // Template campaigns: load the approved language variants once. A
+      // campaign whose template is not approved (yet) fails fast instead of
+      // burning through the recipient list. Inside the try so a Meta/DB
+      // failure marks the campaign failed instead of leaving it "sending".
+      let variants: MetaTemplateSummary[] = [];
+      const plan = (campaign.wa_template_params ?? null) as TemplateParamPlan | null;
+      if (campaign.wa_template_name) {
+        const t = await resolveTemplateEnv();
+        const listed = t.wabaId ? await listAllTemplates(t.wabaId, t.env) : null;
+        variants = listed?.ok ? listed.data.filter((v) => v.name === campaign.wa_template_name && v.status === "APPROVED") : [];
+        if (variants.length === 0 || !plan) {
+          await admin.from("campaigns").update({ status: "failed", scheduled_for: null }).eq("id", campaign.id);
+          return NextResponse.json({ error: "template_not_approved" }, { status: 409 });
+        }
+      }
+
       // --- Select recipients per the shared RECIPIENT RULES ------------------
       const filter = campaignFilter(campaign);
       const channel = filter.channel;
@@ -106,7 +131,7 @@ export async function POST(req: Request) {
       if (markets === null || markets.length > 0) {
         let query = admin
           .from("contacts")
-          .select("id,phone,email,name,market,consent,last_inbound_at")
+          .select("id,phone,email,name,market,consent,last_inbound_at,lang,room_type")
           .eq("consent", true);
         if (filter.segment !== "All")
           query = query.contains("tags", [filter.segment]);
@@ -142,6 +167,19 @@ export async function POST(req: Request) {
         const outcomes: SendOutcome[] = await Promise.all(
           chunk.map(async (contact) => {
             try {
+              if (campaign.wa_template_name && plan) {
+                const variant = pickTemplateLanguage(variants, contact.lang);
+                if (!variant) return { sent: false, skipped: false, reason: "template_not_approved" };
+                const guest = { name: contact.name, room_type: contact.room_type, terms_link: termsLink };
+                return await sendToContact({
+                  contact,
+                  channel,
+                  msgType: "marketing",
+                  body: renderTemplateText(variant, plan, guest),
+                  campaignId: campaign.id,
+                  template: { name: variant.name, language: variant.language, components: buildSendComponents(variant, plan, guest) },
+                });
+              }
               const body = renderTemplate(campaign.body ?? "", {
                 name: contact.name,
                 terms_link: termsLink,
