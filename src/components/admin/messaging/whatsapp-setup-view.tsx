@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { adoptPublicNumber, createMissingTemplates, registerWebhook } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
+import { Input } from "@/components/ui/input";
+import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
 import { InlineAlert } from "../load-error";
 import { kindLabel } from "../shared";
 import type { TemplateCreateOutcome, WhatsAppSetupStatus } from "./whatsapp-setup-types";
@@ -44,6 +45,14 @@ const STR = {
   verifiedName: { en: "display name", ar: "الاسم الظاهر" },
   quality: { en: "quality", ar: "الجودة" },
   waba: { en: "WhatsApp Business Account", ar: "حساب واتساب للأعمال" },
+  wabaInput: { en: "WhatsApp Business Account ID", ar: "معرّف حساب واتساب للأعمال" },
+  wabaHint: {
+    en: "Only needed if it could not be discovered from the token. Meta for Developers → your app → WhatsApp → API Setup shows it next to the phone number id; WhatsApp Manager → Account tools shows it too. Saved here, no redeploy needed.",
+    ar: "مطلوب فقط إذا تعذّر اكتشافه من الرمز. يظهر في Meta for Developers → التطبيق → WhatsApp → API Setup بجانب معرّف رقم الهاتف، وكذلك في WhatsApp Manager → Account tools. يُحفظ هنا دون إعادة نشر.",
+  },
+  save: { en: "Save", ar: "حفظ" },
+  wabaSaved: { en: "Account id saved.", ar: "تم حفظ معرّف الحساب." },
+  discovery: { en: "discovery", ar: "الاكتشاف" },
   appId: { en: "Meta app", ar: "تطبيق Meta" },
   unknown: { en: "unknown", ar: "غير معروف" },
   callback: { en: "This deployment's callback URL", ar: "عنوان الاستدعاء لهذا النشر" },
@@ -125,6 +134,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<TemplateCreateOutcome[]>([]);
+  const [wabaInput, setWabaInput] = useState(status.storedWabaId);
 
   const env = status.env;
   const canRegister = env.accessToken && env.verifyToken && env.appSecret && Boolean(env.forwardUrl) && !pending;
@@ -246,6 +256,36 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               <dt className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.waba[lang]}</dt>
               <dd className="mt-1 text-maroon-800" dir="ltr">
                 {status.wabaId ?? <span className="text-crimson-700">{STR.unknown[lang]}</span>}
+              </dd>
+              {!status.wabaId && status.wabaNotes.length > 0 && (
+                <dd className="mt-1 text-xs text-maroon-400" dir="ltr">
+                  {STR.discovery[lang]}: {status.wabaNotes.join(" · ")}
+                </dd>
+              )}
+              <dd className="mt-2">
+                <label htmlFor="waba-id" className="block text-xs font-semibold text-maroon-600">
+                  {STR.wabaInput[lang]}
+                </label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    id="waba-id"
+                    dir="ltr"
+                    inputMode="numeric"
+                    placeholder="1234567890123456"
+                    value={wabaInput}
+                    onChange={(e) => setWabaInput(e.target.value)}
+                    className="h-9 w-56 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pending || wabaInput.trim() === status.storedWabaId}
+                    onClick={() => run(() => saveBusinessAccountId({ id: wabaInput }), STR.wabaSaved[lang])}
+                  >
+                    {STR.save[lang]}
+                  </Button>
+                </div>
+                <p className="mt-1 max-w-md text-xs text-maroon-400">{STR.wabaHint[lang]}</p>
               </dd>
             </div>
             <div>

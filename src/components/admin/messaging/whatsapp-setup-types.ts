@@ -34,6 +34,10 @@ export interface WhatsAppSetupStatus {
     codeVerificationStatus: string | null;
   };
   wabaId: string | null;
+  /** Where the account id came from / why it could not be found. */
+  wabaNotes: string[];
+  /** Account id saved from the setup page (settings), if any. */
+  storedWabaId: string;
   webhook: {
     ok: boolean;
     error: string | null;

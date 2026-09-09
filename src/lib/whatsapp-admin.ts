@@ -155,22 +155,104 @@ export async function getPhoneNumber(env: WhatsAppEnv = whatsappEnv()): Promise<
   };
 }
 
+export interface WabaDiscovery {
+  /** The WABA that owns the configured phone number, when it could be determined. */
+  wabaId: string | null;
+  /** Every WABA id seen on the way (for the setup page). */
+  candidates: string[];
+  /** One line per source tried — shown when discovery fails so the admin knows why. */
+  notes: string[];
+}
+
 /**
- * The WhatsApp Business Account that owns our phone number: the env var when
- * set, otherwise the token's granted WABAs, checked for the phone number id.
+ * Find the WhatsApp Business Account that owns our phone number. Sources, in
+ * order: WHATSAPP_BUSINESS_ACCOUNT_ID (or the id saved on the setup page),
+ * the token's granular scopes, the same lookup through the app access token,
+ * and the business portfolios the token can list. Every candidate is checked
+ * against the phone number id; a single unverifiable candidate is accepted.
  */
-export async function resolveWabaId(env: WhatsAppEnv = whatsappEnv(), token?: TokenInfo | null): Promise<string | null> {
-  if (env.businessAccountId) return env.businessAccountId;
-  if (!env.accessToken) return null;
-  const candidates = token?.wabaIds ?? [];
-  for (const waba of candidates) {
+export async function discoverWabaId(env: WhatsAppEnv = whatsappEnv(), token?: TokenInfo | null): Promise<WabaDiscovery> {
+  const notes: string[] = [];
+  if (env.businessAccountId) {
+    return { wabaId: env.businessAccountId, candidates: [env.businessAccountId], notes: ["configured id"] };
+  }
+  if (!env.accessToken) return { wabaId: null, candidates: [], notes: ["no access token"] };
+
+  const candidates = new Set<string>();
+
+  // a) granular scopes of the token itself
+  if (token) {
+    for (const id of token.wabaIds) candidates.add(id);
+    notes.push(`token scopes: ${token.wabaIds.length} account(s)`);
+  } else {
+    notes.push("token could not be inspected");
+  }
+
+  // b) the same inspection through the app access token (the documented way)
+  const appId = env.appId ?? token?.appId ?? null;
+  if (appId && env.appSecret) {
+    const r = await graph<{ data?: { granular_scopes?: { scope?: string; target_ids?: string[] }[] } }>("debug_token", {
+      token: `${appId}|${env.appSecret}`,
+      query: { input_token: env.accessToken },
+    });
+    if (r.ok) {
+      let n = 0;
+      for (const g of r.data.data?.granular_scopes ?? []) {
+        if (g.scope === "whatsapp_business_management" || g.scope === "whatsapp_business_messaging") {
+          for (const id of g.target_ids ?? []) {
+            candidates.add(String(id));
+            n++;
+          }
+        }
+      }
+      notes.push(`app inspection: ${n} account(s)`);
+    } else {
+      notes.push(`app inspection failed: ${r.error}`);
+    }
+  } else {
+    notes.push(appId ? "app inspection skipped: WHATSAPP_APP_SECRET missing" : "app inspection skipped: app id unknown");
+  }
+
+  // c) business portfolios the token can see → their owned / shared accounts
+  const biz = await graph<{ data?: { id?: string }[] }>("me/businesses", { token: env.accessToken, query: { fields: "id", limit: "50" } });
+  if (biz.ok) {
+    let n = 0;
+    for (const b of biz.data.data ?? []) {
+      if (!b.id) continue;
+      for (const edge of ["owned_whatsapp_business_accounts", "client_whatsapp_business_accounts"]) {
+        const r = await graph<{ data?: { id?: string }[] }>(`${b.id}/${edge}`, { token: env.accessToken, query: { fields: "id", limit: "100" } });
+        if (!r.ok) continue;
+        for (const w of r.data.data ?? []) {
+          if (w.id) {
+            candidates.add(String(w.id));
+            n++;
+          }
+        }
+      }
+    }
+    notes.push(`business portfolios: ${(biz.data.data ?? []).length}, ${n} account(s)`);
+  } else {
+    notes.push(`business portfolios: ${biz.error}`);
+  }
+
+  const list = Array.from(candidates);
+  for (const waba of list) {
     const r = await graph<{ data?: { id?: string }[] }>(`${waba}/phone_numbers`, {
       token: env.accessToken,
       query: { fields: "id", limit: "100" },
     });
-    if (r.ok && (r.data.data ?? []).some((p) => String(p.id) === env.phoneNumberId)) return waba;
+    if (r.ok && (r.data.data ?? []).some((p) => String(p.id) === env.phoneNumberId)) {
+      return { wabaId: waba, candidates: list, notes: [...notes, `${waba} owns the phone number`] };
+    }
   }
-  return candidates.length === 1 ? candidates[0] : null;
+  if (list.length === 1) return { wabaId: list[0], candidates: list, notes: [...notes, "single candidate accepted"] };
+  notes.push(list.length === 0 ? "no account found" : `${list.length} candidates, none lists the phone number`);
+  return { wabaId: null, candidates: list, notes };
+}
+
+/** Convenience wrapper: just the id. */
+export async function resolveWabaId(env: WhatsAppEnv = whatsappEnv(), token?: TokenInfo | null): Promise<string | null> {
+  return (await discoverWabaId(env, token)).wabaId;
 }
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@ export default async function WhatsAppSetupPage() {
 
   try {
     const settings = await getSettings();
-    const status = await loadWhatsAppSetup(settings.messaging.whatsapp_templates);
+    const status = await loadWhatsAppSetup(settings.messaging.whatsapp_templates, settings.messaging.whatsapp_business_account_id);
     return (
       <WhatsAppSetupView
         status={status}

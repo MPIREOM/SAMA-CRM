@@ -1,19 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { ADMIN_ROLES, requireStaff } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import { getSettings, updateSetting } from "@/lib/bk/settings";
 import { normalizePhone } from "@/lib/phone";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
-import { whatsappEnv, webhookCallbackUrl, type WhatsAppEnv } from "@/lib/whatsapp-env";
+import { whatsappEnv, webhookCallbackUrl, withStoredBusinessAccountId, type WhatsAppEnv } from "@/lib/whatsapp-env";
 import {
   createTemplate,
   debugToken,
+  discoverWabaId,
   getPhoneNumber,
   listTemplates,
-  resolveWabaId,
   setWabaWebhookOverride,
 } from "@/lib/whatsapp-admin";
 import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
@@ -28,24 +29,47 @@ function revalidateSetup() {
   revalidatePath("/messaging");
 }
 
+/** Environment plus the account id saved on the setup page (no redeploy needed). */
+async function envWithStoredWaba(): Promise<WhatsAppEnv> {
+  const settings = await getSettings();
+  return withStoredBusinessAccountId(whatsappEnv(), settings.messaging.whatsapp_business_account_id);
+}
+
 async function wabaIdOrError(env: WhatsAppEnv): Promise<{ wabaId: string } | { error: string }> {
   if (!env.accessToken) return { error: "WHATSAPP_ACCESS_TOKEN is not set in Vercel." };
   const token = await debugToken(env);
-  const wabaId = await resolveWabaId(env, token.ok ? token.data : null);
-  if (!wabaId) {
+  const found = await discoverWabaId(env, token.ok ? token.data : null);
+  if (!found.wabaId) {
     return {
       error:
-        "Could not determine the WhatsApp Business Account id from the token. Set WHATSAPP_BUSINESS_ACCOUNT_ID in Vercel (Meta → WhatsApp → API Setup) and redeploy.",
+        "Could not determine the WhatsApp Business Account id from the token. Paste it into the “WhatsApp Business Account ID” field on this page (Meta → WhatsApp → API Setup shows it next to the phone number id) and save. " +
+        `Discovery: ${found.notes.join("; ")}.`,
     };
   }
-  return { wabaId };
+  return { wabaId: found.wabaId };
+}
+
+const WabaSchema = z.object({ id: z.string().trim().max(40) });
+
+/** Save the WhatsApp Business Account id from the setup page. Empty clears it. */
+export async function saveBusinessAccountId(input: unknown): Promise<ActionResult<{ id: string }>> {
+  return runAction<{ id: string }>("whatsapp.waba_id", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const raw = WabaSchema.parse(input).id;
+    const id = raw.replace(/\D/g, "");
+    if (raw && id.length < 6) return { ok: false, error: "The WhatsApp Business Account id is a number of at least 6 digits." };
+    await updateSetting("messaging", { whatsapp_business_account_id: id }, actor.userId);
+    await audit(actor, "settings.update", "bk_settings", "messaging", { whatsapp_business_account_id: id });
+    revalidateSetup();
+    return { ok: true, data: { id } };
+  });
 }
 
 /** Point this WhatsApp Business Account's webhooks at this deployment (WABA-level override). */
 export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: string; wabaId: string }>> {
   return runAction<{ callbackUrl: string; wabaId: string }>("whatsapp.webhook", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
-    const env = whatsappEnv();
+    const env = await envWithStoredWaba();
     if (!env.verifyToken) {
       return { ok: false, error: "WHATSAPP_VERIFY_TOKEN (or WHATSAPP_WEBHOOK_VERIFY_TOKEN) is not set in Vercel." };
     }
@@ -74,7 +98,7 @@ export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: str
 export async function createMissingTemplates(): Promise<ActionResult<{ results: TemplateCreateOutcome[] }>> {
   return runAction<{ results: TemplateCreateOutcome[] }>("whatsapp.templates", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
-    const env = whatsappEnv();
+    const env = await envWithStoredWaba();
     const waba = await wabaIdOrError(env);
     if ("error" in waba) return { ok: false, error: waba.error };
 
