@@ -2,6 +2,8 @@ import "server-only";
 
 import type { MessageKind } from "@/lib/messaging/types";
 import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
+import { updateSetting } from "@/lib/bk/settings";
+import { logger } from "@/lib/logger";
 import { whatsappEnv, webhookCallbackUrl, withStoredBusinessAccountId } from "./whatsapp-env";
 import {
   debugToken,
@@ -31,6 +33,16 @@ export async function loadWhatsAppSetup(
   const token: TokenInfo | null = tokenRes.ok ? tokenRes.data : null;
   const discovery = await discoverWabaId(env, token);
   const wabaId = discovery.wabaId;
+  // Remember a discovered id so the template step and the webhook fallback
+  // no longer depend on the token answering the same way next time.
+  if (wabaId && !env.businessAccountId && !storedWabaId) {
+    try {
+      await updateSetting("messaging", { whatsapp_business_account_id: wabaId }, null);
+      storedWabaId = wabaId;
+    } catch (e) {
+      logger.warn("whatsapp.setup", "could not store the discovered account id", { error: (e as Error).message });
+    }
+  }
   const appId = env.appId ?? token?.appId ?? null;
 
   const [phoneHookRes, appsRes, appSubRes, templatesRes] = await Promise.all([
