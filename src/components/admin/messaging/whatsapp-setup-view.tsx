@@ -31,6 +31,11 @@ const STR = {
   step5: { en: "5 · Test", ar: "5 · اختبار" },
   present: { en: "set", ar: "مضبوط" },
   missing: { en: "missing", ar: "غير مضبوط" },
+  optionalUnset: { en: "not set (optional)", ar: "غير مضبوط (اختياري)" },
+  sendToLearn: {
+    en: "Not known yet. Send any WhatsApp message to the hotel number from your phone: the first webhook Meta delivers carries the account id and it is saved automatically. Or paste it below.",
+    ar: "غير معروف بعد. أرسلوا أي رسالة واتساب إلى رقم الفندق من هاتفكم: أول Webhook تسلّمه Meta يحمل معرّف الحساب ويُحفظ تلقائياً. أو ألصقوه أدناه.",
+  },
   envHint: {
     en: "Values are read from Vercel → Project → Settings → Environment Variables (Production) and take effect after a redeploy. Copy them from the SAAS project; the verify token may keep its SAAS name.",
     ar: "تُقرأ القيم من Vercel → المشروع → Settings → Environment Variables (Production) وتسري بعد إعادة النشر. انسخوها من مشروع SAAS؛ يمكن الإبقاء على اسم رمز التحقق كما هو في SAAS.",
@@ -174,12 +179,12 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
     });
   }
 
-  const EnvRow = ({ label, ok }: { label: string; ok: boolean }) => (
+  const EnvRow = ({ label, ok, optional }: { label: string; ok: boolean; optional?: boolean }) => (
     <div className="flex items-center justify-between gap-3 py-1.5 text-sm">
       <code className="text-xs text-maroon-700" dir="ltr">
         {label}
       </code>
-      <Badge variant={ok ? "green" : "red"}>{ok ? STR.present[lang] : STR.missing[lang]}</Badge>
+      <Badge variant={ok ? "green" : optional ? "gray" : "red"}>{ok ? STR.present[lang] : optional ? STR.optionalUnset[lang] : STR.missing[lang]}</Badge>
     </div>
   );
 
@@ -218,7 +223,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
             <EnvRow label="WHATSAPP_PHONE_NUMBER_ID" ok={env.phoneNumberId} />
             <EnvRow label="WHATSAPP_APP_SECRET" ok={env.appSecret} />
             <EnvRow label="WHATSAPP_VERIFY_TOKEN / WHATSAPP_WEBHOOK_VERIFY_TOKEN" ok={env.verifyToken} />
-            <EnvRow label="WHATSAPP_BUSINESS_ACCOUNT_ID (optional)" ok={env.businessAccountId} />
+            <EnvRow label="WHATSAPP_BUSINESS_ACCOUNT_ID" ok={env.businessAccountId} optional />
             <p className="mt-3 text-xs text-maroon-400">{STR.envHint[lang]}</p>
           </div>
           <dl className="space-y-3 text-sm">
@@ -262,6 +267,9 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               <dd className="mt-1 text-maroon-800" dir="ltr">
                 {status.wabaId ?? <span className="text-crimson-700">{STR.unknown[lang]}</span>}
               </dd>
+              {!status.wabaId && (
+                <dd className="mt-1 max-w-md text-xs text-maroon-600">{STR.sendToLearn[lang]}</dd>
+              )}
               {!status.wabaId && status.wabaNotes.length > 0 && (
                 <dd className="mt-1 text-xs text-maroon-400" dir="ltr">
                   {STR.discovery[lang]}: {status.wabaNotes.join(" · ")}
