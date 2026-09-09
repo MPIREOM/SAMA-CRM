@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Info,
+  LayoutTemplate,
   Loader2,
   Save,
   Send,
@@ -12,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/database.types";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,17 @@ import {
   WHATSAPP_MARKET_OPTIONS,
   type CampaignChannel,
 } from "@/components/campaigns/recipients";
+import {
+  TemplateCampaignFields,
+  type TemplateSelection,
+} from "@/components/campaigns/template-campaign-fields";
+import { listMetaTemplates } from "@/app/(crm)/(app)/templates/actions";
+import {
+  planIssues,
+  renderTemplateText,
+  templateShape,
+  type MetaTemplateSummary,
+} from "@/lib/messaging/meta-template-model";
 
 const STR = {
   title: { en: "New campaign", ar: "حملة جديدة" },
@@ -48,6 +61,20 @@ const STR = {
     en: "WhatsApp marketing is limited to Oman & GCC by policy — International contacts are always excluded.",
     ar: "التسويق عبر واتساب مقصور على عُمان ودول الخليج بموجب السياسة — يتم استبعاد جهات الاتصال الدولية دائمًا.",
   },
+  messageType: { en: "Message type", ar: "نوع الرسالة" },
+  typeTemplate: { en: "Approved template (recommended)", ar: "قالب معتمد (مستحسن)" },
+  typeText: { en: "Free text", ar: "نص حر" },
+  templateHint: {
+    en: "Meta only delivers marketing to guests who have not written in the last 24 hours when it is an approved template. Create and submit templates under Templates; approved ones appear here.",
+    ar: "لا تسلّم Meta الرسائل التسويقية للنزلاء الذين لم يراسلوا خلال آخر 24 ساعة إلا عبر قالب معتمد. أنشئوا القوالب وقدّموها من صفحة القوالب؛ وتظهر المعتمدة هنا.",
+  },
+  textHint: {
+    en: "Free text reaches only guests who wrote to the hotel in the last 24 hours; the rest are sent through the re-engage template, if one is configured.",
+    ar: "يصل النص الحر فقط إلى النزلاء الذين راسلوا الفندق خلال آخر 24 ساعة؛ ويُرسل للباقين عبر قالب إعادة التواصل إن كان مضبوطاً.",
+  },
+  templatesLoading: { en: "Loading templates from Meta…", ar: "جارٍ تحميل القوالب من Meta…" },
+  templatesFailed: { en: "Could not load templates", ar: "تعذر تحميل القوالب" },
+  manageTemplates: { en: "Manage templates", ar: "إدارة القوالب" },
   bodyLabel: { en: "Message body", ar: "نص الرسالة" },
   bodyPlaceholder: {
     en: "Arabic text…\n⸻\nEnglish text…",
@@ -71,6 +98,10 @@ const STR = {
 const VARIABLES = ["{{name}}", "{{terms_link}}"];
 
 type Access = "loading" | "granted" | "denied";
+type MessageType = "template" | "text";
+
+/** Placeholders stored in the campaign body so the list shows what goes out. */
+const BODY_PLACEHOLDERS = { name: "{{name}}", room_type: "{{room_type}}", terms_link: "{{terms_link}}" };
 
 export default function NewCampaignPage() {
   const { lang } = useLang();
@@ -86,6 +117,10 @@ export default function NewCampaignPage() {
   const [segment, setSegment] = useState("All");
   const [market, setMarket] = useState<string>("Oman+GCC");
   const [body, setBody] = useState("");
+  const [messageType, setMessageType] = useState<MessageType>("template");
+  const [selection, setSelection] = useState<TemplateSelection | null>(null);
+  const [templates, setTemplates] = useState<MetaTemplateSummary[] | null>(null);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
 
   const [tags, setTags] = useState<string[]>([]);
   const [count, setCount] = useState<number | null>(null);
@@ -142,6 +177,26 @@ export default function NewCampaignPage() {
     };
   }, [access, supabase]);
 
+  // Approved Meta templates for the template mode (loaded once per visit).
+  useEffect(() => {
+    if (access !== "granted" || channel !== "whatsapp" || templates !== null) return;
+    let cancelled = false;
+    (async () => {
+      const r = await listMetaTemplates();
+      if (cancelled) return;
+      if (r.ok) {
+        setTemplates(r.data.templates);
+        setTemplatesError(null);
+      } else {
+        setTemplates([]);
+        setTemplatesError(r.error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [access, channel, templates]);
+
   // LIVE recipient count — re-queries on every channel/segment/market change.
   useEffect(() => {
     if (access !== "granted") return;
@@ -188,10 +243,30 @@ export default function NewCampaignPage() {
     });
   };
 
-  const valid = name.trim() !== "" && body.trim() !== "";
+  const templateMode = channel === "whatsapp" && messageType === "template";
+  // The English variant is what the list shows; the guest's language is
+  // picked at send time from the approved variants.
+  const primaryVariant = useMemo(() => {
+    if (!templateMode || !selection || !templates) return null;
+    const variants = templates.filter((t) => t.name === selection.name && t.status === "APPROVED");
+    return variants.find((v) => v.language.toLowerCase().startsWith("en")) ?? variants[0] ?? null;
+  }, [templateMode, selection, templates]);
+  const templateReady =
+    primaryVariant !== null && selection !== null && planIssues(templateShape(primaryVariant), selection.plan).length === 0;
+
+  const valid = name.trim() !== "" && (templateMode ? templateReady : body.trim() !== "");
   const busy = savingDraft || sendingNow;
 
   const insertCampaign = async (): Promise<string | null> => {
+    const templateFields =
+      templateMode && primaryVariant && selection
+        ? {
+            body: renderTemplateText(primaryVariant, selection.plan, BODY_PLACEHOLDERS),
+            wa_template_name: selection.name,
+            wa_template_language: "auto",
+            wa_template_params: selection.plan as unknown as Json,
+          }
+        : { body: body.trim() };
     const { data, error } = await supabase
       .from("campaigns")
       .insert({
@@ -199,8 +274,8 @@ export default function NewCampaignPage() {
         channel,
         segment,
         market,
-        body: body.trim(),
         status: "draft",
+        ...templateFields,
       })
       .select("id")
       .single();
@@ -341,42 +416,91 @@ export default function NewCampaignPage() {
                 </div>
               )}
 
-              <div>
-                <Label htmlFor="campaign-body">
-                  {STR.bodyLabel[lang]}{" "}
-                  <span className="text-crimson-600">*</span>
-                </Label>
-                <Textarea
-                  id="campaign-body"
-                  ref={bodyRef}
-                  rows={10}
-                  dir="auto"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder={STR.bodyPlaceholder[lang]}
-                  className="leading-relaxed"
-                />
-              </div>
-
-              <div>
-                <Label>{STR.variablesLabel[lang]}</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {VARIABLES.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      dir="ltr"
-                      onClick={() => insertVariable(v)}
-                      className="rounded-full border border-gold-200 bg-gold-50 px-2.5 py-0.5 font-mono text-xs font-semibold text-gold-800 transition-colors hover:bg-gold-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300"
-                    >
-                      {v}
-                    </button>
-                  ))}
+              {channel === "whatsapp" && (
+                <div>
+                  <Label htmlFor="campaign-message-type">{STR.messageType[lang]}</Label>
+                  <Select
+                    id="campaign-message-type"
+                    value={messageType}
+                    onChange={(e) => setMessageType(e.target.value === "text" ? "text" : "template")}
+                  >
+                    <option value="template">{STR.typeTemplate[lang]}</option>
+                    <option value="text">{STR.typeText[lang]}</option>
+                  </Select>
+                  <p className="mt-2 text-xs leading-relaxed text-maroon-400">
+                    {templateMode ? STR.templateHint[lang] : STR.textHint[lang]}
+                  </p>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-maroon-400">
-                  {STR.bodyHint[lang]}
-                </p>
-              </div>
+              )}
+
+              {templateMode ? (
+                <div className="space-y-3">
+                  {templates === null ? (
+                    <p className="flex items-center gap-2 text-sm text-maroon-400">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {STR.templatesLoading[lang]}
+                    </p>
+                  ) : (
+                    <>
+                      {templatesError && (
+                        <p className="text-sm font-semibold text-crimson-700" role="alert">
+                          {STR.templatesFailed[lang]}: {templatesError}
+                        </p>
+                      )}
+                      <TemplateCampaignFields
+                        templates={templates}
+                        value={selection}
+                        onChange={setSelection}
+                        onError={setTemplatesError}
+                        lang={lang}
+                      />
+                    </>
+                  )}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => router.push("/templates")}>
+                    <LayoutTemplate className="h-4 w-4" />
+                    {STR.manageTemplates[lang]}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label htmlFor="campaign-body">
+                      {STR.bodyLabel[lang]}{" "}
+                      <span className="text-crimson-600">*</span>
+                    </Label>
+                    <Textarea
+                      id="campaign-body"
+                      ref={bodyRef}
+                      rows={10}
+                      dir="auto"
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      placeholder={STR.bodyPlaceholder[lang]}
+                      className="leading-relaxed"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>{STR.variablesLabel[lang]}</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {VARIABLES.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          dir="ltr"
+                          onClick={() => insertVariable(v)}
+                          className="rounded-full border border-gold-200 bg-gold-50 px-2.5 py-0.5 font-mono text-xs font-semibold text-gold-800 transition-colors hover:bg-gold-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300"
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-maroon-400">
+                      {STR.bodyHint[lang]}
+                    </p>
+                  </div>
+                </>
+              )}
 
               {saveError && (
                 <p className="text-sm font-semibold text-crimson-700" role="alert">

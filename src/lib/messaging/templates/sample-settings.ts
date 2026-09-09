@@ -56,6 +56,7 @@ export const SAMPLE_SETTINGS: AllSettings = {
       post_stay: "sama_post_stay_review",
     },
     whatsapp_business_account_id: "",
+    whatsapp_app_id: "",
   },
   promo: { codes: [] },
   cron: { secret: "", dispatch_url: "" },

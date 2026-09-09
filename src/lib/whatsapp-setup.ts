@@ -4,7 +4,7 @@ import type { MessageKind } from "@/lib/messaging/types";
 import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
 import { updateSetting } from "@/lib/bk/settings";
 import { logger } from "@/lib/logger";
-import { whatsappEnv, webhookCallbackUrl, withStoredBusinessAccountId } from "./whatsapp-env";
+import { whatsappEnv, webhookCallbackUrl, withStoredAppId, withStoredBusinessAccountId } from "./whatsapp-env";
 import {
   debugToken,
   discoverWabaId,
@@ -24,9 +24,10 @@ import type { WhatsAppSetupStatus } from "@/components/admin/messaging/whatsapp-
  */
 export async function loadWhatsAppSetup(
   templateNames: Record<MessageKind, string>,
-  storedWabaId: string = ""
+  storedWabaId: string = "",
+  storedAppId: string = ""
 ): Promise<WhatsAppSetupStatus> {
-  const env = withStoredBusinessAccountId(whatsappEnv(), storedWabaId);
+  const env = withStoredAppId(withStoredBusinessAccountId(whatsappEnv(), storedWabaId), storedAppId);
   const callbackUrl = webhookCallbackUrl();
 
   const [tokenRes, phoneRes] = await Promise.all([debugToken(env), getPhoneNumber(env)]);
@@ -108,6 +109,7 @@ export async function loadWhatsAppSetup(
     wabaId,
     wabaNotes: discovery.notes,
     storedWabaId,
+    storedAppId,
     webhook: {
       ok: Boolean(appsRes?.ok),
       error: appsRes && !appsRes.ok ? appsRes.error : wabaId ? null : "WhatsApp Business Account id unknown",

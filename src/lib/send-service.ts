@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendWhatsAppText, sendWhatsAppTemplate } from "@/lib/whatsapp";
+import { sendWhatsAppText, sendWhatsAppTemplate, sendWhatsAppTemplateComponents } from "@/lib/whatsapp";
+import type { WaTemplateComponent } from "@/lib/messaging/meta-template-model";
 import { sendEmail, bilingualEmailHtml, splitBilingual } from "@/lib/email";
 import { canReceiveWhatsAppMarketing } from "@/lib/phone";
 import { isWithin24h } from "@/lib/utils";
@@ -23,6 +24,11 @@ export interface SendParams {
   automationId?: string | null;
   campaignId?: string | null;
   bookingId?: string | null;
+  /**
+   * An approved Meta template with its per-guest components (campaigns).
+   * Sent regardless of the 24h window; `body` should be the rendered text.
+   */
+  template?: { name: string; language: string; components: WaTemplateComponent[] } | null;
 }
 
 export interface SendOutcome {
@@ -52,7 +58,13 @@ export async function sendToContact(params: SendParams): Promise<SendOutcome> {
 
   if (channel === "whatsapp") {
     if (!contact.phone) return { sent: false, skipped: true, reason: "no_phone" };
-    if (isWithin24h(contact.last_inbound_at)) {
+    if (params.template) {
+      // Approved template → allowed at any time, no free-text fallback.
+      const res = await sendWhatsAppTemplateComponents(contact.phone, params.template.name, params.template.language, params.template.components);
+      ok = res.ok;
+      providerMsgId = res.messageId;
+      error = res.error;
+    } else if (isWithin24h(contact.last_inbound_at)) {
       // Inside the 24h customer-service window → free-form text is allowed.
       const res = await sendWhatsAppText(contact.phone, body);
       ok = res.ok;

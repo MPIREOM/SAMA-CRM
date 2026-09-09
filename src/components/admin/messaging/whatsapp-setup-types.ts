@@ -38,6 +38,8 @@ export interface WhatsAppSetupStatus {
   wabaNotes: string[];
   /** Account id saved from the setup page (settings), if any. */
   storedWabaId: string;
+  /** Meta app id saved from the setup page (settings), if any. */
+  storedAppId: string;
   webhook: {
     ok: boolean;
     error: string | null;

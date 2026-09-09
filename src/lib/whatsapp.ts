@@ -1,6 +1,7 @@
 import "server-only";
 
 import { toWaId } from "@/lib/phone";
+import type { WaTemplateComponent } from "@/lib/messaging/meta-template-model";
 
 // WhatsApp Cloud API send helpers. SERVER ONLY.
 // Requires WHATSAPP_ACCESS_TOKEN + WHATSAPP_PHONE_NUMBER_ID (see .env.example).
@@ -107,6 +108,34 @@ export async function sendWhatsAppTemplate(
             ],
           }
         : {}),
+    },
+  });
+}
+
+/**
+ * Template message with full components (media header, body variables,
+ * dynamic URL buttons) — what campaigns send. Text parameters are collapsed
+ * to single-spaced text like `sendWhatsAppTemplate`.
+ */
+export async function sendWhatsAppTemplateComponents(
+  phone: string,
+  templateName: string,
+  langCode: string,
+  components: WaTemplateComponent[]
+): Promise<WaSendResult> {
+  const cleaned = components.map((c) => ({
+    ...c,
+    parameters: c.parameters.map((p) => (p.type === "text" ? { ...p, text: p.text.replace(/\s+/g, " ").trim() || "-" } : p)),
+  }));
+  return waPost({
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: toWaId(phone),
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: langCode },
+      ...(cleaned.length > 0 ? { components: cleaned } : {}),
     },
   });
 }

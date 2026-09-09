@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
+import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveAppId, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
 import { InlineAlert } from "../load-error";
 import { kindLabel } from "../shared";
 import type { TemplateCreateOutcome, WhatsAppSetupStatus } from "./whatsapp-setup-types";
@@ -31,6 +31,11 @@ const STR = {
   step5: { en: "5 · Test", ar: "5 · اختبار" },
   present: { en: "set", ar: "مضبوط" },
   missing: { en: "missing", ar: "غير مضبوط" },
+  optionalUnset: { en: "not set (optional)", ar: "غير مضبوط (اختياري)" },
+  sendToLearn: {
+    en: "Not known yet. Send any WhatsApp message to the hotel number from your phone: the first webhook Meta delivers carries the account id and it is saved automatically. Or paste it below.",
+    ar: "غير معروف بعد. أرسلوا أي رسالة واتساب إلى رقم الفندق من هاتفكم: أول Webhook تسلّمه Meta يحمل معرّف الحساب ويُحفظ تلقائياً. أو ألصقوه أدناه.",
+  },
   envHint: {
     en: "Values are read from Vercel → Project → Settings → Environment Variables (Production) and take effect after a redeploy. Copy them from the SAAS project; the verify token may keep its SAAS name.",
     ar: "تُقرأ القيم من Vercel → المشروع → Settings → Environment Variables (Production) وتسري بعد إعادة النشر. انسخوها من مشروع SAAS؛ يمكن الإبقاء على اسم رمز التحقق كما هو في SAAS.",
@@ -54,6 +59,12 @@ const STR = {
   wabaSaved: { en: "Account id saved.", ar: "تم حفظ معرّف الحساب." },
   discovery: { en: "discovery", ar: "الاكتشاف" },
   appId: { en: "Meta app", ar: "تطبيق Meta" },
+  appIdInput: { en: "Meta app ID", ar: "معرّف تطبيق Meta" },
+  appIdHint: {
+    en: "Needed to upload the sample image, video or PDF of a template header (Templates page). Only needed when the line above says unknown: Meta for Developers shows the app id at the top of the app dashboard. Saved here, no redeploy needed.",
+    ar: "مطلوب لرفع عيّنة الصورة أو الفيديو أو ملف PDF لترويسة القالب (صفحة القوالب). لا حاجة له إلا إذا ظهر «غير معروف»: يظهر معرّف التطبيق أعلى لوحة التطبيق في Meta for Developers. يُحفظ هنا دون إعادة نشر.",
+  },
+  appIdSaved: { en: "App id saved.", ar: "تم حفظ معرّف التطبيق." },
   unknown: { en: "unknown", ar: "غير معروف" },
   callback: { en: "This deployment's callback URL", ar: "عنوان الاستدعاء لهذا النشر" },
   pointsHere: { en: "Webhooks point here", ar: "الـ Webhooks موجهة إلى هنا" },
@@ -140,6 +151,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
   const [notice, setNotice] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<TemplateCreateOutcome[]>([]);
   const [wabaInput, setWabaInput] = useState(status.storedWabaId);
+  const [appIdInput, setAppIdInput] = useState(status.storedAppId);
 
   const env = status.env;
   const canRegister = env.accessToken && env.verifyToken && env.appSecret && Boolean(env.forwardUrl) && !pending;
@@ -174,12 +186,12 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
     });
   }
 
-  const EnvRow = ({ label, ok }: { label: string; ok: boolean }) => (
+  const EnvRow = ({ label, ok, optional }: { label: string; ok: boolean; optional?: boolean }) => (
     <div className="flex items-center justify-between gap-3 py-1.5 text-sm">
       <code className="text-xs text-maroon-700" dir="ltr">
         {label}
       </code>
-      <Badge variant={ok ? "green" : "red"}>{ok ? STR.present[lang] : STR.missing[lang]}</Badge>
+      <Badge variant={ok ? "green" : optional ? "gray" : "red"}>{ok ? STR.present[lang] : optional ? STR.optionalUnset[lang] : STR.missing[lang]}</Badge>
     </div>
   );
 
@@ -218,7 +230,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
             <EnvRow label="WHATSAPP_PHONE_NUMBER_ID" ok={env.phoneNumberId} />
             <EnvRow label="WHATSAPP_APP_SECRET" ok={env.appSecret} />
             <EnvRow label="WHATSAPP_VERIFY_TOKEN / WHATSAPP_WEBHOOK_VERIFY_TOKEN" ok={env.verifyToken} />
-            <EnvRow label="WHATSAPP_BUSINESS_ACCOUNT_ID (optional)" ok={env.businessAccountId} />
+            <EnvRow label="WHATSAPP_BUSINESS_ACCOUNT_ID" ok={env.businessAccountId} optional />
             <p className="mt-3 text-xs text-maroon-400">{STR.envHint[lang]}</p>
           </div>
           <dl className="space-y-3 text-sm">
@@ -262,6 +274,9 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               <dd className="mt-1 text-maroon-800" dir="ltr">
                 {status.wabaId ?? <span className="text-crimson-700">{STR.unknown[lang]}</span>}
               </dd>
+              {!status.wabaId && (
+                <dd className="mt-1 max-w-md text-xs text-maroon-600">{STR.sendToLearn[lang]}</dd>
+              )}
               {!status.wabaId && status.wabaNotes.length > 0 && (
                 <dd className="mt-1 text-xs text-maroon-400" dir="ltr">
                   {STR.discovery[lang]}: {status.wabaNotes.join(" · ")}
@@ -297,6 +312,31 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               <dt className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.appId[lang]}</dt>
               <dd className="mt-1 text-maroon-800" dir="ltr">
                 {status.token.appId ?? <span className="text-maroon-400">{STR.unknown[lang]}</span>}
+              </dd>
+              <dd className="mt-2">
+                <label htmlFor="app-id" className="block text-xs font-semibold text-maroon-600">
+                  {STR.appIdInput[lang]}
+                </label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    id="app-id"
+                    dir="ltr"
+                    inputMode="numeric"
+                    placeholder="1234567890123456"
+                    value={appIdInput}
+                    onChange={(e) => setAppIdInput(e.target.value)}
+                    className="h-9 w-56 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pending || appIdInput.trim() === status.storedAppId}
+                    onClick={() => run(() => saveAppId({ id: appIdInput }), STR.appIdSaved[lang])}
+                  >
+                    {STR.save[lang]}
+                  </Button>
+                </div>
+                <p className="mt-1 max-w-md text-xs text-maroon-400">{STR.appIdHint[lang]}</p>
               </dd>
             </div>
           </dl>

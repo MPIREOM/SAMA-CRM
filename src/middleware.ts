@@ -28,6 +28,7 @@ const CRM_PREFIXES = [
   "/contacts",
   "/automations",
   "/campaigns",
+  "/templates",
   "/users",
   "/login",
   "/checkin",

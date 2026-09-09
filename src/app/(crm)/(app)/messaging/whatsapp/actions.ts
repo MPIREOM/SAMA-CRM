@@ -66,6 +66,26 @@ export async function saveBusinessAccountId(input: unknown): Promise<ActionResul
   });
 }
 
+const AppIdSchema = z.object({ id: z.string().trim().max(40) });
+
+/**
+ * Save the Meta app id from the setup page (needed to upload sample media for
+ * template headers when the token does not reveal it). Empty clears it.
+ */
+export async function saveAppId(input: unknown): Promise<ActionResult<{ id: string }>> {
+  return runAction<{ id: string }>("whatsapp.app_id", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const raw = AppIdSchema.parse(input).id;
+    const id = raw.replace(/\D/g, "");
+    if (raw && id.length < 6) return { ok: false, error: "The Meta app id is a number of at least 6 digits." };
+    await updateSetting("messaging", { whatsapp_app_id: id }, actor.userId);
+    await audit(actor, "settings.update", "bk_settings", "messaging", { whatsapp_app_id: id });
+    revalidateSetup();
+    revalidatePath("/templates");
+    return { ok: true, data: { id } };
+  });
+}
+
 /**
  * Point this number's webhooks at this deployment. Phone-level override first
  * (needs only the phone number id); account-level override as a fallback when

@@ -25,6 +25,7 @@ export const COMMON = {
   inbox: { en: "WhatsApp Inbox", ar: "محادثات واتساب" },
   automations: { en: "Automations", ar: "الأتمتة" },
   campaigns: { en: "Campaigns", ar: "الحملات" },
+  templates: { en: "Templates", ar: "القوالب" },
   kiosk: { en: "Check-in Kiosk", ar: "شاشة تسجيل الوصول" },
   staff: { en: "Staff", ar: "الموظفون" },
   signOut: { en: "Sign out", ar: "تسجيل الخروج" },
