@@ -165,6 +165,8 @@ export const guestDetailsSchema = z
     nationality: z.enum(NATIONALITY_CODES, { errorMap: () => ({ message: "nationality" }) }),
     otherNationality: z.string().trim().max(60, "otherNationality").default(""),
     preferredLang: z.enum(["en", "ar"]),
+    /** Bed layout; required (checked by the action) when the room type offers a choice. */
+    bedPreference: z.enum(["twin", "king"]).or(z.literal("")).default(""),
     specialRequests: z.string().trim().max(500, "requests").default(""),
     promoCode: z
       .string()

@@ -26,7 +26,7 @@ Middleware (`src/middleware.ts`): unprefixed CRM paths → Supabase session guar
 If you add a new top-level staff route, add its prefix to `CRM_PREFIXES` in the middleware.
 
 ## Database (all `bk_` tables, RLS on)
-- `bk_room_types` (public read when is_active) · `bk_rooms` (60) · `bk_rate_plans` · `bk_inventory_blocks`
+- `bk_room_types` (public read when is_active; `bed_options` = layouts the guest may choose) · `bk_rooms` (60; `bed_type` = physical layout) · `bk_rate_plans` · `bk_inventory_blocks`
 - `bk_bookings` — `contact_id → contacts` (CRM guest), `room_type_id`, optional `room_id`, dates, money (3 dp OMR), status
   `pending|confirmed|checked_in|checked_out|cancelled|no_show`, source `website|staff|phone|walk_in|ota`
 - `bk_settings` (key → jsonb) — typed in `src/lib/bk/types.ts`, read with `getSettings()` / `getPublicSettings()`

@@ -1,3 +1,4 @@
+import { bedChoiceText, cleanBedOptions, type BedType } from "@/lib/booking-engine/beds";
 import type { BkAddon, BkBookingAddon, BkRoomType } from "@/lib/database.types";
 import type { Locale } from "@/i18n/routing";
 import type { TaxSettings } from "@/lib/booking-engine/pricing";
@@ -48,6 +49,8 @@ export type LocalizedRoom = {
   description: string;
   view: string;
   bed: string;
+  /** Layouts the guest can choose (twin, king); empty = one fixed layout. */
+  bedOptions: BedType[];
   sizeSqm: number | null;
   maxAdults: number;
   maxChildren: number;
@@ -59,6 +62,7 @@ export type LocalizedRoom = {
 /** Pick the locale's copy from a bk_room_types row (falls back to English). */
 export function localizeRoom(rt: BkRoomType, locale: Locale): LocalizedRoom {
   const ar = locale === "ar";
+  const bedOptions = cleanBedOptions(rt.bed_options);
   return {
     id: rt.id,
     slug: rt.slug,
@@ -66,7 +70,9 @@ export function localizeRoom(rt: BkRoomType, locale: Locale): LocalizedRoom {
     tagline: (ar ? rt.tagline_ar : rt.tagline_en) ?? rt.tagline_en ?? "",
     description: (ar ? rt.description_ar : rt.description_en) ?? rt.description_en ?? "",
     view: (ar ? rt.view_ar : rt.view_en) ?? rt.view_en ?? "",
-    bed: (ar ? rt.bed_config_ar : rt.bed_config_en) ?? rt.bed_config_en ?? "",
+    // A type that offers a choice says so; otherwise its fixed layout.
+    bed: bedChoiceText(bedOptions, locale) ?? (ar ? rt.bed_config_ar : rt.bed_config_en) ?? rt.bed_config_en ?? "",
+    bedOptions,
     sizeSqm: rt.size_sqm,
     maxAdults: rt.max_adults,
     maxChildren: rt.max_children,

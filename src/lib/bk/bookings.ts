@@ -21,6 +21,8 @@ export interface CreateBookingInput {
   preferred_lang: "en" | "ar";
   special_requests?: string | null;
   internal_notes?: string | null;
+  /** Bed layout for types that offer a choice (twin | king); the type's first option when omitted. */
+  bed_preference?: string | null;
   promo_code?: string | null;
   source?: "website" | "staff" | "phone" | "walk_in" | "ota";
   status?: "pending" | "confirmed";

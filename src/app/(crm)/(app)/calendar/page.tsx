@@ -28,11 +28,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
     const admin = createAdminClient();
     const [types, rooms, bookings, blocks] = await Promise.all([
       admin.from("bk_room_types").select("id, slug, name_en, name_ar, sort_order, is_active").order("sort_order"),
-      admin.from("bk_rooms").select("id, room_number, room_type_id, floor, status, sort_order").order("sort_order"),
+      admin.from("bk_rooms").select("id, room_number, room_type_id, floor, bed_type, status, sort_order").order("sort_order"),
       admin
         .from("bk_bookings")
         .select(
-          "id, ref, guest_name, guest_phone, room_type_id, room_id, check_in, check_out, status, adults, children, total_omr, source, special_requests, internal_notes"
+          "id, ref, guest_name, guest_phone, room_type_id, room_id, check_in, check_out, status, adults, children, total_omr, source, special_requests, internal_notes, bed_preference"
         )
         .lt("check_in", to)
         .gt("check_out", from)

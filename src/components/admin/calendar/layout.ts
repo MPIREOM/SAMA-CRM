@@ -22,6 +22,8 @@ export interface CalendarRoom {
   room_number: string;
   room_type_id: string;
   floor: string | null;
+  /** Physical bed layout (twin | king); null or absent when not recorded. */
+  bed_type?: string | null;
   status: string; // active | maintenance
   sort_order: number;
 }
@@ -42,6 +44,8 @@ export interface CalendarBooking {
   source: string;
   special_requests: string | null;
   internal_notes: string | null;
+  /** Bed layout the guest chose (twin | king), when the type offers one. */
+  bed_preference?: string | null;
 }
 
 export interface CalendarBlock {

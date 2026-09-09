@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanBedOptions, type BedType } from "@/lib/booking-engine/beds";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { redirect } from "@/i18n/routing";
@@ -99,6 +100,7 @@ export async function createBookingAction(prev: CreateBookingState | FormData, m
     nationality: formValue(formData, "nationality"),
     otherNationality: formValue(formData, "otherNationality"),
     preferredLang: formValue(formData, "preferredLang"),
+    bedPreference: formValue(formData, "bedPreference"),
     specialRequests: formValue(formData, "specialRequests"),
     promoCode: formValue(formData, "promoCode"),
     slug: formValue(formData, "slug"),
@@ -174,6 +176,12 @@ export async function createBookingAction(prev: CreateBookingState | FormData, m
     const rt = await getRoomTypeBySlug(data.slug);
     if (!rt) return { error: "room_type_not_found" };
     if (data.adults > rt.max_adults || data.children > rt.max_children) return { error: "capacity_exceeded" };
+    // Types that offer a bed layout need an explicit choice (the RPC would
+    // silently take the first option, which is fine for staff, not here).
+    const bedOptions = cleanBedOptions(rt.bed_options);
+    if (bedOptions.length > 1 && !bedOptions.includes(data.bedPreference as BedType)) {
+      return { error: "validation", fields: { bedPreference: "bed" } };
+    }
 
     const res = await createBooking({
       room_type_id: rt.id,
@@ -187,6 +195,7 @@ export async function createBookingAction(prev: CreateBookingState | FormData, m
       nationality: storedNationality(data) || null,
       preferred_lang: data.preferredLang,
       special_requests: data.specialRequests || null,
+      bed_preference: bedOptions.length > 0 ? data.bedPreference || null : null,
       promo_code: data.promoCode || null,
       source: "website",
       addons: addons.length > 0 ? addons : null,
