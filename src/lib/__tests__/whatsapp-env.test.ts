@@ -42,3 +42,18 @@ describe("whatsappEnv", () => {
     expect(webhookCallbackUrl()).toBe("https://book.samahotel.net/api/webhooks/whatsapp");
   });
 });
+
+describe("withStoredBusinessAccountId", () => {
+  it("uses the saved id when the variable is unset, cleaning formatting", async () => {
+    const { withStoredBusinessAccountId } = await import("../whatsapp-env");
+    const env = whatsappEnv();
+    expect(withStoredBusinessAccountId({ ...env, businessAccountId: null }, " 1234 5678 9012 ").businessAccountId).toBe("123456789012");
+    expect(withStoredBusinessAccountId({ ...env, businessAccountId: null }, "12").businessAccountId).toBeNull();
+    expect(withStoredBusinessAccountId({ ...env, businessAccountId: null }, "").businessAccountId).toBeNull();
+  });
+  it("lets the environment variable win", async () => {
+    const { withStoredBusinessAccountId } = await import("../whatsapp-env");
+    const env = { ...whatsappEnv(), businessAccountId: "999" };
+    expect(withStoredBusinessAccountId(env, "123456789012").businessAccountId).toBe("999");
+  });
+});

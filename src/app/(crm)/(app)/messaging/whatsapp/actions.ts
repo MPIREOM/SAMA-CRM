@@ -1,19 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { ADMIN_ROLES, requireStaff } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import { getSettings, updateSetting } from "@/lib/bk/settings";
 import { normalizePhone } from "@/lib/phone";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
-import { whatsappEnv, webhookCallbackUrl, type WhatsAppEnv } from "@/lib/whatsapp-env";
+import { whatsappEnv, webhookCallbackUrl, withStoredBusinessAccountId, type WhatsAppEnv } from "@/lib/whatsapp-env";
 import {
   createTemplate,
   debugToken,
+  discoverWabaId,
   getPhoneNumber,
   listTemplates,
-  resolveWabaId,
+  setPhoneWebhookOverride,
   setWabaWebhookOverride,
 } from "@/lib/whatsapp-admin";
 import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
@@ -28,45 +30,85 @@ function revalidateSetup() {
   revalidatePath("/messaging");
 }
 
+/** Environment plus the account id saved on the setup page (no redeploy needed). */
+async function envWithStoredWaba(): Promise<WhatsAppEnv> {
+  const settings = await getSettings();
+  return withStoredBusinessAccountId(whatsappEnv(), settings.messaging.whatsapp_business_account_id);
+}
+
 async function wabaIdOrError(env: WhatsAppEnv): Promise<{ wabaId: string } | { error: string }> {
   if (!env.accessToken) return { error: "WHATSAPP_ACCESS_TOKEN is not set in Vercel." };
   const token = await debugToken(env);
-  const wabaId = await resolveWabaId(env, token.ok ? token.data : null);
-  if (!wabaId) {
+  const found = await discoverWabaId(env, token.ok ? token.data : null);
+  if (!found.wabaId) {
     return {
       error:
-        "Could not determine the WhatsApp Business Account id from the token. Set WHATSAPP_BUSINESS_ACCOUNT_ID in Vercel (Meta → WhatsApp → API Setup) and redeploy.",
+        "Could not determine the WhatsApp Business Account id from the token. Paste it into the “WhatsApp Business Account ID” field on this page (Meta → WhatsApp → API Setup shows it next to the phone number id) and save. " +
+        `Discovery: ${found.notes.join("; ")}.`,
     };
   }
-  return { wabaId };
+  return { wabaId: found.wabaId };
 }
 
-/** Point this WhatsApp Business Account's webhooks at this deployment (WABA-level override). */
-export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: string; wabaId: string }>> {
-  return runAction<{ callbackUrl: string; wabaId: string }>("whatsapp.webhook", async () => {
+const WabaSchema = z.object({ id: z.string().trim().max(40) });
+
+/** Save the WhatsApp Business Account id from the setup page. Empty clears it. */
+export async function saveBusinessAccountId(input: unknown): Promise<ActionResult<{ id: string }>> {
+  return runAction<{ id: string }>("whatsapp.waba_id", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
-    const env = whatsappEnv();
+    const raw = WabaSchema.parse(input).id;
+    const id = raw.replace(/\D/g, "");
+    if (raw && id.length < 6) return { ok: false, error: "The WhatsApp Business Account id is a number of at least 6 digits." };
+    await updateSetting("messaging", { whatsapp_business_account_id: id }, actor.userId);
+    await audit(actor, "settings.update", "bk_settings", "messaging", { whatsapp_business_account_id: id });
+    revalidateSetup();
+    return { ok: true, data: { id } };
+  });
+}
+
+/**
+ * Point this number's webhooks at this deployment. Phone-level override first
+ * (needs only the phone number id); account-level override as a fallback when
+ * Meta refuses the phone-level one and the account id is known.
+ */
+export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: string; level: "phone" | "account" }>> {
+  return runAction<{ callbackUrl: string; level: "phone" | "account" }>("whatsapp.webhook", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const env = await envWithStoredWaba();
+    if (!env.accessToken) return { ok: false, error: "WHATSAPP_ACCESS_TOKEN is not set in Vercel." };
+    if (!env.phoneNumberId) return { ok: false, error: "WHATSAPP_PHONE_NUMBER_ID is not set in Vercel." };
     if (!env.verifyToken) {
       return { ok: false, error: "WHATSAPP_VERIFY_TOKEN (or WHATSAPP_WEBHOOK_VERIFY_TOKEN) is not set in Vercel." };
     }
     if (!env.appSecret) {
       return { ok: false, error: "WHATSAPP_APP_SECRET is not set — the webhook would reject every delivery." };
     }
-    const waba = await wabaIdOrError(env);
-    if ("error" in waba) return { ok: false, error: waba.error };
 
     const callbackUrl = webhookCallbackUrl();
-    const r = await setWabaWebhookOverride(waba.wabaId, callbackUrl, env.verifyToken, env);
-    if (!r.ok) return { ok: false, error: r.error };
+    const phone = await setPhoneWebhookOverride(callbackUrl, env.verifyToken, env);
+    let level: "phone" | "account" = "phone";
+    let wabaId: string | null = null;
+    if (!phone.ok) {
+      const waba = await wabaIdOrError(env);
+      if ("error" in waba) {
+        return { ok: false, error: `Phone-level override failed: ${phone.error}. Account-level fallback: ${waba.error}` };
+      }
+      const acct = await setWabaWebhookOverride(waba.wabaId, callbackUrl, env.verifyToken, env);
+      if (!acct.ok) return { ok: false, error: `Phone-level override failed: ${phone.error}. Account-level override failed: ${acct.error}` };
+      level = "account";
+      wabaId = waba.wabaId;
+    }
 
     await audit(actor, "whatsapp.webhook_override", "bk_settings", "messaging", {
-      waba_id: waba.wabaId,
+      level,
+      phone_number_id: env.phoneNumberId,
+      waba_id: wabaId,
       callback_url: callbackUrl,
       forward_url: env.forwardUrl,
       forward_senders: env.forwardSenders.length,
     });
     revalidateSetup();
-    return { ok: true, data: { callbackUrl, wabaId: waba.wabaId } };
+    return { ok: true, data: { callbackUrl, level } };
   });
 }
 
@@ -74,7 +116,7 @@ export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: str
 export async function createMissingTemplates(): Promise<ActionResult<{ results: TemplateCreateOutcome[] }>> {
   return runAction<{ results: TemplateCreateOutcome[] }>("whatsapp.templates", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
-    const env = whatsappEnv();
+    const env = await envWithStoredWaba();
     const waba = await wabaIdOrError(env);
     if ("error" in waba) return { ok: false, error: waba.error };
 

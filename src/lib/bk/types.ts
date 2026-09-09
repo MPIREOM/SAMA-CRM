@@ -59,6 +59,8 @@ export interface MessagingSettings extends MessagingSchedule {
     pre_arrival: string;
     post_stay: string;
   };
+  /** Meta WhatsApp Business Account id — fallback when WHATSAPP_BUSINESS_ACCOUNT_ID is unset and discovery fails. */
+  whatsapp_business_account_id: string;
 }
 
 export interface PromoCode {

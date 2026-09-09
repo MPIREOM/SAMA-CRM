@@ -34,6 +34,10 @@ export interface WhatsAppSetupStatus {
     codeVerificationStatus: string | null;
   };
   wabaId: string | null;
+  /** Where the account id came from / why it could not be found. */
+  wabaNotes: string[];
+  /** Account id saved from the setup page (settings), if any. */
+  storedWabaId: string;
   webhook: {
     ok: boolean;
     error: string | null;
@@ -42,8 +46,11 @@ export interface WhatsAppSetupStatus {
     /** App-level callback (what the Meta dashboard shows) when the app id + secret are known. */
     appCallbackUrl: string | null;
     appCallbackError: string | null;
-    /** True when this deployment's callback URL is the active target for the WABA. */
+    /** True when this deployment's callback URL is the active target for the number. */
     pointsHere: boolean;
+    /** Meta's effective targets for the phone number (most specific wins): phone → account → app. */
+    phone: { phoneNumber: string | null; whatsappBusinessAccount: string | null; application: string | null } | null;
+    phoneError: string | null;
   };
   templates: {
     ok: boolean;

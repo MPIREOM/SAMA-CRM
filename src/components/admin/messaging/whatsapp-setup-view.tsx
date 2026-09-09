@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { adoptPublicNumber, createMissingTemplates, registerWebhook } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
+import { Input } from "@/components/ui/input";
+import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
 import { InlineAlert } from "../load-error";
 import { kindLabel } from "../shared";
 import type { TemplateCreateOutcome, WhatsAppSetupStatus } from "./whatsapp-setup-types";
@@ -44,6 +45,14 @@ const STR = {
   verifiedName: { en: "display name", ar: "الاسم الظاهر" },
   quality: { en: "quality", ar: "الجودة" },
   waba: { en: "WhatsApp Business Account", ar: "حساب واتساب للأعمال" },
+  wabaInput: { en: "WhatsApp Business Account ID", ar: "معرّف حساب واتساب للأعمال" },
+  wabaHint: {
+    en: "Only needed if it could not be discovered from the token. Meta for Developers → your app → WhatsApp → API Setup shows it next to the phone number id; WhatsApp Manager → Account tools shows it too. Saved here, no redeploy needed.",
+    ar: "مطلوب فقط إذا تعذّر اكتشافه من الرمز. يظهر في Meta for Developers → التطبيق → WhatsApp → API Setup بجانب معرّف رقم الهاتف، وكذلك في WhatsApp Manager → Account tools. يُحفظ هنا دون إعادة نشر.",
+  },
+  save: { en: "Save", ar: "حفظ" },
+  wabaSaved: { en: "Account id saved.", ar: "تم حفظ معرّف الحساب." },
+  discovery: { en: "discovery", ar: "الاكتشاف" },
   appId: { en: "Meta app", ar: "تطبيق Meta" },
   unknown: { en: "unknown", ar: "غير معروف" },
   callback: { en: "This deployment's callback URL", ar: "عنوان الاستدعاء لهذا النشر" },
@@ -55,9 +64,14 @@ const STR = {
   subscribedApps: { en: "Apps subscribed to this account", ar: "التطبيقات المشتركة في هذا الحساب" },
   register: { en: "Point this number's webhooks here", ar: "توجيه Webhooks هذا الرقم إلى هنا" },
   registerHint: {
-    en: "Sets a callback override on the WhatsApp Business Account only — the SAAS app's own dashboard configuration is left untouched. Meta verifies the URL immediately using the verify token.",
-    ar: "يضبط تجاوزاً للاستدعاء على حساب واتساب للأعمال فقط — دون تغيير إعدادات تطبيق SAAS في لوحته. تتحقق Meta من العنوان فوراً باستخدام رمز التحقق.",
+    en: "Sets an alternate callback on the business phone number itself (Meta's most specific override) — the SAAS app's dashboard configuration is left untouched. Meta verifies the URL immediately using the verify token.",
+    ar: "يضبط استدعاءً بديلاً على رقم الهاتف نفسه (أدق تجاوز لدى Meta) — دون تغيير إعدادات تطبيق SAAS في لوحته. تتحقق Meta من العنوان فوراً باستخدام رمز التحقق.",
   },
+  effective: { en: "Where Meta sends this number's webhooks", ar: "وجهة Webhooks هذا الرقم لدى Meta" },
+  levelPhone: { en: "phone number override", ar: "تجاوز على مستوى الرقم" },
+  levelAccount: { en: "account override", ar: "تجاوز على مستوى الحساب" },
+  levelApp: { en: "app callback", ar: "استدعاء التطبيق" },
+  none: { en: "none", ar: "لا يوجد" },
   registered: { en: "Webhooks now point at this app.", ar: "أصبحت الـ Webhooks موجهة إلى هذا التطبيق." },
   forward: { en: "Relay to the SAAS app", ar: "التمرير إلى تطبيق SAAS" },
   forwardOn: {
@@ -125,6 +139,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<TemplateCreateOutcome[]>([]);
+  const [wabaInput, setWabaInput] = useState(status.storedWabaId);
 
   const env = status.env;
   const canRegister = env.accessToken && env.verifyToken && env.appSecret && Boolean(env.forwardUrl) && !pending;
@@ -247,6 +262,36 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               <dd className="mt-1 text-maroon-800" dir="ltr">
                 {status.wabaId ?? <span className="text-crimson-700">{STR.unknown[lang]}</span>}
               </dd>
+              {!status.wabaId && status.wabaNotes.length > 0 && (
+                <dd className="mt-1 text-xs text-maroon-400" dir="ltr">
+                  {STR.discovery[lang]}: {status.wabaNotes.join(" · ")}
+                </dd>
+              )}
+              <dd className="mt-2">
+                <label htmlFor="waba-id" className="block text-xs font-semibold text-maroon-600">
+                  {STR.wabaInput[lang]}
+                </label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    id="waba-id"
+                    dir="ltr"
+                    inputMode="numeric"
+                    placeholder="1234567890123456"
+                    value={wabaInput}
+                    onChange={(e) => setWabaInput(e.target.value)}
+                    className="h-9 w-56 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pending || wabaInput.trim() === status.storedWabaId}
+                    onClick={() => run(() => saveBusinessAccountId({ id: wabaInput }), STR.wabaSaved[lang])}
+                  >
+                    {STR.save[lang]}
+                  </Button>
+                </div>
+                <p className="mt-1 max-w-md text-xs text-maroon-400">{STR.wabaHint[lang]}</p>
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.appId[lang]}</dt>
@@ -271,6 +316,26 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               {status.callbackUrl}
             </code>
           </div>
+          {status.webhook.phone ? (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.effective[lang]}</p>
+              <ul className="mt-1 space-y-0.5 text-xs" dir="ltr">
+                {(
+                  [
+                    ["levelPhone", status.webhook.phone.phoneNumber],
+                    ["levelAccount", status.webhook.phone.whatsappBusinessAccount],
+                    ["levelApp", status.webhook.phone.application],
+                  ] as const
+                ).map(([key, value]) => (
+                  <li key={key} className={value === status.callbackUrl ? "text-jabal-700" : "text-maroon-700"}>
+                    <span className="text-maroon-400">{STR[key][lang]}:</span> {value ? <code className="break-all">{value}</code> : <span className="text-maroon-400">{STR.none[lang]}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            status.webhook.phoneError && <p className="text-xs text-crimson-700">{status.webhook.phoneError}</p>
+          )}
           {status.webhook.appCallbackUrl && (
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-maroon-500">{STR.appCallback[lang]}</p>

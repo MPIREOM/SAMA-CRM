@@ -64,6 +64,17 @@ export function whatsappEnv(): WhatsAppEnv {
   };
 }
 
+/**
+ * The WhatsApp Business Account id can also be saved from the setup page
+ * (settings.messaging.whatsapp_business_account_id) — no redeploy needed.
+ * The environment variable wins when both are present.
+ */
+export function withStoredBusinessAccountId(env: WhatsAppEnv, stored: string | null | undefined): WhatsAppEnv {
+  if (env.businessAccountId) return env;
+  const id = (stored ?? "").replace(/\D/g, "");
+  return id.length >= 6 ? { ...env, businessAccountId: id } : env;
+}
+
 /** Public base URL of this deployment (no trailing slash). */
 export function appBaseUrl(): string {
   const raw = clean(process.env.NEXT_PUBLIC_APP_URL) ?? "https://sama-crm.vercel.app";

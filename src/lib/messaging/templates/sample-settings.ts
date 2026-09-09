@@ -55,6 +55,7 @@ export const SAMPLE_SETTINGS: AllSettings = {
       pre_arrival: "sama_pre_arrival_guide",
       post_stay: "sama_post_stay_review",
     },
+    whatsapp_business_account_id: "",
   },
   promo: { codes: [] },
   cron: { secret: "", dispatch_url: "" },
