@@ -23,11 +23,11 @@ import { getSettings } from "@/lib/bk/settings";
 import type { AllSettings } from "@/lib/bk/types";
 import type { BkScheduledMessage, Json } from "@/lib/database.types";
 import { logger } from "@/lib/logger";
-import { decideRetry, shouldSkip, staleLockCutoff } from "./decisions";
+import { decideRetry, shouldSkip, staleLockCutoff, type SkipConsent } from "./decisions";
 import { sendGuestEmail } from "./providers/email";
 import { sendWhatsApp } from "./providers/whatsapp";
 import { buildContext, buildMessage, sampleContext } from "./templates";
-import { isChannel, isMessageKind, toLocale } from "./types";
+import { isMarketingKind, isChannel, isMessageKind, toLocale } from "./types";
 import type { BuiltMessage, Channel, DispatchSummary, Locale, MessageKind } from "./types";
 
 export type { MessageKind, DispatchSummary } from "./types";
@@ -184,6 +184,17 @@ async function writeCrmMessage(
   if (error) logger.warn(SCOPE, "CRM messages insert failed", { error: error.message, booking_id: booking.id });
 }
 
+/** Marketing consent of the guest's CRM contact — the post-stay offer needs it. Unreadable counts as not given. */
+async function marketingConsent(admin: Admin, contactId: string | null): Promise<SkipConsent> {
+  if (!contactId) return { marketing: null };
+  const { data, error } = await admin.from("contacts").select("consent").eq("id", contactId).maybeSingle();
+  if (error) {
+    logger.warn(SCOPE, "contact consent read failed", { contact_id: contactId, error: error.message });
+    return { marketing: null };
+  }
+  return { marketing: data?.consent ?? null };
+}
+
 async function updateRow(admin: Admin, id: string, patch: Partial<BkScheduledMessage>): Promise<void> {
   const { error } = await admin
     .from("bk_scheduled_messages")
@@ -208,7 +219,8 @@ async function processRow(admin: Admin, row: BkScheduledMessage, settings: AllSe
     const channel: Channel = row.channel;
 
     const booking = await getBookingById(row.booking_id);
-    const skip = shouldSkip(booking, settings, row);
+    const consent = booking && isMarketingKind(kind) ? await marketingConsent(admin, booking.contact_id) : { marketing: null };
+    const skip = shouldSkip(booking, settings, row, consent);
     if (skip.skip || !booking) {
       const reason = skip.skip ? skip.reason : "booking_not_found";
       await updateRow(admin, row.id, { status: "skipped", last_error: reason, locked_at: null });

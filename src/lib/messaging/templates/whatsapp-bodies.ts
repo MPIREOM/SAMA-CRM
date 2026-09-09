@@ -1,4 +1,5 @@
-// The EXACT Meta template bodies (category Utility, languages en + ar) as
+// The EXACT Meta template bodies (confirmation + pre-arrival are Utility,
+// post-stay is Marketing because of its offer; languages en + ar) as
 // submitted in WhatsApp Manager — see docs/message-content.md. They are not
 // sent (Meta holds the approved body); we keep them to render what the guest
 // reads for the CRM inbox, the message log and the admin preview.
@@ -27,7 +28,7 @@ export const WHATSAPP_BODIES: Record<MessageKind, Record<Locale, string>> = {
       "Check-out: {{5}} (by 12:00 PM)",
       "Nights: {{6}}",
       "Total: OMR {{7}} — payable at the hotel, no payment needed now.",
-      "We'll message you 3 days before arrival with directions and tips. Reply here anytime.",
+      "Need to change your booking? Reply to this message — we're happy to help.",
     ].join("\n"),
     ar: [
       "أهلاً {{1}}، تم تأكيد حجزكم في فندق سما – الجبل الأخضر 🌄",
@@ -37,7 +38,7 @@ export const WHATSAPP_BODIES: Record<MessageKind, Record<Locale, string>> = {
       "تسجيل المغادرة: {{5}} (حتى الساعة 12:00 ظهراً)",
       "عدد الليالي: {{6}}",
       "الإجمالي: {{7}} ر.ع — يُدفع في الفندق، ولا يلزم أي دفع الآن.",
-      "سنراسلكم قبل الوصول بثلاثة أيام بالاتجاهات والإرشادات. يسعدنا الرد على استفساراتكم هنا في أي وقت.",
+      "لأي تعديل على الحجز، راسلونا هنا ويسعدنا مساعدتكم.",
     ].join("\n"),
   },
   pre_arrival: {

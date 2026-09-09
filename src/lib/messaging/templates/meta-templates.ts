@@ -1,15 +1,18 @@
 // Meta message-template definitions for the guest messaging engine — what the
 // back-office "Create templates" button submits to WhatsApp Manager. Bodies
 // come from whatsapp-bodies.ts (the single source of truth, mirrored in
-// docs/message-content.md); this file adds the language codes, category and
-// the example values Meta requires for every {{n}} variable.
+// docs/message-content.md); this file adds the language codes, the category
+// per kind and the example values Meta requires for every {{n}} variable.
+//
+// Keep utility bodies strictly about the booking: Meta rejected an earlier
+// confirmation that promised "directions and tips" as INCORRECT_CATEGORY
+// (mixed utility + marketing content counts as marketing).
 //
 // Pure module — unit-tested against the builders' parameter counts.
-import { MESSAGE_KINDS, type Locale, type MessageKind } from "../types";
+import { MESSAGE_KINDS, MESSAGE_KIND_CATEGORY, type Locale, type MessageCategory, type MessageKind } from "../types";
 import { DEFAULT_TEMPLATE_NAMES, TEMPLATE_PARAM_COUNT, WHATSAPP_BODIES } from "./whatsapp-bodies";
 
 export const META_TEMPLATE_LOCALES: readonly Locale[] = ["en", "ar"];
-export const META_TEMPLATE_CATEGORY = "UTILITY" as const;
 
 /** Meta language codes per locale — must equal the `langCode` the dispatcher sends (locale as-is). */
 export const META_LANGUAGE_CODES: Record<Locale, string> = { en: "en", ar: "ar" };
@@ -37,7 +40,8 @@ export interface MetaTemplateDefinition {
   name: string;
   /** Meta language code. */
   language: string;
-  category: typeof META_TEMPLATE_CATEGORY;
+  /** UTILITY for the operational messages, MARKETING for the post-stay offer (MESSAGE_KIND_CATEGORY). */
+  category: MessageCategory;
   body: string;
   examples: string[];
 }
@@ -53,7 +57,7 @@ export function metaTemplateDefinitions(names: Partial<Record<MessageKind, strin
         locale,
         name,
         language: META_LANGUAGE_CODES[locale],
-        category: META_TEMPLATE_CATEGORY,
+        category: MESSAGE_KIND_CATEGORY[kind],
         body: WHATSAPP_BODIES[kind][locale],
         examples: TEMPLATE_EXAMPLES[kind][locale],
       });

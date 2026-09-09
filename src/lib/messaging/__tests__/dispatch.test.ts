@@ -63,7 +63,8 @@ const okEmail = { ok: true, stubbed: false, messageId: "em_1", error: null, reas
 let tables: FakeTables;
 
 beforeEach(() => {
-  tables = { bk_scheduled_messages: [], bk_message_log: [], messages: [] };
+  // The shared contact has marketing consent, so the post-stay offer may go out.
+  tables = { bk_scheduled_messages: [], bk_message_log: [], messages: [], contacts: [{ id: CONTACT, consent: true }] };
   admin = createFakeAdmin(tables);
   bookings.clear();
   const b1 = { ...sampleBooking("en"), id: B1, contact_id: CONTACT };
@@ -245,6 +246,26 @@ describe("dispatchDueMessages", () => {
     expect(template).toBe("sama_post_stay_review");
     expect(lang).toBe("ar");
     expect(params).toEqual(["أحمد النبهاني", SAMPLE_SETTINGS.contact.website]);
+  });
+
+  it("sends the post-stay offer (marketing) only with the contact's marketing consent", async () => {
+    tables.contacts = [{ id: CONTACT, consent: false }];
+    tables.bk_scheduled_messages.push(scheduled("s1", B2, "whatsapp", "post_stay"), scheduled("s2", B2, "email", "post_stay"));
+    const summary = await dispatchDueMessages(50);
+    expect(summary).toMatchObject({ picked: 2, sent: 0, skipped: 2 });
+    expect(row("s1")).toMatchObject({ status: "skipped", last_error: "no_marketing_consent" });
+    expect(row("s2")).toMatchObject({ status: "skipped", last_error: "no_marketing_consent" });
+    expect(sendWhatsApp).not.toHaveBeenCalled();
+    expect(sendGuestEmail).not.toHaveBeenCalled();
+  });
+
+  it("treats a missing contact as no consent, but operational kinds ignore consent", async () => {
+    tables.contacts = [];
+    tables.bk_scheduled_messages.push(scheduled("s1", B1, "whatsapp", "post_stay"), scheduled("s2", B1, "whatsapp", "pre_arrival"));
+    const summary = await dispatchDueMessages(50);
+    expect(summary).toMatchObject({ picked: 2, sent: 1, skipped: 1 });
+    expect(row("s1")).toMatchObject({ status: "skipped", last_error: "no_marketing_consent" });
+    expect(row("s2")).toMatchObject({ status: "sent" });
   });
 });
 

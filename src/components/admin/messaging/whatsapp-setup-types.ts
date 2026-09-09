@@ -61,7 +61,17 @@ export interface WhatsAppSetupStatus {
       kind: string;
       name: string;
       language: string;
+      /** Meta template id, when it exists. */
+      id: string | null;
       status: string; // APPROVED | PENDING | REJECTED | PAUSED | MISSING | …
+      /** Category as Meta holds it. */
+      category: string | null;
+      /** Category the code intends (MESSAGE_KIND_CATEGORY). */
+      expectedCategory: string;
+      /** Meta's verdict when it disagrees with the category (INCORRECT_CATEGORY). */
+      correctCategory: string | null;
+      /** Whether Meta's body equals the code's body; null when unknown. */
+      bodyMatches: boolean | null;
       rejectedReason: string | null;
       issues: string[];
     }[];
@@ -74,4 +84,6 @@ export interface TemplateCreateOutcome {
   ok: boolean;
   status: string | null;
   error: string | null;
+  /** What the button did for this row. */
+  action: "created" | "resubmitted" | "unchanged" | "failed";
 }

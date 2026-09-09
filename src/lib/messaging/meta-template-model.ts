@@ -95,6 +95,8 @@ export interface MetaTemplateSummary {
   language: string;
   status: string;
   category: string | null;
+  /** Meta's verdict when it disagrees with `category` (set on INCORRECT_CATEGORY rejections). */
+  correctCategory?: string | null;
   rejectedReason: string | null;
   qualityScore: string | null;
   components: MetaComponent[];

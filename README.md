@@ -237,7 +237,8 @@ These rules are enforced centrally in `src/lib/send-service.ts` (app) and mirror
 - **Opt-out** — an inbound WhatsApp message of `STOP`, `إلغاء`, or similar keywords immediately sets `consent = false` (`consent_source = 'whatsapp_stop'`). No further marketing is sent to that guest.
 - **WhatsApp marketing = Oman + GCC only** — marketing over WhatsApp never goes to International numbers, regardless of consent. Hard rule.
 - **Email marketing** — may reach all markets, consent still required.
-- **Utility messages** (booking confirmation, pre-arrival, post-stay) are transactional and not consent-gated, but still respect channel rules and per-automation market targeting.
+- **Utility messages** (booking confirmation, pre-arrival) are transactional and not consent-gated, but still respect channel rules and per-automation market targeting.
+- **Post-stay message = marketing.** It carries the returning-guest offer (`SAMA10`), so its Meta template is category *Marketing* and the dispatcher sends it (WhatsApp and email) only to guests whose contact has marketing consent — skipped as `no_marketing_consent` otherwise. Booking confirmation and pre-arrival are *Utility* and go out regardless; keep their bodies strictly about the booking or Meta rejects them as `INCORRECT_CATEGORY`.
 - **24-hour window** — free-form WhatsApp text is only sent within 24 hours of the guest's last inbound message; outside the window only the approved `WHATSAPP_REENGAGE_TEMPLATE` is used.
 - **Full audit trail** — every outbound attempt (sent or failed) is logged to the `messages` table, which doubles as the automations' idempotency ledger.
 

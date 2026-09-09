@@ -40,6 +40,22 @@ describe("shouldSkip", () => {
   it("skips a missing booking", () => {
     expect(shouldSkip(null, settings, wa)).toEqual({ skip: true, reason: "booking_not_found" });
   });
+
+  it("marketing kinds (the post-stay offer) need marketing consent on every channel", () => {
+    const post = { channel: "whatsapp", kind: "post_stay" };
+    expect(shouldSkip(booking, settings, post)).toEqual({ skip: true, reason: "no_marketing_consent" });
+    expect(shouldSkip(booking, settings, post, { marketing: false })).toEqual({ skip: true, reason: "no_marketing_consent" });
+    expect(shouldSkip(booking, settings, { ...post, channel: "email" }, { marketing: null })).toEqual({
+      skip: true,
+      reason: "no_marketing_consent",
+    });
+    expect(shouldSkip(booking, settings, post, { marketing: true })).toEqual({ skip: false });
+    // Operational kinds ignore marketing consent…
+    expect(shouldSkip(booking, settings, wa, { marketing: false })).toEqual({ skip: false });
+    expect(shouldSkip(booking, settings, { channel: "email", kind: "pre_arrival" }, { marketing: false })).toEqual({ skip: false });
+    // …and a cancelled booking is still the more fundamental reason.
+    expect(shouldSkip({ ...booking, status: "cancelled" }, settings, post)).toEqual({ skip: true, reason: "booking_cancelled" });
+  });
 });
 
 describe("decideRetry", () => {

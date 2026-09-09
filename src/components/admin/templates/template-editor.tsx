@@ -42,6 +42,11 @@ const STR = {
   nameHint: { en: "Lowercase letters, digits and underscores, e.g. eid_weekend_offer. Cannot be changed later.", ar: "أحرف صغيرة وأرقام وشرطات سفلية فقط، مثل eid_weekend_offer. لا يمكن تغييره لاحقاً." },
   language: { en: "Language", ar: "اللغة" },
   category: { en: "Category", ar: "الفئة" },
+  metaCategory: { en: "Meta's verdict", ar: "تصنيف Meta" },
+  categoryRejectedHint: {
+    en: "Meta rejected the category. Either switch it to Meta's verdict, or remove the promotional wording and resubmit with the same category.",
+    ar: "رفضت Meta الفئة. إمّا تغييرها إلى تصنيف Meta، أو حذف الصياغة الترويجية وإعادة الإرسال بالفئة نفسها.",
+  },
   categoryHint: { en: "Marketing: offers and news. Utility: updates about a booking. Meta may re-categorise marketing content automatically.", ar: "تسويقي: العروض والأخبار. خدمي: تحديثات عن الحجز. قد تعيد Meta تصنيف المحتوى التسويقي تلقائياً." },
   header: { en: "Header (optional)", ar: "الترويسة (اختياري)" },
   headerFormat: { en: "Type", ar: "النوع" },
@@ -84,11 +89,13 @@ interface Props {
   templateId?: string;
   status?: string;
   rejectedReason?: string | null;
+  /** Meta's category verdict on a rejected template (correct_category). */
+  correctCategory?: string | null;
   initial: TemplateDraft;
   appIdKnown: boolean;
 }
 
-export function TemplateEditor({ mode, templateId, status, rejectedReason, initial, appIdKnown }: Props) {
+export function TemplateEditor({ mode, templateId, status, rejectedReason, correctCategory, initial, appIdKnown }: Props) {
   const { lang } = useLang();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -176,6 +183,9 @@ export function TemplateEditor({ mode, templateId, status, rejectedReason, initi
   }
 
   const locked = mode === "edit";
+  // Meta accepts a category change only on rejected templates (the INCORRECT_CATEGORY fix).
+  const categoryLocked = locked && status !== "REJECTED";
+  const metaVerdict = correctCategory && correctCategory !== initial.category ? correctCategory : null;
 
   return (
     <div>
@@ -193,7 +203,9 @@ export function TemplateEditor({ mode, templateId, status, rejectedReason, initi
         <InlineAlert kind="error" message={error} />
         <InlineAlert kind="success" message={notice} />
         {mode === "edit" && !editable && <InlineAlert kind="error" message={STR.notEditable[lang]} />}
-        {mode === "edit" && rejectedReason && <InlineAlert kind="error" message={`${STR.rejectedReason[lang]}: ${rejectedReason}`} />}
+        {mode === "edit" && rejectedReason && (
+          <InlineAlert kind="error" message={`${STR.rejectedReason[lang]}: ${rejectedReason}${metaVerdict ? ` · ${STR.metaCategory[lang]}: ${metaVerdict}` : ""}`} />
+        )}
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
@@ -222,14 +234,14 @@ export function TemplateEditor({ mode, templateId, status, rejectedReason, initi
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="tpl-cat">{STR.category[lang]}</Label>
-                <Select id="tpl-cat" value={draft.category} disabled={locked} onChange={(e) => update({ category: e.target.value as TemplateDraft["category"] })}>
+                <Select id="tpl-cat" value={draft.category} disabled={categoryLocked} onChange={(e) => update({ category: e.target.value as TemplateDraft["category"] })}>
                   {TEMPLATE_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
                   ))}
                 </Select>
-                <p className="mt-1 text-xs text-maroon-400">{STR.categoryHint[lang]}</p>
+                <p className="mt-1 text-xs text-maroon-400">{locked && !categoryLocked ? STR.categoryRejectedHint[lang] : STR.categoryHint[lang]}</p>
               </div>
               {mode === "edit" && <p className="text-xs text-maroon-400 sm:col-span-3">{STR.editLimits[lang]}</p>}
             </CardContent>

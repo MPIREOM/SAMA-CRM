@@ -10,6 +10,23 @@ export type Locale = "en" | "ar";
 export const MESSAGE_KINDS: readonly MessageKind[] = ["confirmation", "pre_arrival", "post_stay"];
 export const CHANNELS: readonly Channel[] = ["email", "whatsapp"];
 
+/**
+ * Meta template category per kind. Confirmation and pre-arrival are utility
+ * (operational). The post-stay message carries the returning-guest offer, so
+ * Meta classifies it as marketing — and marketing needs the guest's marketing
+ * consent on every channel (see /terms), which the dispatcher enforces.
+ */
+export type MessageCategory = "UTILITY" | "MARKETING";
+export const MESSAGE_KIND_CATEGORY: Record<MessageKind, MessageCategory> = {
+  confirmation: "UTILITY",
+  pre_arrival: "UTILITY",
+  post_stay: "MARKETING",
+};
+
+export function isMarketingKind(kind: string): boolean {
+  return isMessageKind(kind) && MESSAGE_KIND_CATEGORY[kind] === "MARKETING";
+}
+
 export interface DispatchSummary {
   picked: number;
   sent: number;

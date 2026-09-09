@@ -10,7 +10,8 @@ describe("meta template definitions", () => {
     expect(defs).toHaveLength(MESSAGE_KINDS.length * 2);
     const keys = new Set(defs.map((d) => `${d.name}:${d.language}`));
     expect(keys.size).toBe(defs.length);
-    for (const d of defs) expect(d.category).toBe("UTILITY");
+    // Post-stay carries the returning-guest offer → Meta classifies it as marketing.
+    for (const d of defs) expect(d.category).toBe(d.kind === "post_stay" ? "MARKETING" : "UTILITY");
   });
 
   it("uses the default names unless overridden", () => {

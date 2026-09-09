@@ -1,7 +1,8 @@
 // Tiny in-memory stand-in for the Supabase service-role client, covering the
 // query shapes the dispatcher uses (select/update/insert with eq/in/lte/lt/is,
-// order, limit, select-after-update, maybeSingle). Enough to exercise the
-// lock → send → log → status pipeline without a database.
+// order, limit, select-after-update, maybeSingle). Unknown tables read as
+// empty. Enough to exercise the lock → send → log → status pipeline without a
+// database.
 
 type Row = Record<string, unknown>;
 type Filter = (row: Row) => boolean;
@@ -15,6 +16,8 @@ export interface FakeTables {
   bk_scheduled_messages: Row[];
   bk_message_log: Row[];
   messages: Row[];
+  /** CRM contacts — the dispatcher reads `consent` for marketing kinds. */
+  contacts: Row[];
 }
 
 function cmp(a: unknown, b: unknown): number {
@@ -88,7 +91,7 @@ class Query implements PromiseLike<Result> {
   }
 
   private run(): Result {
-    const rows = this.tables[this.table];
+    const rows = this.tables[this.table] ?? (this.tables[this.table] = []);
     if (this.op === "insert") {
       for (const r of this.inserted) rows.push({ id: `${this.table}-${rows.length + 1}`, ...r });
       return { data: null, error: null };

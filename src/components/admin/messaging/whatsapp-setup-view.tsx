@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { adoptPublicNumber, createMissingTemplates, registerWebhook, saveAppId, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
+import { adoptPublicNumber, createMissingTemplates, registerWebhook, resubmitTemplate, saveAppId, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
 import { InlineAlert } from "../load-error";
 import { kindLabel } from "../shared";
 import type { TemplateCreateOutcome, WhatsAppSetupStatus } from "./whatsapp-setup-types";
@@ -95,11 +95,21 @@ const STR = {
   },
   forwardSenders: { en: "relayed senders", ar: "المرسلون المُمرَّرون" },
   templatesHint: {
-    en: "The three guest messages, each in English and Arabic, category Utility. Bodies are the exact texts in docs/message-content.md. New submissions show PENDING until Meta approves them, usually within minutes.",
-    ar: "رسائل النزلاء الثلاث، كل منها بالإنجليزية والعربية، فئة Utility. النصوص هي ذاتها الموجودة في docs/message-content.md. تظهر الطلبات الجديدة بحالة PENDING حتى توافق عليها Meta، عادةً خلال دقائق.",
+    en: "The three guest messages, each in English and Arabic. Confirmation and pre-arrival are Utility; the post-stay message is Marketing (it carries the SAMA10 offer) and only goes to guests with marketing consent. Bodies are the exact texts in docs/message-content.md. The button creates missing templates and resubmits rejected ones with the current text and category; new submissions show PENDING until Meta approves them, usually within minutes. A rejection for INCORRECT_CATEGORY shows Meta's verdict in the note.",
+    ar: "رسائل النزلاء الثلاث، كل منها بالإنجليزية والعربية. التأكيد وما قبل الوصول من فئة Utility؛ ورسالة ما بعد الإقامة من فئة Marketing (تتضمن عرض SAMA10) ولا تُرسل إلا للنزلاء الموافقين على التسويق. النصوص هي ذاتها الموجودة في docs/message-content.md. ينشئ الزر القوالب الناقصة ويعيد إرسال المرفوضة بالنص والفئة الحاليين؛ تظهر الطلبات الجديدة بحالة PENDING حتى توافق عليها Meta، عادةً خلال دقائق. عند الرفض بسبب INCORRECT_CATEGORY يظهر تصنيف Meta في الملاحظة.",
   },
-  createTemplates: { en: "Create missing templates", ar: "إنشاء القوالب الناقصة" },
+  createTemplates: { en: "Create / resubmit templates", ar: "إنشاء / إعادة إرسال القوالب" },
   templatesDone: { en: "Submitted to Meta.", ar: "تم الإرسال إلى Meta." },
+  resubmit: { en: "Resubmit", ar: "إعادة الإرسال" },
+  resubmitDone: { en: "Resubmitted to Meta — PENDING until approved again.", ar: "أُعيد الإرسال إلى Meta — بحالة PENDING حتى تتم الموافقة مجدداً." },
+  resubmitted: { en: "resubmitted with the current text", ar: "أُعيد إرساله بالنص الحالي" },
+  metaSays: { en: "Meta says", ar: "تصنيف Meta" },
+  categoryDiffers: { en: "category in Meta", ar: "الفئة في Meta" },
+  bodyDiffers: { en: "text in Meta differs from the code", ar: "النص في Meta يختلف عن النص في الكود" },
+  resubmitWarning: {
+    en: "Resubmitting sends the current text and category for review; the template cannot be sent until Meta approves it again.",
+    ar: "إعادة الإرسال ترسل النص والفئة الحاليين للمراجعة؛ لا يمكن إرسال القالب حتى توافق عليه Meta مجدداً.",
+  },
   kind: { en: "Message", ar: "الرسالة" },
   name: { en: "Template name", ar: "اسم القالب" },
   language: { en: "Language", ar: "اللغة" },
@@ -157,7 +167,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
   const canRegister = env.accessToken && env.verifyToken && env.appSecret && Boolean(env.forwardUrl) && !pending;
   const cloudNumber = status.phone.displayPhoneNumber;
   const sameNumber = Boolean(cloudNumber) && digits(cloudNumber) === digits(publicWhatsApp);
-  const missingTemplates = status.templates.rows.filter((r) => r.status === "MISSING").length;
+  const actionableTemplates = status.templates.rows.filter((r) => r.status === "MISSING" || r.status === "REJECTED").length;
 
   function run(fn: () => Promise<{ ok: true } | { ok: false; error: string }>, success: string) {
     setError(null);
@@ -436,9 +446,9 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
       <Card className="mb-6 overflow-hidden">
         <CardHeader className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle>{STR.step3[lang]}</CardTitle>
-          <Button size="sm" onClick={submitTemplates} disabled={pending || !status.templates.ok || missingTemplates === 0} loading={pending}>
+          <Button size="sm" onClick={submitTemplates} disabled={pending || !status.templates.ok || actionableTemplates === 0} loading={pending}>
             <Send className="h-4 w-4" aria-hidden="true" />
-            {STR.createTemplates[lang]} {missingTemplates > 0 ? `(${missingTemplates})` : ""}
+            {STR.createTemplates[lang]} {actionableTemplates > 0 ? `(${actionableTemplates})` : ""}
           </Button>
         </CardHeader>
         <CardContent className="p-0">
@@ -458,7 +468,19 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
               {status.templates.rows.map((row) => {
                 const outcome = outcomes.find((o) => o.name === row.name && o.language === row.language);
                 const shown = outcome?.status ?? row.status;
-                const note = outcome?.error ?? row.rejectedReason ?? (row.issues.length > 0 ? row.issues.join("; ") : null);
+                const categoryMismatch = row.category !== null && row.category !== row.expectedCategory;
+                const metaDisagrees = row.correctCategory !== null && row.correctCategory !== row.category;
+                const drifted = categoryMismatch || row.bodyMatches === false;
+                const canResubmit =
+                  row.id !== null && !outcome?.ok && ["APPROVED", "REJECTED", "PAUSED"].includes(row.status) && (row.status === "REJECTED" || drifted);
+                const notes: string[] = [];
+                if (outcome?.error) notes.push(outcome.error);
+                else if (outcome?.action === "resubmitted") notes.push(STR.resubmitted[lang]);
+                if (row.rejectedReason) notes.push(row.rejectedReason);
+                if (metaDisagrees) notes.push(`${STR.metaSays[lang]}: ${row.correctCategory}`);
+                if (categoryMismatch) notes.push(`${STR.categoryDiffers[lang]}: ${row.category} → ${row.expectedCategory}`);
+                if (row.bodyMatches === false) notes.push(STR.bodyDiffers[lang]);
+                if (row.issues.length > 0) notes.push(row.issues.join("; "));
                 return (
                   <TR key={`${row.name}:${row.language}`}>
                     <TD>{kindLabel(row.kind, lang)}</TD>
@@ -469,9 +491,27 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
                     </TD>
                     <TD dir="ltr">{row.language}</TD>
                     <TD>
-                      <Badge variant={statusVariant(shown)}>{shown}</Badge>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge variant={statusVariant(shown)}>{shown}</Badge>
+                        <Badge variant={categoryMismatch ? "red" : row.expectedCategory === "MARKETING" ? "gold" : "outline"}>{row.category ?? row.expectedCategory}</Badge>
+                      </div>
                     </TD>
-                    <TD className="max-w-md text-xs text-maroon-500">{note ?? "—"}</TD>
+                    <TD className="max-w-md text-xs text-maroon-500">
+                      {notes.length > 0 ? notes.join(" · ") : "—"}
+                      {canResubmit && (
+                        <div className="mt-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={pending}
+                            title={STR.resubmitWarning[lang]}
+                            onClick={() => run(() => resubmitTemplate({ name: row.name, language: row.language }), STR.resubmitDone[lang])}
+                          >
+                            {STR.resubmit[lang]}
+                          </Button>
+                        </div>
+                      )}
+                    </TD>
                   </TR>
                 );
               })}
