@@ -36,6 +36,7 @@ const STR = {
   category: { en: "Category", ar: "الفئة" },
   quality: { en: "Quality", ar: "الجودة" },
   edit: { en: "Edit", ar: "تعديل" },
+  metaSays: { en: "Meta says", ar: "تصنيف Meta" },
   preview: { en: "Preview", ar: "معاينة" },
   hide: { en: "Hide", ar: "إخفاء" },
   delete: { en: "Delete", ar: "حذف" },
@@ -178,6 +179,11 @@ export function TemplatesView({ templates, error }: { templates: MetaTemplateSum
                             {v.rejectedReason && (
                               <span className="text-crimson-700" title={v.rejectedReason}>
                                 · {STR.rejected[lang]}: {v.rejectedReason}
+                              </span>
+                            )}
+                            {v.correctCategory && v.correctCategory !== v.category && (
+                              <span className="text-gold-800">
+                                · {STR.metaSays[lang]}: {v.correctCategory}
                               </span>
                             )}
                             <Link href={`/templates/${v.id}`} className="ms-1 inline-flex items-center gap-1 text-maroon-700 hover:underline">

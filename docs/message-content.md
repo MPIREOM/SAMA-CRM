@@ -39,6 +39,8 @@ code sent to Meta and the email language.
 
 ## 1. `sama_booking_confirmation` — Utility
 
+Keep this body strictly about the booking. Meta rejected an earlier version whose last line promised "directions and tips" as `INCORRECT_CATEGORY`: any utility text with extra, non-transactional content is classified as marketing.
+
 Parameters (order is contractual — `{{n}}` ↔ index `n-1` of `params`):
 
 | `{{n}}` | Value | Example |
@@ -60,7 +62,7 @@ Check-in: {{4}} (from 2:00 PM)
 Check-out: {{5}} (by 12:00 PM)
 Nights: {{6}}
 Total: OMR {{7}} — payable at the hotel, no payment needed now.
-We'll message you 3 days before arrival with directions and tips. Reply here anytime.
+Need to change your booking? Reply to this message — we're happy to help.
 ```
 
 ### ar
@@ -72,7 +74,7 @@ We'll message you 3 days before arrival with directions and tips. Reply here any
 تسجيل المغادرة: {{5}} (حتى الساعة 12:00 ظهراً)
 عدد الليالي: {{6}}
 الإجمالي: {{7}} ر.ع — يُدفع في الفندق، ولا يلزم أي دفع الآن.
-سنراسلكم قبل الوصول بثلاثة أيام بالاتجاهات والإرشادات. يسعدنا الرد على استفساراتكم هنا في أي وقت.
+لأي تعديل على الحجز، راسلونا هنا ويسعدنا مساعدتكم.
 ```
 
 ---
@@ -109,7 +111,9 @@ See you soon at Sama Hotel ☕
 
 ---
 
-## 3. `sama_post_stay_review` — Utility
+## 3. `sama_post_stay_review` — Marketing
+
+Category **Marketing** because of the `SAMA10` offer (a review request alone would be utility). The dispatcher therefore sends the post-stay message — WhatsApp *and* email — only to guests whose CRM contact has marketing consent (`contacts.consent`); everyone else is skipped with `no_marketing_consent`. Website bookings create contacts without consent, so consent comes from the check-in kiosk, the inbox guest panel or a `SUBSCRIBE`-style reply.
 
 | `{{n}}` | Value | Example |
 |---|---|---|

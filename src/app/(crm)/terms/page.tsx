@@ -26,7 +26,7 @@ const AR_SECTIONS: Section[] = [
     heading: "ما الذي ستستلمونه",
     body: [
       "رسائل من حين لآخر تتضمن عروضًا وتحديثات من الفندق، مثل تهنئة عيد الميلاد مع عرض خاص، وعروض العودة، والعروض الموسمية.",
-      "رسائل الخدمة المتعلقة بحجوزاتكم (تأكيد الحجز، والتذكير قبل الوصول، ورسالة ما بعد الإقامة) هي رسائل تشغيلية وتُرسل بغض النظر عن الموافقة التسويقية.",
+      "رسائل الخدمة المتعلقة بحجوزاتكم (تأكيد الحجز، والتذكير قبل الوصول) هي رسائل تشغيلية وتُرسل بغض النظر عن الموافقة التسويقية. أما رسالة ما بعد الإقامة فتتضمن عرضاً للضيوف العائدين، لذا لا تُرسل إلا بموافقتكم التسويقية.",
     ],
   },
   {
@@ -70,7 +70,7 @@ const EN_SECTIONS: Section[] = [
     heading: "What you will receive",
     body: [
       "Occasional messages with offers and updates from the hotel, such as a birthday greeting with a special offer, welcome-back offers, and seasonal promotions.",
-      "Service messages about your bookings (booking confirmation, pre-arrival reminder, post-stay message) are operational and are sent regardless of marketing consent.",
+      "Service messages about your bookings (booking confirmation, pre-arrival reminder) are operational and are sent regardless of marketing consent. The post-stay message carries a returning-guest offer, so it is only sent with your marketing consent.",
     ],
   },
   {

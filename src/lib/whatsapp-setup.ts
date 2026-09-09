@@ -70,7 +70,12 @@ export async function loadWhatsAppSetup(
       kind: d.kind,
       name: d.name,
       language: d.language,
+      id: match?.id ?? null,
       status: match?.status ?? "MISSING",
+      category: match?.category ?? null,
+      expectedCategory: d.category,
+      correctCategory: match?.correctCategory ?? null,
+      bodyMatches: match?.body == null ? null : match.body === d.body,
       rejectedReason: match?.rejectedReason ?? null,
       issues: templateBodyIssues(d),
     };

@@ -397,7 +397,11 @@ export interface TemplateStatus {
   language: string;
   status: string;
   category: string | null;
+  /** Meta's own category verdict when it disagrees (INCORRECT_CATEGORY, or a scheduled re-categorisation). */
+  correctCategory: string | null;
   rejectedReason: string | null;
+  /** Body text as Meta holds it — lets the setup page spot drift from the code's bodies. */
+  body: string | null;
 }
 
 export async function listTemplates(
@@ -412,11 +416,20 @@ export async function listTemplates(
   let after: string | undefined;
   for (let page = 0; page < 10; page++) {
     const r = await graph<{
-      data?: { id?: string; name?: string; language?: string; status?: string; category?: string; rejected_reason?: string }[];
+      data?: {
+        id?: string;
+        name?: string;
+        language?: string;
+        status?: string;
+        category?: string;
+        correct_category?: string;
+        rejected_reason?: string;
+        components?: { type?: string; text?: string }[];
+      }[];
       paging?: { cursors?: { after?: string }; next?: string };
     }>(`${wabaId}/message_templates`, {
       token: env.accessToken!,
-      query: { fields: "id,name,language,status,category,rejected_reason", limit: "100", ...(after ? { after } : {}) },
+      query: { fields: "id,name,language,status,category,correct_category,rejected_reason,components", limit: "100", ...(after ? { after } : {}) },
     });
     if (!r.ok) return r;
     for (const t of r.data.data ?? []) {
@@ -427,7 +440,9 @@ export async function listTemplates(
         language: t.language ?? "",
         status: t.status ?? "UNKNOWN",
         category: t.category ?? null,
+        correctCategory: t.correct_category ?? null,
         rejectedReason: t.rejected_reason && t.rejected_reason !== "NONE" ? t.rejected_reason : null,
+        body: t.components?.find((c) => (c.type ?? "").toUpperCase() === "BODY")?.text ?? null,
       });
     }
     if (!r.data.paging?.next || !r.data.paging.cursors?.after) break;
@@ -476,7 +491,7 @@ export async function createTemplate(
 // Template management (Templates page + campaigns)
 // ---------------------------------------------------------------------------
 
-const TEMPLATE_FIELDS = "id,name,language,status,category,components,rejected_reason,quality_score";
+const TEMPLATE_FIELDS = "id,name,language,status,category,correct_category,components,rejected_reason,quality_score";
 
 interface RawTemplate {
   id?: string;
@@ -484,6 +499,7 @@ interface RawTemplate {
   language?: string;
   status?: string;
   category?: string;
+  correct_category?: string;
   components?: MetaComponent[];
   rejected_reason?: string;
   quality_score?: { score?: string };
@@ -496,6 +512,7 @@ function toSummary(t: RawTemplate): MetaTemplateSummary {
     language: t.language ?? "",
     status: t.status ?? "UNKNOWN",
     category: t.category ?? null,
+    correctCategory: t.correct_category ?? null,
     rejectedReason: t.rejected_reason && t.rejected_reason !== "NONE" ? t.rejected_reason : null,
     qualityScore: t.quality_score?.score && t.quality_score.score !== "UNKNOWN" ? t.quality_score.score : null,
     components: t.components ?? [],
@@ -554,16 +571,35 @@ export async function createTemplateFromComponents(
 }
 
 /** Replace a template's components (allowed for APPROVED / REJECTED / PAUSED; approved ones ≤ 10 edits per 30 days). */
+export interface TemplateUpdateInput {
+  components: MetaComponent[];
+  /** Meta accepts a category change on rejected templates — the fix for INCORRECT_CATEGORY. */
+  category?: "UTILITY" | "MARKETING";
+}
+
+/** Replace a template's components (and optionally its category); Meta reviews it again. */
+export async function updateTemplate(
+  templateId: string,
+  input: TemplateUpdateInput,
+  env: WhatsAppEnv = whatsappEnv()
+): Promise<GraphResult<{ success: boolean }>> {
+  const missing = needToken(env);
+  if (missing) return missing;
+  const r = await graph<{ success?: boolean }>(templateId, {
+    token: env.accessToken!,
+    method: "POST",
+    json: { ...(input.category ? { category: input.category } : {}), components: input.components },
+  });
+  if (!r.ok) return r;
+  return { ok: true, data: { success: Boolean(r.data.success) } };
+}
+
 export async function updateTemplateComponents(
   templateId: string,
   components: MetaComponent[],
   env: WhatsAppEnv = whatsappEnv()
 ): Promise<GraphResult<{ success: boolean }>> {
-  const missing = needToken(env);
-  if (missing) return missing;
-  const r = await graph<{ success?: boolean }>(templateId, { token: env.accessToken!, method: "POST", json: { components } });
-  if (!r.ok) return r;
-  return { ok: true, data: { success: Boolean(r.data.success) } };
+  return updateTemplate(templateId, { components }, env);
 }
 
 /** Delete one language variant (with `hsmId`) or every variant of a name. Deleted names are blocked for 30 days. */

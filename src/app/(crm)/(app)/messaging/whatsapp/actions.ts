@@ -17,8 +17,11 @@ import {
   listTemplates,
   setPhoneWebhookOverride,
   setWabaWebhookOverride,
+  updateTemplate,
+  type TemplateStatus,
 } from "@/lib/whatsapp-admin";
-import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
+import { metaTemplateDefinitions, templateBodyIssues, type MetaTemplateDefinition } from "@/lib/messaging/templates/meta-templates";
+import type { MetaComponent } from "@/lib/messaging/meta-template-model";
 import type { TemplateCreateOutcome } from "@/components/admin/messaging/whatsapp-setup-types";
 
 // Server actions behind the back-office WhatsApp setup page. super_admin only.
@@ -132,7 +135,34 @@ export async function registerWebhook(): Promise<ActionResult<{ callbackUrl: str
   });
 }
 
-/** Submit every guest-messaging template that does not exist yet (3 kinds × en/ar). */
+/** The one BODY component a guest template is made of, with Meta's required examples. */
+function bodyComponents(def: MetaTemplateDefinition): MetaComponent[] {
+  return [{ type: "BODY", text: def.body, ...(def.examples.length > 0 ? { example: { body_text: [def.examples] } } : {}) }];
+}
+
+const RESUBMITTABLE = new Set(["APPROVED", "REJECTED", "PAUSED"]);
+
+/** Push the code's current text + category to an existing Meta template; Meta reviews it again. */
+async function resubmitDefinition(def: MetaTemplateDefinition, match: TemplateStatus, env: WhatsAppEnv): Promise<TemplateCreateOutcome> {
+  const base = { name: def.name, language: def.language };
+  if (!match.id) return { ...base, ok: false, status: match.status, error: "Meta returned no template id — resubmit from WhatsApp Manager.", action: "failed" };
+  if (!RESUBMITTABLE.has(match.status)) {
+    return { ...base, ok: false, status: match.status, error: `Only approved, rejected or paused templates can be resubmitted — this one is ${match.status}.`, action: "failed" };
+  }
+  const issues = templateBodyIssues(def);
+  if (issues.length > 0) return { ...base, ok: false, status: match.status, error: issues.join("; "), action: "failed" };
+  const r = await updateTemplate(match.id, { category: def.category, components: bodyComponents(def) }, env);
+  return r.ok
+    ? { ...base, ok: true, status: "PENDING", error: null, action: "resubmitted" }
+    : { ...base, ok: false, status: match.status, error: r.error, action: "failed" };
+}
+
+/**
+ * Bring the guest-messaging templates (3 kinds × en/ar) in line with the code:
+ * create the missing ones, resubmit the rejected ones with the current text and
+ * category. Approved templates are left alone (resubmitting one takes it out
+ * of service until Meta approves it again — that is the per-row action).
+ */
 export async function createMissingTemplates(): Promise<ActionResult<{ results: TemplateCreateOutcome[] }>> {
   return runAction<{ results: TemplateCreateOutcome[] }>("whatsapp.templates", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
@@ -149,38 +179,64 @@ export async function createMissingTemplates(): Promise<ActionResult<{ results: 
     for (const def of defs) {
       const match = existing.data.find((t) => t.name === def.name && t.language === def.language);
       if (match) {
-        results.push({
-          name: def.name,
-          language: def.language,
-          ok: match.status !== "REJECTED",
-          status: match.status,
-          error:
-            match.status === "REJECTED"
-              ? `Rejected in Meta (${match.rejectedReason ?? "no reason given"}) — edit or delete it in WhatsApp Manager, then create again.`
-              : null,
-        });
+        if (match.status === "REJECTED") {
+          results.push(await resubmitDefinition(def, match, env));
+        } else {
+          results.push({ name: def.name, language: def.language, ok: true, status: match.status, error: null, action: "unchanged" });
+        }
         continue;
       }
       const issues = templateBodyIssues(def);
       if (issues.length > 0) {
-        results.push({ name: def.name, language: def.language, ok: false, status: null, error: issues.join("; ") });
+        results.push({ name: def.name, language: def.language, ok: false, status: null, error: issues.join("; "), action: "failed" });
         continue;
       }
       const r = await createTemplate(waba.wabaId, def, env);
       results.push(
         r.ok
-          ? { name: def.name, language: def.language, ok: true, status: r.data.status ?? "PENDING", error: null }
-          : { name: def.name, language: def.language, ok: false, status: null, error: r.error }
+          ? { name: def.name, language: def.language, ok: true, status: r.data.status ?? "PENDING", error: null, action: "created" }
+          : { name: def.name, language: def.language, ok: false, status: null, error: r.error, action: "failed" }
       );
     }
 
     await audit(actor, "whatsapp.templates_submit", "bk_settings", "messaging", {
       waba_id: waba.wabaId,
-      created: results.filter((r) => r.ok && r.status === "PENDING").length,
+      created: results.filter((r) => r.action === "created").length,
+      resubmitted: results.filter((r) => r.action === "resubmitted").length,
       failed: results.filter((r) => !r.ok).length,
     });
     revalidateSetup();
     return { ok: true, data: { results } };
+  });
+}
+
+const ResubmitSchema = z.object({ name: z.string().trim().min(1).max(512), language: z.string().trim().min(2).max(10) });
+
+/**
+ * Resubmit one guest template with the code's current text and category —
+ * for an approved template whose text or category drifted from the code, or a
+ * rejected one. The template is unavailable until Meta approves it again.
+ */
+export async function resubmitTemplate(input: unknown): Promise<ActionResult<{ status: string }>> {
+  return runAction<{ status: string }>("whatsapp.template_resubmit", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { name, language } = ResubmitSchema.parse(input);
+    const env = await envWithStoredWaba();
+    const waba = await wabaIdOrError(env);
+    if ("error" in waba) return { ok: false, error: waba.error };
+    const settings = await getSettings();
+    const def = metaTemplateDefinitions(settings.messaging.whatsapp_templates).find((d) => d.name === name && d.language === language);
+    if (!def) return { ok: false, error: "This template is not one of the guest-messaging templates." };
+    const existing = await listTemplates(waba.wabaId, [def.name], env);
+    if (!existing.ok) return { ok: false, error: existing.error };
+    const match = existing.data.find((t) => t.name === def.name && t.language === def.language);
+    if (!match) return { ok: false, error: "Meta has no template with this name and language — use “Create / resubmit templates”." };
+    const outcome = await resubmitDefinition(def, match, env);
+    if (!outcome.ok) return { ok: false, error: outcome.error ?? "Meta refused the update." };
+    await audit(actor, "whatsapp.template_resubmit", "meta_template", match.id, { name: def.name, language: def.language, category: def.category, previous_status: match.status });
+    revalidateSetup();
+    revalidatePath("/templates");
+    return { ok: true, data: { status: outcome.status ?? "PENDING" } };
   });
 }
 

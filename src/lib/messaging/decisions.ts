@@ -2,6 +2,7 @@
 import type { AllSettings } from "@/lib/bk/types";
 import { nextRetryAt } from "@/lib/booking-engine/dates";
 import type { BkBooking, BkScheduledMessage } from "@/lib/database.types";
+import { isMarketingKind } from "./types";
 
 /** Minimal shapes so tests (and callers) don't need full rows. */
 export type SkipBooking = Pick<BkBooking, "status" | "guest_email" | "guest_phone">;
@@ -10,20 +11,29 @@ export type SkipSettings = Pick<AllSettings["messaging"], "email_enabled" | "wha
 
 export type SkipDecision = { skip: true; reason: string } | { skip: false };
 
+/** Marketing consent of the guest's CRM contact (`contacts.consent`); null when unknown or no contact. */
+export interface SkipConsent {
+  marketing: boolean | null;
+}
+
 export const INACTIVE_BOOKING_STATUSES = new Set(["cancelled", "no_show"]);
 
 /**
  * Why a scheduled message should NOT go out. Order matters: a cancelled
- * booking beats a disabled channel beats a missing address, so the reason
- * staff read is the most fundamental one.
+ * booking beats missing marketing consent beats a disabled channel beats a
+ * missing address, so the reason staff read is the most fundamental one.
  */
 export function shouldSkip(
   booking: SkipBooking | null | undefined,
   settings: { messaging: SkipSettings },
-  row: SkipRow
+  row: SkipRow,
+  consent: SkipConsent = { marketing: null }
 ): SkipDecision {
   if (!booking) return { skip: true, reason: "booking_not_found" };
   if (INACTIVE_BOOKING_STATUSES.has(booking.status)) return { skip: true, reason: `booking_${booking.status}` };
+  // Marketing kinds (the post-stay offer) go out on any channel only with
+  // marketing consent — the promise made on /terms. Unknown counts as no.
+  if (isMarketingKind(row.kind) && consent.marketing !== true) return { skip: true, reason: "no_marketing_consent" };
   if (row.channel === "email") {
     if (!settings.messaging.email_enabled) return { skip: true, reason: "email_disabled" };
     if (!booking.guest_email || !booking.guest_email.trim()) return { skip: true, reason: "no_email" };

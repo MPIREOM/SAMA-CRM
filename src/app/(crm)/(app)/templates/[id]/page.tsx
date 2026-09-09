@@ -23,6 +23,7 @@ export default async function EditTemplatePage({ params }: { params: { id: strin
         templateId={r.data.id}
         status={r.data.status}
         rejectedReason={r.data.rejectedReason}
+        correctCategory={r.data.correctCategory ?? null}
         initial={componentsToDraft(r.data)}
         appIdKnown={Boolean(t.appId)}
       />

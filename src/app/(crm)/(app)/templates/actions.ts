@@ -13,7 +13,7 @@ import {
   deleteTemplate,
   getTemplate,
   listAllTemplates,
-  updateTemplateComponents,
+  updateTemplate,
   uploadMediaHandle,
 } from "@/lib/whatsapp-admin";
 import {
@@ -94,9 +94,11 @@ export async function saveMetaTemplate(input: unknown): Promise<ActionResult<{ i
       if (!EDITABLE_STATUSES.includes(existing.data.status)) {
         return { ok: false, error: `Only approved, rejected or paused templates can be edited — this one is ${existing.data.status}. Wait for Meta's review to finish.` };
       }
-      const r = await updateTemplateComponents(id, components, t.env);
+      // Meta only lets a rejected template change category (the INCORRECT_CATEGORY fix).
+      const category = existing.data.status === "REJECTED" && draft.category !== existing.data.category ? draft.category : undefined;
+      const r = await updateTemplate(id, { components, category }, t.env);
       if (!r.ok) return { ok: false, error: r.error };
-      await audit(actor, "template.update", "meta_template", id, { name: existing.data.name, language: existing.data.language, category: draft.category });
+      await audit(actor, "template.update", "meta_template", id, { name: existing.data.name, language: existing.data.language, category: category ?? existing.data.category });
       revalidateTemplates();
       return { ok: true, data: { id, status: "PENDING", category: existing.data.category } };
     }
