@@ -2,6 +2,7 @@ import "server-only";
 
 import type { MessageKind } from "@/lib/messaging/types";
 import { metaTemplateDefinitions, templateBodyIssues } from "@/lib/messaging/templates/meta-templates";
+import { MARKETING_PACK, MARKETING_PACK_NAMES } from "@/lib/messaging/templates/marketing-pack";
 import { updateSetting } from "@/lib/bk/settings";
 import { logger } from "@/lib/logger";
 import { whatsappEnv, webhookCallbackUrl, withStoredAppId, withStoredBusinessAccountId } from "./whatsapp-env";
@@ -50,7 +51,7 @@ export async function loadWhatsAppSetup(
     getPhoneWebhookConfig(env),
     wabaId ? getWabaSubscribedApps(wabaId, env) : Promise.resolve(null),
     appId && env.appSecret ? getAppSubscriptions(appId, env) : Promise.resolve(null),
-    wabaId ? listTemplates(wabaId, Object.values(templateNames), env) : Promise.resolve(null),
+    wabaId ? listTemplates(wabaId, [...Object.values(templateNames), ...MARKETING_PACK_NAMES], env) : Promise.resolve(null),
   ]);
 
   const apps = appsRes?.ok ? appsRes.data : [];
@@ -80,6 +81,22 @@ export async function loadWhatsAppSetup(
       issues: templateBodyIssues(d),
     };
   });
+
+  const marketingRows = MARKETING_PACK.flatMap((t) =>
+    t.variants.map((v) => {
+      const match = found.find((m) => m.name === t.name && m.language === v.language);
+      return {
+        name: t.name,
+        title: t.title,
+        language: v.language,
+        id: match?.id ?? null,
+        status: match?.status ?? "MISSING",
+        category: match?.category ?? null,
+        correctCategory: match?.correctCategory ?? null,
+        rejectedReason: match?.rejectedReason ?? null,
+      };
+    })
+  );
 
   return {
     env: {
@@ -129,6 +146,11 @@ export async function loadWhatsAppSetup(
       ok: Boolean(templatesRes?.ok),
       error: templatesRes && !templatesRes.ok ? templatesRes.error : wabaId ? null : "WhatsApp Business Account id unknown",
       rows,
+    },
+    marketing: {
+      ok: Boolean(templatesRes?.ok),
+      error: templatesRes && !templatesRes.ok ? templatesRes.error : wabaId ? null : "WhatsApp Business Account id unknown",
+      rows: marketingRows,
     },
   };
 }

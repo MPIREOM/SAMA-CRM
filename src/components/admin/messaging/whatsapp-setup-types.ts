@@ -76,6 +76,21 @@ export interface WhatsAppSetupStatus {
       issues: string[];
     }[];
   };
+  /** The marketing template pack (src/lib/messaging/templates/marketing-pack.ts) as Meta holds it. */
+  marketing: {
+    ok: boolean;
+    error: string | null;
+    rows: {
+      name: string;
+      title: { en: string; ar: string };
+      language: string;
+      id: string | null;
+      status: string; // APPROVED | PENDING | REJECTED | PAUSED | MISSING | …
+      category: string | null;
+      correctCategory: string | null;
+      rejectedReason: string | null;
+    }[];
+  };
 }
 
 export interface TemplateCreateOutcome {

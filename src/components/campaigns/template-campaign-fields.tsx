@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { uploadCampaignMedia } from "@/app/(crm)/(app)/templates/actions";
+import { marketingPackHeaderUrl } from "@/lib/messaging/templates/marketing-pack";
 import { TemplatePreview } from "@/components/admin/templates/template-preview";
 import {
   PARAM_FIELDS,
@@ -103,7 +104,11 @@ export function TemplateCampaignFields({
   function select(name: string) {
     const first = approved.find((t) => t.name === name);
     if (!first) return onChange(null);
-    onChange({ name, plan: defaultPlan(templateShape(first)) });
+    const plan = defaultPlan(templateShape(first));
+    // Pack templates ship with their header photo on this deployment — no upload needed.
+    const packHeader = marketingPackHeaderUrl(name, process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : ""));
+    if (packHeader) plan.headerMediaUrl = packHeader;
+    onChange({ name, plan });
   }
 
   function patchPlan(patch: Partial<TemplateParamPlan>) {
