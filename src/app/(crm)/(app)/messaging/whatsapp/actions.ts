@@ -1,5 +1,7 @@
 "use server";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ADMIN_ROLES, requireStaff } from "@/lib/bk/staff";
@@ -8,9 +10,11 @@ import { getSettings, updateSetting } from "@/lib/bk/settings";
 import { normalizePhone } from "@/lib/phone";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
-import { whatsappEnv, webhookCallbackUrl, withStoredBusinessAccountId, type WhatsAppEnv } from "@/lib/whatsapp-env";
+import { appBaseUrl, whatsappEnv, webhookCallbackUrl, withStoredBusinessAccountId, type WhatsAppEnv } from "@/lib/whatsapp-env";
+import { resolveTemplateEnv } from "@/lib/whatsapp-templates";
 import {
   createTemplate,
+  createTemplateFromComponents,
   debugToken,
   discoverWabaId,
   getPhoneNumber,
@@ -18,10 +22,12 @@ import {
   setPhoneWebhookOverride,
   setWabaWebhookOverride,
   updateTemplate,
+  uploadMediaHandle,
   type TemplateStatus,
 } from "@/lib/whatsapp-admin";
 import { metaTemplateDefinitions, templateBodyIssues, type MetaTemplateDefinition } from "@/lib/messaging/templates/meta-templates";
-import type { MetaComponent } from "@/lib/messaging/meta-template-model";
+import { MARKETING_PACK, MARKETING_PACK_NAMES, marketingPackDraft } from "@/lib/messaging/templates/marketing-pack";
+import { draftToComponents, validateDraft, type MetaComponent } from "@/lib/messaging/meta-template-model";
 import type { TemplateCreateOutcome } from "@/components/admin/messaging/whatsapp-setup-types";
 
 // Server actions behind the back-office WhatsApp setup page. super_admin only.
@@ -206,6 +212,115 @@ export async function createMissingTemplates(): Promise<ActionResult<{ results: 
       failed: results.filter((r) => !r.ok).length,
     });
     revalidateSetup();
+    return { ok: true, data: { results } };
+  });
+}
+
+/**
+ * Header image of a pack template as bytes: from the deployed bundle when the
+ * file was traced into it, otherwise over HTTP from this deployment's public
+ * URL (the same URL Meta fetches at send time).
+ */
+async function packImageBytes(publicPath: string): Promise<ArrayBuffer | { error: string }> {
+  try {
+    const buf = await readFile(path.join(process.cwd(), "public", publicPath));
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  } catch {
+    // not in the function bundle — fall through
+  }
+  const url = `${appBaseUrl()}${publicPath}`;
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return { error: `Could not load ${url} (HTTP ${res.status}).` };
+    return await res.arrayBuffer();
+  } catch (e) {
+    return { error: `Could not load ${url}: ${(e as Error).message}` };
+  }
+}
+
+/**
+ * Submit the marketing template pack (marketing-pack.ts) to Meta: every
+ * missing variant is created, every rejected one is resubmitted with the
+ * pack's current text; approved, pending and paused ones are left alone. Each
+ * submission uploads the header image as Meta's sample first.
+ */
+export async function createMarketingTemplates(): Promise<ActionResult<{ results: TemplateCreateOutcome[] }>> {
+  return runAction<{ results: TemplateCreateOutcome[] }>("whatsapp.marketing_templates", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const t = await resolveTemplateEnv();
+    if (!t.env.accessToken) return { ok: false, error: "WHATSAPP_ACCESS_TOKEN is not set in Vercel." };
+    if (!t.wabaId) return { ok: false, error: `WhatsApp Business Account unknown (${t.wabaNotes.join("; ")}). Paste it into the field above and save.` };
+    if (!t.appId) {
+      return { ok: false, error: "Meta needs the app id to accept the header images. Enter it in the “Meta app ID” field above (Meta for Developers shows it at the top of the app dashboard) or set WHATSAPP_APP_ID in Vercel." };
+    }
+    const existing = await listTemplates(t.wabaId, MARKETING_PACK_NAMES, t.env);
+    if (!existing.ok) return { ok: false, error: existing.error };
+
+    const results: TemplateCreateOutcome[] = [];
+    const handles = new Map<string, string>(); // one Meta upload per image, shared by both languages
+    for (const tpl of MARKETING_PACK) {
+      for (const v of tpl.variants) {
+        const base = { name: tpl.name, language: v.language };
+        const match = existing.data.find((m) => m.name === tpl.name && m.language === v.language);
+        if (match && match.status !== "REJECTED") {
+          results.push({ ...base, ok: true, status: match.status, error: null, action: "unchanged" });
+          continue;
+        }
+        if (match && !match.id) {
+          results.push({ ...base, ok: false, status: match.status, error: "Meta returned no template id — resubmit from WhatsApp Manager.", action: "failed" });
+          continue;
+        }
+
+        let handle = handles.get(tpl.headerImage);
+        if (!handle) {
+          const bytes = await packImageBytes(tpl.headerImage);
+          if (!(bytes instanceof ArrayBuffer)) {
+            results.push({ ...base, ok: false, status: match?.status ?? null, error: bytes.error, action: "failed" });
+            continue;
+          }
+          const up = await uploadMediaHandle(t.appId, { name: path.basename(tpl.headerImage), type: "image/jpeg", bytes }, t.env);
+          if (!up.ok) {
+            results.push({ ...base, ok: false, status: match?.status ?? null, error: `Meta refused the header image: ${up.error}`, action: "failed" });
+            continue;
+          }
+          handle = up.data.handle;
+          handles.set(tpl.headerImage, handle);
+        }
+
+        const draft = marketingPackDraft(tpl, v, handle, `${appBaseUrl()}${tpl.headerImage}`);
+        const issues = validateDraft(draft);
+        if (issues.length > 0) {
+          results.push({ ...base, ok: false, status: match?.status ?? null, error: issues.join(" "), action: "failed" });
+          continue;
+        }
+        const components = draftToComponents(draft);
+        if (match) {
+          const r = await updateTemplate(match.id!, { category: "MARKETING", components }, t.env);
+          results.push(
+            r.ok
+              ? { ...base, ok: true, status: "PENDING", error: null, action: "resubmitted" }
+              : { ...base, ok: false, status: match.status, error: r.error, action: "failed" }
+          );
+        } else {
+          const r = await createTemplateFromComponents(t.wabaId, { name: tpl.name, language: v.language, category: "MARKETING", components }, t.env);
+          results.push(
+            r.ok
+              ? { ...base, ok: true, status: r.data.status ?? "PENDING", error: null, action: "created" }
+              : { ...base, ok: false, status: null, error: r.error, action: "failed" }
+          );
+        }
+      }
+    }
+
+    await audit(actor, "whatsapp.marketing_templates_submit", "bk_settings", "messaging", {
+      waba_id: t.wabaId,
+      created: results.filter((r) => r.action === "created").length,
+      resubmitted: results.filter((r) => r.action === "resubmitted").length,
+      failed: results.filter((r) => !r.ok).length,
+    });
+    revalidateSetup();
+    revalidatePath("/templates");
+    revalidatePath("/campaigns/new");
     return { ok: true, data: { results } };
   });
 }

@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { adoptPublicNumber, createMissingTemplates, registerWebhook, resubmitTemplate, saveAppId, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
+import { adoptPublicNumber, createMarketingTemplates, createMissingTemplates, registerWebhook, resubmitTemplate, saveAppId, saveBusinessAccountId } from "@/app/(crm)/(app)/messaging/whatsapp/actions";
 import { InlineAlert } from "../load-error";
 import { kindLabel } from "../shared";
 import type { TemplateCreateOutcome, WhatsAppSetupStatus } from "./whatsapp-setup-types";
@@ -27,6 +27,14 @@ const STR = {
   step1: { en: "1 · Credentials (Vercel environment variables)", ar: "1 · بيانات الاعتماد (متغيرات بيئة Vercel)" },
   step2: { en: "2 · Webhook (where Meta delivers messages and receipts)", ar: "2 · Webhook (وجهة الرسائل والإيصالات من Meta)" },
   step3: { en: "3 · Message templates (WhatsApp Manager)", ar: "3 · قوالب الرسائل (WhatsApp Manager)" },
+  step3b: { en: "3b · Marketing templates (campaign pack)", ar: "3ب · قوالب التسويق (حزمة الحملات)" },
+  marketingHint: {
+    en: "The four approved marketing templates, each in English and Arabic, with their header photo, the STOP footer and a Book now button — defined in the code (marketing-pack.ts). The button creates the missing ones and resubmits rejected ones; approved, pending and paused ones are left alone. Once APPROVED they appear under Campaigns → New campaign → Approved template, with the header photo pre-filled.",
+    ar: "قوالب التسويق الأربعة المعتمدة، كل منها بالإنجليزية والعربية، مع صورة الترويسة وتذييل الإلغاء وزر احجز الآن — معرّفة في الكود (marketing-pack.ts). الزر ينشئ القوالب الناقصة ويعيد إرسال المرفوضة، ويترك المعتمدة وقيد المراجعة والموقوفة كما هي. بعد الاعتماد تظهر في الحملات → حملة جديدة → قالب معتمد، مع صورة الترويسة جاهزة.",
+  },
+  createMarketing: { en: "Create marketing templates", ar: "إنشاء قوالب التسويق" },
+  marketingDone: { en: "Marketing templates submitted — PENDING until Meta approves them.", ar: "أُرسلت قوالب التسويق — بحالة PENDING حتى تعتمدها Meta." },
+  created: { en: "created", ar: "تم الإنشاء" },
   step4: { en: "4 · Public number on the website", ar: "4 · الرقم العام على الموقع" },
   step5: { en: "5 · Test", ar: "5 · اختبار" },
   present: { en: "set", ar: "مضبوط" },
@@ -168,6 +176,7 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
   const cloudNumber = status.phone.displayPhoneNumber;
   const sameNumber = Boolean(cloudNumber) && digits(cloudNumber) === digits(publicWhatsApp);
   const actionableTemplates = status.templates.rows.filter((r) => r.status === "MISSING" || r.status === "REJECTED").length;
+  const actionableMarketing = status.marketing.rows.filter((r) => r.status === "MISSING" || r.status === "REJECTED").length;
 
   function run(fn: () => Promise<{ ok: true } | { ok: false; error: string }>, success: string) {
     setError(null);
@@ -191,6 +200,20 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
       else {
         setOutcomes(r.data.results);
         setNotice(STR.templatesDone[lang]);
+        router.refresh();
+      }
+    });
+  }
+
+  function submitMarketing() {
+    setError(null);
+    setNotice(null);
+    start(async () => {
+      const r = await createMarketingTemplates();
+      if (!r.ok) setError(r.error);
+      else {
+        setOutcomes((prev) => [...prev.filter((o) => !r.data.results.some((n) => n.name === o.name && n.language === o.language)), ...r.data.results]);
+        setNotice(STR.marketingDone[lang]);
         router.refresh();
       }
     });
@@ -512,6 +535,63 @@ export function WhatsAppSetupView({ status, publicWhatsApp, whatsappEnabled }: P
                         </div>
                       )}
                     </TD>
+                  </TR>
+                );
+              })}
+            </TBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* 3b · Marketing templates */}
+      <Card className="mb-6 overflow-hidden">
+        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>{STR.step3b[lang]}</CardTitle>
+          <Button size="sm" onClick={submitMarketing} disabled={pending || !status.marketing.ok || actionableMarketing === 0} loading={pending}>
+            <Send className="h-4 w-4" aria-hidden="true" />
+            {STR.createMarketing[lang]} {actionableMarketing > 0 ? `(${actionableMarketing})` : ""}
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <p className="px-5 py-3 text-xs text-maroon-400">{STR.marketingHint[lang]}</p>
+          {!status.marketing.ok && <p className="px-5 pb-3 text-sm text-crimson-700">{status.marketing.error}</p>}
+          <Table>
+            <THead>
+              <TR>
+                <TH>{STR.kind[lang]}</TH>
+                <TH>{STR.name[lang]}</TH>
+                <TH>{STR.language[lang]}</TH>
+                <TH>{STR.status[lang]}</TH>
+                <TH>{STR.note[lang]}</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {status.marketing.rows.map((row) => {
+                const outcome = outcomes.find((o) => o.name === row.name && o.language === row.language);
+                const shown = outcome?.status ?? row.status;
+                const metaDisagrees = row.correctCategory !== null && row.correctCategory !== row.category;
+                const notes: string[] = [];
+                if (outcome?.error) notes.push(outcome.error);
+                else if (outcome?.action === "resubmitted") notes.push(STR.resubmitted[lang]);
+                else if (outcome?.action === "created") notes.push(STR.created[lang]);
+                if (row.rejectedReason) notes.push(row.rejectedReason);
+                if (metaDisagrees) notes.push(`${STR.metaSays[lang]}: ${row.correctCategory}`);
+                return (
+                  <TR key={`${row.name}:${row.language}`}>
+                    <TD>{row.title[lang]}</TD>
+                    <TD>
+                      <code className="text-xs" dir="ltr">
+                        {row.name}
+                      </code>
+                    </TD>
+                    <TD dir="ltr">{row.language}</TD>
+                    <TD>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge variant={statusVariant(shown)}>{shown}</Badge>
+                        <Badge variant="gold">{row.category ?? "MARKETING"}</Badge>
+                      </div>
+                    </TD>
+                    <TD className="max-w-md text-xs text-maroon-500">{notes.length > 0 ? notes.join(" · ") : "—"}</TD>
                   </TR>
                 );
               })}

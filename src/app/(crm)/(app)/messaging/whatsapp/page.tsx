@@ -7,6 +7,8 @@ import { loadWhatsAppSetup } from "@/lib/whatsapp-setup";
 import { WhatsAppSetupView } from "@/components/admin/messaging/whatsapp-setup-view";
 
 export const dynamic = "force-dynamic";
+// The template actions make up to a dozen Meta calls (image uploads + submissions).
+export const maxDuration = 60;
 
 export default async function WhatsAppSetupPage() {
   const session = await guardPage(ADMIN_ROLES);

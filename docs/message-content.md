@@ -189,3 +189,11 @@ direct booking, valid 12 months), and the contacts block.
 `bk_scheduled_messages.status`: `pending → sending → sent | failed | stubbed | skipped` (or `cancelled` by the booking trigger).
 Retry backoff on retryable errors: +5 min, +30 min, +3 h, then `failed` (`nextRetryAt`).
 `bk_message_log.status`: `sent | failed | stubbed | test`, then `delivered | read | failed` from Meta receipts (webhook).
+
+---
+
+## Marketing template pack (campaigns)
+
+`src/lib/messaging/templates/marketing-pack.ts` holds the four bilingual marketing templates the owner approved on 10 Sep 2026 — `sama_escape_the_heat`, `sama_weekend_getaway`, `sama_welcome_back`, `sama_hotel_news` — each with an image header from `public/images/marketing/`, the STOP / إيقاف footer and a "Book now" URL button. `{{1}}` is the guest's first name; `sama_hotel_news` takes the announcement as `{{2}}`. No offers or discount codes.
+
+**Submitting:** `/messaging/whatsapp` → section 3b → **Create marketing templates**. The action uploads each header photo to Meta as the sample, creates missing variants and resubmits rejected ones; approved / pending / paused variants are untouched. Approved ones appear in the campaign composer with the header photo pre-filled from this deployment's URL. To change a text, edit the pack, deploy, delete the variant on `/templates` (only that language) and press the button again.
