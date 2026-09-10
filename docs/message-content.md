@@ -39,7 +39,7 @@ code sent to Meta and the email language.
 
 ## 1. `sama_booking_confirmation` — Utility
 
-Keep this body strictly about the booking. Meta rejected an earlier version whose last line promised "directions and tips" as `INCORRECT_CATEGORY`: any utility text with extra, non-transactional content is classified as marketing.
+Keep this body strictly about the booking. Meta rejected an earlier version whose last line promised "directions and tips" as `INCORRECT_CATEGORY`: any utility text with extra, non-transactional content is classified as marketing. The Arabic body was rejected again (Sep 2026) with the 🌄 emoji and the "we're happy to help" closing, so it now has no emoji and a plain "reply to this message to change or cancel" line.
 
 Parameters (order is contractual — `{{n}}` ↔ index `n-1` of `params`):
 
@@ -67,14 +67,14 @@ Need to change your booking? Reply to this message — we're happy to help.
 
 ### ar
 ```
-أهلاً {{1}}، تم تأكيد حجزكم في فندق سما – الجبل الأخضر 🌄
+عزيزي {{1}}، تم تأكيد حجزكم في فندق سما – الجبل الأخضر.
 رقم الحجز: {{2}}
 الغرفة: {{3}}
 تسجيل الوصول: {{4}} (من الساعة 2:00 ظهراً)
 تسجيل المغادرة: {{5}} (حتى الساعة 12:00 ظهراً)
 عدد الليالي: {{6}}
 الإجمالي: {{7}} ر.ع — يُدفع في الفندق، ولا يلزم أي دفع الآن.
-لأي تعديل على الحجز، راسلونا هنا ويسعدنا مساعدتكم.
+لتعديل الحجز أو إلغائه، يُرجى الرد على هذه الرسالة.
 ```
 
 ---
