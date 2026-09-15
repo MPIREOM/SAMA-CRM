@@ -274,7 +274,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
                       <Image src={siteImage(site, x.slot)} alt="" fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover" />
                     </div>
                     <h3 className="g-h3 mt-6">{t(`experiences.${x.key}.title`)}</h3>
-                    <p className="g-body mt-3 text-[15px]">{t(`experiences.${x.key}.body`)}</p>
+                    <p className="g-body mt-3">{t(`experiences.${x.key}.body`)}</p>
                     <span className="g-link mt-5">
                       {t(`experiences.${x.key}.cta`)}
                       <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
@@ -338,7 +338,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
                     </p>
                   )}
                 </div>
-                <p className="g-body mt-3 text-[15px]">{card.body}</p>
+                <p className="g-body mt-3">{card.body}</p>
                 <Link href={card.href} className="g-link mt-5">
                   {card.cta}
                   <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
@@ -365,13 +365,16 @@ export default async function HomePage({ params }: { params: { locale: string } 
               <p className="g-body mt-6 max-w-lg">{t("locationBody")}</p>
               <div className="mt-8 max-w-lg border-s-2 border-gold-500 ps-5">
                 <h3 className="font-semibold text-ink">{t("fourWdTitle")}</h3>
-                <p className="g-body mt-2 text-[15px]">{t("fourWdBody")}</p>
-                <p className="g-body mt-2 text-[15px]">
-                  {transfer ? ta("transferTeaserPriced", { price: tc("omrAmount", { amount: formatRate(transfer.price) }) }) : ta("transferTeaser")}{" "}
-                  <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-inline">
-                    {ta("transferTeaserLink")}
-                  </Link>
-                </p>
+                <p className="g-body mt-2">{t("fourWdBody")}</p>
+                {/* The priced transfer line only when the add-on cards above are hidden — otherwise it would be said twice on one page. */}
+                {!show("addons") && (
+                  <p className="g-body mt-2">
+                    {transfer ? ta("transferTeaserPriced", { price: tc("omrAmount", { amount: formatRate(transfer.price) }) }) : ta("transferTeaser")}{" "}
+                    <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-inline">
+                      {ta("transferTeaserLink")}
+                    </Link>
+                  </p>
+                )}
                 <p className="g-small mt-2">{t("fuelTip")}</p>
               </div>
               <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">

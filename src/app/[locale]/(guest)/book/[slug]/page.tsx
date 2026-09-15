@@ -70,7 +70,7 @@ export default async function BookRoomPage({ params, searchParams }: Props) {
       <div className="g-container">
         <Reveal>
           <p className="g-eyebrow-gold">{t("eyebrow")}</p>
-          <h1 className="g-h1 mt-4">{t("title")}</h1>
+          <h1 className="g-h1 mt-5">{t("title")}</h1>
         </Reveal>
 
         {soldOut || minStayFail || capacityFail ? (

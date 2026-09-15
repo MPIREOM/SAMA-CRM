@@ -89,7 +89,7 @@ function Row({ label, first, children }: { label: string; first?: boolean; child
   return (
     <div className={first ? "grid gap-1.5 pb-4 sm:grid-cols-[8.5rem_1fr] sm:gap-6" : "grid gap-1.5 border-t border-ink-line py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-6"}>
       <dt className="g-eyebrow pt-0.5">{label}</dt>
-      <dd className="text-[15px] leading-relaxed text-ink">{children}</dd>
+      <dd className="text-base leading-relaxed text-ink">{children}</dd>
     </div>
   );
 }

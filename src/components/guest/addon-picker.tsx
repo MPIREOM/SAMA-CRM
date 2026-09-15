@@ -45,7 +45,7 @@ export function AddonPicker({
       <h3 id={`${uid}-title`} className="g-h4">
         {t("pickerTitle")}
       </h3>
-      <p className="g-body mt-2 text-[15px]">{t("pickerHint")}</p>
+      <p className="g-body mt-2">{t("pickerHint")}</p>
       <ul className="mt-6 border-b border-ink-line">
         {addons.map((addon) => {
           const choice = selection[addon.slug] ?? { quantity: 0, note: "" };
@@ -71,7 +71,7 @@ export function AddonPicker({
                       <span className="g-small">{t(`unit.${addonUnitKey(addon.unit, addon.kind)}`)}</span>
                     </p>
                   </div>
-                  {addon.tagline && <p className="g-body mt-2 text-[15px]">{addon.tagline}</p>}
+                  {addon.tagline && <p className="g-body mt-2">{addon.tagline}</p>}
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                     <p className="g-small" aria-live="polite">

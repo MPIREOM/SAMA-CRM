@@ -68,8 +68,9 @@ export default async function RoomsPage({ params }: { params: { locale: string }
         </Reveal>
       </div>
 
-      {/* The rooms, one per row ------------------------------------------- */}
-      <section className="g-container pb-20 pt-10 sm:pb-28 sm:pt-14" aria-label={t("title")}>
+      {/* The rooms, one per row: name, one line of facts, the tagline, the
+          price and a single link. The full description waits on the room page. */}
+      <section className="g-container pb-24 pt-10 sm:pb-32 sm:pt-14" aria-label={t("title")}>
         <ul className="border-b border-ink-line">
           {rooms.map((room, i) => {
             const flip = i % 2 === 1;
@@ -92,7 +93,7 @@ export default async function RoomsPage({ params }: { params: { locale: string }
 
                 <div className={cn("lg:col-span-5", flip && "lg:order-1")}>
                   <h2 className="g-h2 [text-wrap:balance]">
-                    <Link href={`/rooms/${room.slug}`} className="rounded-sm transition-colors duration-300 hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+                    <Link href={`/rooms/${room.slug}`} className="rounded-sm transition-colors duration-300 hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
                       {bindDash(room.name)}
                     </Link>
                   </h2>
@@ -108,22 +109,18 @@ export default async function RoomsPage({ params }: { params: { locale: string }
                       </Fragment>
                     ))}
                   </p>
-                  {room.tagline && <p className="g-lead mt-5">{room.tagline}</p>}
-                  {room.description && <p className="g-body mt-4 line-clamp-3">{room.description}</p>}
+                  {room.tagline && <p className="g-lead mt-5 max-w-lg">{room.tagline}</p>}
                   <p className="mt-7 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                     <span className="g-eyebrow">{t("from")}</span>
-                    <span className="g-price text-[2rem] leading-none" dir="ltr">
+                    <span className="g-price text-4xl leading-none" dir="ltr">
                       {tc("omr")} {formatRate(room.baseRate)}
                     </span>
                     <span className="g-small">/ {t("perNight")}</span>
                   </p>
-                  <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+                  <div className="mt-8">
                     <Link href={`/rooms/${room.slug}`} className="g-btn-outline g-btn-sm">
                       {t("viewRoom")}
                       <ArrowRight className="g-btn-arrow" aria-hidden="true" />
-                    </Link>
-                    <Link href={{ pathname: `/rooms/${room.slug}`, hash: "availability" }} className="g-link">
-                      {t("checkDatesShort")}
                     </Link>
                   </div>
                 </div>

@@ -26,19 +26,19 @@ export function RoomCard({ room, priority = false, className }: { room: Localize
       <div className="flex flex-1 flex-col pt-5">
         <div className="flex items-baseline justify-between gap-4">
           <h3 className="g-h4">
-            <Link href={`/rooms/${room.slug}`} className="rounded-sm transition-colors duration-300 hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+            <Link href={`/rooms/${room.slug}`} className="rounded-sm transition-colors duration-300 hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
               {room.name}
             </Link>
           </h3>
           <p className="shrink-0 text-end leading-none" dir="ltr">
-            <span className="g-eyebrow me-1.5 text-[10px]">{t("from")}</span>
+            <span className="g-eyebrow me-1.5">{t("from")}</span>
             <span className="g-price text-xl">
               {tc("omr")} {formatRate(room.baseRate)}
             </span>
           </p>
         </div>
-        <p className="mt-2 text-sm text-ink-mute">{facts.join(" · ")}</p>
-        {room.tagline && <p className="g-body mt-3 line-clamp-2 text-[15px]">{room.tagline}</p>}
+        <p className="g-small mt-2">{facts.join(" · ")}</p>
+        {room.tagline && <p className="g-body mt-3 line-clamp-2">{room.tagline}</p>}
         <div className="mt-auto pt-5">
           <Link href={`/rooms/${room.slug}`} className="g-link">
             {t("viewRoom")}

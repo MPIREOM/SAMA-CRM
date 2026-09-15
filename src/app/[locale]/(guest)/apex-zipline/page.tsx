@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, ArrowUpRight, Footprints, Scale, Users, Wind } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getAddonBySlug } from "@/lib/bk/catalogue";
 import { logger } from "@/lib/logger";
@@ -65,12 +65,8 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
   ];
 
   const route = [t("route.start"), t("route.over"), t("route.end")];
-  const safety = [
-    { Icon: Footprints, text: t("safety.shoes") },
-    { Icon: Wind, text: t("safety.weather") },
-    { Icon: Users, text: t("safety.children") },
-    { Icon: Scale, text: t("safety.weight", { kg: stat(addon, "max_weight_kg") }) },
-  ];
+  // Plain hairline rows: each line is a full sentence, so no pictogram is needed beside it.
+  const safety = [t("safety.shoes"), t("safety.weather"), t("safety.children"), t("safety.weight", { kg: stat(addon, "max_weight_kg") })];
   const steps = [t("howStep1"), t("howStep2"), t("howStep3")];
 
   return (
@@ -102,7 +98,7 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
               <dt className="g-eyebrow mt-2">{s.label}</dt>
               <dd className="g-price text-4xl rtl:text-right" dir="ltr">
                 {s.value}
-                <span className="ms-1.5 font-sans text-sm text-ink-mute">{s.unit}</span>
+                <span className="g-unit">{s.unit}</span>
               </dd>
             </div>
           ))}
@@ -113,8 +109,8 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
       <section className="g-container g-section grid gap-14 lg:grid-cols-[1.25fr_1fr] lg:gap-20">
         <Reveal className="max-w-2xl">
           <p className="g-eyebrow-gold">{t("aboutEyebrow")}</p>
-          <h2 className="g-h2 mt-5 [text-wrap:balance]">{t("aboutTitle")}</h2>
-          <div className="g-body g-prose mt-7">
+          <h2 className="g-h2 mt-4 [text-wrap:balance]">{t("aboutTitle")}</h2>
+          <div className="g-body g-prose mt-6">
             <p>{description}</p>
           </div>
 
@@ -122,7 +118,7 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
           <ol className="mt-6 border-b border-ink-line">
             {route.map((text, i) => (
               <li key={i} className="grid grid-cols-[3rem_1fr] gap-4 border-t border-ink-line py-5">
-                <span className="font-display text-2xl leading-none text-gold-700 tabular-nums" dir="ltr" aria-hidden="true">
+                <span className="g-ordinal" dir="ltr" aria-hidden="true">
                   {ordinal(i)}
                 </span>
                 <p className="g-body">{text}</p>
@@ -132,9 +128,8 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
 
           <h3 className="g-h3 mt-14">{t("safetyTitle")}</h3>
           <ul className="mt-6 border-b border-ink-line">
-            {safety.map(({ Icon, text }, i) => (
-              <li key={i} className="flex items-start gap-4 border-t border-ink-line py-4">
-                <Icon className="mt-[0.4em] h-4 w-4 shrink-0 text-ink-mute" aria-hidden="true" />
+            {safety.map((text, i) => (
+              <li key={i} className="border-t border-ink-line py-4">
                 <p className="g-body">{text}</p>
               </li>
             ))}
@@ -162,16 +157,16 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
             ) : (
               <p className="g-body mt-4 text-ink">{t("priceUnavailable")}</p>
             )}
-            <p className="g-small mt-3">{t("priceNote")}</p>
+            {/* The eyebrow already says whose rate this is, and step 03 says where it is paid. */}
 
             <p className="g-eyebrow mt-8">{t("howTitle")}</p>
             <ol className="mt-3 border-b border-ink-line">
               {steps.map((text, i) => (
                 <li key={i} className="grid grid-cols-[2rem_1fr] gap-3 border-t border-ink-line py-4">
-                  <span className="font-display text-lg leading-none text-gold-700 tabular-nums" dir="ltr" aria-hidden="true">
+                  <span className="g-ordinal text-lg" dir="ltr" aria-hidden="true">
                     {ordinal(i)}
                   </span>
-                  <p className="g-body text-[15px]">{text}</p>
+                  <p className="g-body">{text}</p>
                 </li>
               ))}
             </ol>

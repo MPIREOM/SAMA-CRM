@@ -32,6 +32,7 @@ export function PriceSummary({
   className,
   breakdownOpen = false,
   compact = false,
+  totalOnly = false,
 }: {
   quote: PriceLines;
   taxes: TaxSettings;
@@ -39,6 +40,8 @@ export function PriceSummary({
   className?: string;
   breakdownOpen?: boolean;
   compact?: boolean;
+  /** Just the total line — for a sticky aside that sits beside the full breakdown. */
+  totalOnly?: boolean;
 }) {
   const t = useTranslations("search");
   const ta = useTranslations("addons");
@@ -47,6 +50,17 @@ export function PriceSummary({
   const discountPct = quote.discount_pct ?? 0;
   const addons = quote.addons ?? [];
   const addonsTotal = quote.addons_total ?? addons.reduce((s, a) => s + a.total, 0);
+
+  if (totalOnly) {
+    return (
+      <dl className={cn("flex items-baseline justify-between gap-4 text-sm tabular-nums", className)}>
+        <dt className="font-semibold text-ink">{t("total")}</dt>
+        <dd dir="ltr" className="g-price shrink-0 text-xl">
+          {tc("omrAmount", { amount: formatOmr(quote.total) })}
+        </dd>
+      </dl>
+    );
+  }
 
   return (
     <div className={cn("text-sm text-ink-soft", className)}>

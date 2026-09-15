@@ -87,7 +87,7 @@ export default async function RoomPage({ params }: Props) {
             {/* Phones and tablets: the price sits with the name; desktop shows the card instead. */}
             <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1 lg:hidden">
               <span className="g-eyebrow">{t("from")}</span>
-              <span className="g-price text-[2rem] leading-none" dir="ltr">
+              <span className="g-price text-4xl leading-none" dir="ltr">
                 {price}
               </span>
               <span className="g-small">/ {t("perNight")}</span>
@@ -97,7 +97,7 @@ export default async function RoomPage({ params }: Props) {
               {facts.map((f) => (
                 <div key={f.key}>
                   <dt className="g-eyebrow">{f.label}</dt>
-                  <dd className="g-display mt-2 text-xl leading-snug sm:text-[1.35rem]">{f.value}</dd>
+                  <dd className="g-h4 mt-2">{f.value}</dd>
                 </div>
               ))}
             </dl>
@@ -131,7 +131,7 @@ export default async function RoomPage({ params }: Props) {
             <div className="g-card hidden p-7 lg:block">
               <p className="g-eyebrow">{t("from")}</p>
               <p className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span className="g-price text-[2.75rem] leading-none" dir="ltr">
+                <span className="g-price text-4xl leading-none" dir="ltr">
                   {price}
                 </span>
                 <span className="g-small">/ {t("perNight")}</span>
@@ -161,7 +161,7 @@ export default async function RoomPage({ params }: Props) {
       {/* Other rooms --------------------------------------------------------- */}
       {others.length > 0 && (
         <section className="g-container mt-16 sm:mt-24" aria-labelledby="other-rooms">
-          <div className="border-t border-ink-line pb-20 pt-14 sm:pb-28 sm:pt-20">
+          <div className="g-section-tight border-t border-ink-line">
             <Reveal className="max-w-2xl">
               <p className="g-eyebrow-gold">{t("otherRoomsEyebrow")}</p>
               <h2 id="other-rooms" className="g-h2 mt-4">

@@ -58,7 +58,7 @@ export default async function ManagePage({ params, searchParams }: Props) {
             {t("backToBooking")}
           </Link>
           <p className="g-eyebrow-gold mt-10">{t("eyebrow")}</p>
-          <h1 className="g-h1 mt-4">{t("title")}</h1>
+          <h1 className="g-h1 mt-5">{t("title")}</h1>
           <p dir="ltr" className="mt-4 font-display text-2xl tracking-wider text-ink-soft lining-nums rtl:text-start">
             {booking.ref}
           </p>
@@ -95,7 +95,7 @@ export default async function ManagePage({ params, searchParams }: Props) {
           <h2 id="manage-policy" className="g-h4">
             {t("policyTitle")}
           </h2>
-          <p className="g-body mt-3 max-w-2xl text-[15px]">{locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}</p>
+          <p className="g-body mt-3 max-w-2xl">{locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}</p>
         </Reveal>
       </div>
     </div>

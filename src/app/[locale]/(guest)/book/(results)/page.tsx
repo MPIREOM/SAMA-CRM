@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, Check, Users } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getRoomTypes, searchAvailability } from "@/lib/bk/catalogue";
 import { getPublicSettings } from "@/lib/bk/settings";
@@ -65,7 +65,7 @@ export default async function BookPage({ params, searchParams }: Props) {
       <div className="g-container">
         <Reveal>
           <p className="g-eyebrow-gold">{t("eyebrow")}</p>
-          <h1 className="g-h1 mt-4">{t("title")}</h1>
+          <h1 className="g-h1 mt-5">{t("title")}</h1>
         </Reveal>
 
         <Reveal delay={120} className="mt-8 sm:mt-10">
@@ -99,7 +99,7 @@ export default async function BookPage({ params, searchParams }: Props) {
                 </p>
               </div>
               {!nothing && (
-                <p className="g-note-green inline-flex items-center gap-2.5 px-4 py-2.5">
+                <p className="g-note-green g-note-inline">
                   <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>{t("payAtHotel")}</span>
                 </p>
@@ -118,7 +118,7 @@ export default async function BookPage({ params, searchParams }: Props) {
                     </li>
                   ))}
                 </ul>
-                <p className="g-body mt-6 text-[15px]">
+                <p className="g-body mt-6">
                   {t("contactForHelp")}{" "}
                   <a href={waLink(settings.contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="g-inline">
                     {tc("whatsapp")}
@@ -135,7 +135,13 @@ export default async function BookPage({ params, searchParams }: Props) {
                 const ok = !soldOut && !minStayFail && !capacityFail;
                 const quote = avail ? quoteFromNightly(avail.nightly, settings.taxes) : null;
                 const fewLeft = ok && avail && avail.available_count <= 3;
-                const facts = [room.sizeSqm ? tRooms("sizeSqm", { n: n(room.sizeSqm) }) : null, room.bed || null, room.view || null].filter(Boolean);
+                // One quiet line of facts under the tagline: who it sleeps, then size, beds and view.
+                const facts = [
+                  t("capacity", { adults: room.maxAdults, a: n(room.maxAdults), children: room.maxChildren, c: n(room.maxChildren) }),
+                  room.sizeSqm ? tRooms("sizeSqm", { n: n(room.sizeSqm) }) : null,
+                  room.bed || null,
+                  room.view || null,
+                ].filter(Boolean);
                 return (
                   <Reveal as="li" key={room.id} delay={Math.min(i, 3) * 80} className="g-card overflow-hidden">
                     <div className="grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)_minmax(0,3.4fr)]">
@@ -157,17 +163,13 @@ export default async function BookPage({ params, searchParams }: Props) {
                         <h3 className="g-h3">
                           <Link
                             href={`/rooms/${room.slug}`}
-                            className="rounded-sm transition-colors duration-300 hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
+                            className="rounded-sm transition-colors duration-300 hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
                           >
                             {room.name}
                           </Link>
                         </h3>
-                        {room.tagline && <p className="g-body mt-3 text-[15px]">{room.tagline}</p>}
-                        <p className="g-small mt-4 flex items-center gap-2">
-                          <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
-                          {t("capacity", { adults: room.maxAdults, a: n(room.maxAdults), children: room.maxChildren, c: n(room.maxChildren) })}
-                        </p>
-                        {facts.length > 0 && <p className="g-small mt-1 ps-6">{facts.join(" · ")}</p>}
+                        {room.tagline && <p className="g-body mt-3">{room.tagline}</p>}
+                        <p className="g-small mt-4">{facts.join(" · ")}</p>
                         {avail && avail.min_stay > 1 && (
                           <p className={minStayFail ? "g-error mt-3" : "g-small mt-3"}>
                             {t("minStay", { count: avail.min_stay, n: n(avail.min_stay) })}

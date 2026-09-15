@@ -40,8 +40,8 @@ export function SearchSummary({
   }
 
   const cell = "flex flex-col justify-center gap-1.5 px-4 py-3.5 sm:px-5";
-  const label = "g-eyebrow text-[10px]";
-  const value = "font-display text-[1.35rem] leading-none text-ink tabular-nums rtl:font-display-ar";
+  const label = "g-eyebrow";
+  const value = "g-h4 leading-none tabular-nums";
 
   return (
     <div>

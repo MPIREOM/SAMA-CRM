@@ -69,7 +69,7 @@ export default async function ThePeakPage({ params }: { params: { locale: string
             <ul className="mt-4 border-b border-ink-line">
               {MENU.map((item) => (
                 <li key={item} className="flex flex-col gap-y-1 border-t border-ink-line py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-x-6">
-                  <span className="font-display text-xl text-ink rtl:font-display-ar">{t(`menu.${item}.name`)}</span>
+                  <span className="g-display text-xl">{t(`menu.${item}.name`)}</span>
                   <span className="g-small">{t(`menu.${item}.note`)}</span>
                 </li>
               ))}

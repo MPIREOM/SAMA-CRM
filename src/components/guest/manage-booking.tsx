@@ -99,7 +99,7 @@ export function ManageBooking({
     return (
       <div className="g-card g-enter p-6 sm:p-8" role="status">
         <h2 className="g-h3">{t("cancelledTitle")}</h2>
-        <p className="g-body mt-3 text-[15px]">{t("cancelledBody", { ref: bookingRef })}</p>
+        <p className="g-body mt-3">{t("cancelledBody", { ref: bookingRef })}</p>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export function ManageBooking({
     return (
       <div className="g-card p-6 sm:p-8">
         <h2 className="g-h3">{deadlineLabel ? t("tooLateTitle") : t("notCancellableTitle")}</h2>
-        <p className="g-body mt-3 max-w-2xl text-[15px]">{deadlineLabel ? t("tooLateBody", { hours: String(hoursBefore) }) : t("notCancellableBody")}</p>
+        <p className="g-body mt-3 max-w-2xl">{deadlineLabel ? t("tooLateBody", { hours: String(hoursBefore) }) : t("notCancellableBody")}</p>
         {contactRow}
       </div>
     );
@@ -153,7 +153,7 @@ export function ManageBooking({
             <h2 id={`${uid}-title`} className="g-h3">
               {t("cancelTitle")}
             </h2>
-            <p id={`${uid}-body`} className="g-body mt-3 text-[15px]">
+            <p id={`${uid}-body`} className="g-body mt-3">
               {t("cancelBody", { dates: datesLabel })}
               {hasAddons && <span className="mt-2 block">{t("cancelAddonsNote")}</span>}
             </p>

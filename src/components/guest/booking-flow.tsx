@@ -241,7 +241,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
             {step === 1 && (
               <form onSubmit={toReview} noValidate className="g-card p-6 sm:p-10">
                 <h2 className="g-h3">{t("guestDetails")}</h2>
-                <p className="g-body mt-3 max-w-xl text-[15px]">{t("guestDetailsHint")}</p>
+                <p className="g-body mt-3 max-w-xl">{t("guestDetailsHint")}</p>
 
                 <div className="mt-8 space-y-7">
                   <Field id={`${uid}-fullName`} label={t("fullName")} error={errors.fullName && t(`validation.${errors.fullName}`)}>
@@ -311,7 +311,8 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                     )}
                   </div>
 
-                  <Field id={`${uid}-email`} label={t("email")} optional hint={t("emailHint")} error={errors.email && t(`validation.${errors.email}`)}>
+                  {/* No hint: the phone hint above already says where the confirmation goes. */}
+                  <Field id={`${uid}-email`} label={t("email")} optional error={errors.email && t(`validation.${errors.email}`)}>
                     <input
                       id={`${uid}-email`}
                       name="email"
@@ -404,12 +405,11 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                           </label>
                         ))}
                       </div>
-                      {errors.bedPreference ? (
+                      {/* The two choices say it all; only an error needs a line under them. */}
+                      {errors.bedPreference && (
                         <p className="g-error" role="alert">
                           {t(`validation.${errors.bedPreference}`)}
                         </p>
-                      ) : (
-                        <p className="g-hint">{t("bedHint")}</p>
                       )}
                     </fieldset>
                   )}
@@ -427,7 +427,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                     />
                   </Field>
 
-                  <Field id={`${uid}-promoCode`} label={t("promoCode")} optional hint={t("promoHint")}>
+                  <Field id={`${uid}-promoCode`} label={t("promoCode")} optional>
                     <input
                       id={`${uid}-promoCode`}
                       name="promoCode"
@@ -469,7 +469,6 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                 }}
               >
                 <h2 className="g-h3">{t("reviewTitle")}</h2>
-                <p className="g-body mt-3 text-[15px]">{t("reviewHint")}</p>
 
                 {/* Everything the action needs travels as hidden fields. */}
                 <input type="hidden" name="fullName" value={details.fullName} />
@@ -551,7 +550,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                   <h3 id={`${uid}-policy`} className="g-h4">
                     {t("cancellationPolicy")}
                   </h3>
-                  <p className="g-body mt-3 text-[15px]">{cancellationPolicy}</p>
+                  <p className="g-body mt-3">{cancellationPolicy}</p>
                 </section>
 
                 <div className="g-note-green mt-10">
@@ -563,7 +562,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                 </div>
 
                 <div className="mt-8">
-                  <label htmlFor={`${uid}-consent`} className="flex cursor-pointer items-start gap-3.5 text-[15px] leading-relaxed text-ink-soft">
+                  <label htmlFor={`${uid}-consent`} className="flex cursor-pointer items-start gap-3.5 text-base leading-relaxed text-ink-soft">
                     <input
                       id={`${uid}-consent`}
                       name="consent"
@@ -627,8 +626,9 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
                   {query.children > 0 && <span className="block">{tc("children", { count: query.children, n: n(query.children) })}</span>}
                 </AsideRow>
               </dl>
+              {/* On the review step the form carries the full breakdown, so the aside keeps only the total in view. */}
               <div className="mt-5 border-t border-ink-line pt-5">
-                <PriceSummary quote={priceLines} taxes={taxes} locale={locale} compact />
+                <PriceSummary quote={priceLines} taxes={taxes} locale={locale} compact totalOnly={step === 2} />
               </div>
               <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-link mt-6">
                 {t("changeDates")}
@@ -679,7 +679,7 @@ function ReviewRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div className="grid gap-1.5 border-t border-ink-line py-4 sm:grid-cols-[10rem_1fr] sm:gap-6">
       <dt className="g-eyebrow pt-0.5">{label}</dt>
-      <dd className="text-[15px] leading-relaxed text-ink">{children}</dd>
+      <dd className="text-base leading-relaxed text-ink">{children}</dd>
     </div>
   );
 }

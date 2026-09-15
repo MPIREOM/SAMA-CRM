@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { Check, Clock, XCircle } from "lucide-react";
 import type { Locale } from "@/i18n/routing";
 import { formatOmr } from "@/lib/booking-engine/pricing";
 import { cn } from "@/lib/utils";
@@ -16,7 +15,9 @@ import {
 
 // "Your add-ons" on the confirmation and manage pages: what was requested,
 // how many, the guest's note and where the request stands. Transfers restate
-// the checkpoint instruction so nobody drives a 2WD up the mountain.
+// the checkpoint instruction so nobody drives a 2WD up the mountain. "Paid at
+// the hotel" is already on the price panel's add-on subtotal, so it is not
+// repeated here.
 
 export async function BookingAddons({ addons, locale, className }: { addons: BookingAddonRow[]; locale: Locale; className?: string }) {
   const [t, tc] = await Promise.all([getTranslations("addons"), getTranslations("common")]);
@@ -27,7 +28,7 @@ export async function BookingAddons({ addons, locale, className }: { addons: Boo
       <h2 id="booking-addons" className="g-h3">
         {t("yourAddons")}
       </h2>
-      <p className="g-body mt-2 text-[15px]">{t("yourAddonsHint")}</p>
+      <p className="g-body mt-2">{t("yourAddonsHint")}</p>
       <ul className="mt-6 border-b border-ink-line">
         {addons.map((row) => {
           const status = asAddonStatus(row.status);
@@ -52,17 +53,13 @@ export async function BookingAddons({ addons, locale, className }: { addons: Boo
                   <span className="font-semibold text-ink">{t("noteLabel")}:</span> {row.note}
                 </p>
               )}
-              <p className={cn("mt-3 inline-flex items-center gap-1.5 text-xs font-semibold", statusClass(status))}>
-                <StatusIcon status={status} />
-                {t(`status.${status}`)}
-              </p>
-              {!cancelled && addon?.slug === TRANSFER_UP_SLUG && <p className="g-body mt-3 text-[15px]">{t("transferUpInstruction")}</p>}
-              {!cancelled && addon?.slug === TRANSFER_DOWN_SLUG && <p className="g-body mt-3 text-[15px]">{t("transferDownInstruction")}</p>}
+              <p className={cn("mt-3 text-xs font-semibold", statusClass(status))}>{t(`status.${status}`)}</p>
+              {!cancelled && addon?.slug === TRANSFER_UP_SLUG && <p className="g-body mt-3">{t("transferUpInstruction")}</p>}
+              {!cancelled && addon?.slug === TRANSFER_DOWN_SLUG && <p className="g-body mt-3">{t("transferDownInstruction")}</p>}
             </li>
           );
         })}
       </ul>
-      <p className="g-small mt-4 text-xs">{t("paidAtHotel")}</p>
     </section>
   );
 }
@@ -77,10 +74,4 @@ function statusClass(status: ReturnType<typeof asAddonStatus>): string {
     default:
       return "text-gold-700";
   }
-}
-
-function StatusIcon({ status }: { status: ReturnType<typeof asAddonStatus> }) {
-  if (status === "confirmed" || status === "done") return <Check className="h-3.5 w-3.5" aria-hidden="true" />;
-  if (status === "cancelled") return <XCircle className="h-3.5 w-3.5" aria-hidden="true" />;
-  return <Clock className="h-3.5 w-3.5" aria-hidden="true" />;
 }

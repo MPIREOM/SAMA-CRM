@@ -108,16 +108,11 @@ export default async function PoliciesPage({ params }: { params: { locale: strin
                     </li>
                   ))}
                 </ul>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <Link href="/apex-zipline" className="g-btn-outline g-btn-sm w-full sm:w-auto">
-                    {ta("policy.apexLink")}
-                    <ArrowRight className="g-btn-arrow" aria-hidden="true" />
-                  </Link>
-                  <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-primary g-btn-sm w-full sm:w-auto">
-                    {ta("policy.bookLink")}
-                    <ArrowRight className="g-btn-arrow" aria-hidden="true" />
-                  </Link>
-                </div>
+                {/* One quiet link: the header's Book button already covers availability. */}
+                <Link href="/apex-zipline" className="g-link mt-8">
+                  {ta("policy.apexLink")}
+                  <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
               </div>
             </Reveal>
           </div>

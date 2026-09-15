@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowLeft, ArrowUpRight, CalendarPlus } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getBookingByRef, type BookingWithRelations } from "@/lib/bk/bookings";
 import { verifyBookingToken } from "@/lib/booking-engine/tokens";
@@ -72,7 +72,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
               {ref}
             </p>
             <h1 className="g-h2 mt-8">{t("unavailableTitle")}</h1>
-            <p className="g-lead mt-5 max-w-2xl">{t("unavailableBody")}</p>
+            <p className="g-lead mt-6 max-w-2xl">{t("unavailableBody")}</p>
             <div className="mt-10">{contactLinks}</div>
           </Reveal>
         </div>
@@ -84,15 +84,16 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const icsHref = `/api/bk/ics/${encodeURIComponent(booking.ref)}?token=${encodeURIComponent(token ?? "")}&locale=${locale}`;
   const addons = booking.addons ?? [];
   const transferUp = !cancelled && hasAddon(addons, TRANSFER_UP_SLUG);
-  const nextSteps = [t("next1"), ...(transferUp ? [t("nextTransfer")] : []), t("next2"), t("next3")];
+  // A booked pickup gets its own note below the list, so it is not also a step here.
+  const nextSteps = [t("next1"), t("next2"), t("next3")];
 
   return (
     <div className="g-page pb-24 sm:pb-32">
       <div className="g-container max-w-4xl">
         <Reveal>
           <p className={cancelled ? "g-eyebrow" : "g-eyebrow-gold"}>{cancelled ? t("cancelledEyebrow") : t("eyebrow")}</p>
-          <h1 className="g-h1 mt-4 max-w-3xl [text-wrap:balance]">{cancelled ? t("cancelledTitle") : t("title")}</h1>
-          <p className="g-lead mt-5 max-w-2xl">{cancelled ? t("cancelledBody", { ref: booking.ref }) : t("subtitle")}</p>
+          <h1 className="g-h1 mt-5 max-w-3xl [text-wrap:balance]">{cancelled ? t("cancelledTitle") : t("title")}</h1>
+          <p className="g-lead mt-6 max-w-2xl">{cancelled ? t("cancelledBody", { ref: booking.ref }) : t("subtitle")}</p>
         </Reveal>
 
         <Reveal delay={120} className="mt-10 flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-y border-ink-line py-6 sm:mt-12">
@@ -123,11 +124,11 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
               </h2>
               <ol className="mt-8 border-b border-ink-line">
                 {nextSteps.map((text, i) => (
-                  <li key={i} className="flex gap-5 border-t border-ink-line py-5">
-                    <span className="w-8 shrink-0 font-display text-2xl leading-none text-gold-700 lining-nums tabular-nums" aria-hidden="true">
-                      {i + 1}
+                  <li key={i} className="grid grid-cols-[3rem_1fr] gap-4 border-t border-ink-line py-5">
+                    <span className="g-ordinal" dir="ltr" aria-hidden="true">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
-                    <p className="g-body -mt-1">{text}</p>
+                    <p className="g-body">{text}</p>
                   </li>
                 ))}
               </ol>
@@ -145,7 +146,6 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
             <Reveal className="mt-10 flex flex-wrap gap-3">
               <a href={icsHref} className="g-btn-primary">
-                <CalendarPlus className="h-4 w-4" aria-hidden="true" />
                 {t("addToCalendar")}
               </a>
               <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-outline">

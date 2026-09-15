@@ -5,7 +5,7 @@ export default function BookLoading() {
     <div className="g-page pb-24 sm:pb-32" aria-busy="true">
       <div className="g-container">
         <div className="g-skeleton h-3 w-24" />
-        <div className="g-skeleton mt-5 h-12 w-1/2 max-w-sm sm:h-16" />
+        <div className="g-skeleton mt-6 h-12 w-1/2 max-w-sm sm:h-16" />
         <div className="g-card mt-8 grid grid-cols-2 divide-ink-line sm:mt-10 md:grid-cols-[1.2fr_1.2fr_1fr_auto] md:divide-x">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="space-y-2.5 px-5 py-4">

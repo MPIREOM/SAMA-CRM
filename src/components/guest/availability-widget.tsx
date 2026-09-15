@@ -104,9 +104,9 @@ export function AvailabilityWidget({
   const hero = variant === "hero";
   const stack = variant === "stack";
   const cell = stack ? "flex flex-col gap-1 px-4 py-3" : "flex flex-col gap-1 px-4 py-3 sm:px-5 sm:py-4";
-  const fieldLabel = "g-eyebrow text-[10px] text-ink-mute";
-  const field =
-    "h-9 w-full border-0 bg-transparent p-0 font-display text-[1.35rem] leading-none text-ink tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm rtl:font-display-ar";
+  const fieldLabel = "g-eyebrow";
+  // The value is set in the h4 size of the type scale; leading-none keeps the 9px-high controls tidy.
+  const field = "g-h4 h-9 w-full rounded-sm border-0 bg-transparent p-0 leading-none tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500";
 
   return (
     <form

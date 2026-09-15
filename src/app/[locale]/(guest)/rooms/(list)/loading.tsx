@@ -24,7 +24,7 @@ export default function RoomsLoading() {
         </div>
       </div>
 
-      <div className="g-container pb-20 pt-10 sm:pb-28 sm:pt-14">
+      <div className="g-container pb-24 pt-10 sm:pb-32 sm:pt-14">
         <ul className="border-b border-ink-line">
           {[0, 1, 2].map((i) => (
             <li key={i} className="grid items-center gap-8 border-t border-ink-line py-10 sm:py-14 lg:grid-cols-12 lg:gap-x-14 lg:py-16 xl:gap-x-20">
@@ -32,14 +32,9 @@ export default function RoomsLoading() {
               <div className={i % 2 === 1 ? "lg:order-1 lg:col-span-5" : "lg:col-span-5"}>
                 <div className="g-skeleton h-10 w-4/5 sm:h-12" />
                 <div className="g-skeleton mt-6 h-3 w-2/3" />
-                <div className="g-skeleton mt-6 h-5 w-full" />
-                <div className="g-skeleton mt-4 h-4 w-full" />
-                <div className="g-skeleton mt-2 h-4 w-5/6" />
-                <div className="g-skeleton mt-7 h-8 w-36" />
-                <div className="mt-8 flex gap-8">
-                  <div className="g-skeleton h-10 w-32" />
-                  <div className="g-skeleton h-10 w-24" />
-                </div>
+                <div className="g-skeleton mt-6 h-5 w-full max-w-lg" />
+                <div className="g-skeleton mt-7 h-9 w-36" />
+                <div className="g-skeleton mt-8 h-10 w-32" />
               </div>
             </li>
           ))}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowUpRight, MessageCircle } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { isLocale, type Locale } from "@/i18n/routing";
 import { siteImage } from "@/lib/bk/site-content";
 import { Reveal } from "@/components/guest/reveal";
@@ -37,7 +37,6 @@ export default async function ContactPage({ params }: { params: { locale: string
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <a href={waLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="g-btn-primary w-full sm:w-auto">
-              <MessageCircle className="h-4 w-4" aria-hidden="true" />
               {t("whatsappCta")}
             </a>
             <a href={mailto} className="g-btn-outline w-full sm:w-auto">
