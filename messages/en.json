@@ -194,7 +194,7 @@
     "soldOutBody": "No {name} left for these dates.",
     "minStay": "{count, plural, one {Minimum 1 night on these dates} other {Minimum {n} nights on these dates}}",
     "minStayBody": "This room needs a stay of at least {count, plural, one {1 night} other {{n} nights}} starting on your check-in date. Add a night or choose another room.",
-    "capacity": "Sleeps up to {a} adults and {c} children",
+    "capacity": "Sleeps up to {adults, plural, one {1 adult} other {{a} adults}}{children, plural, =0 {} one { and 1 child} other { and {c} children}}",
     "capacityBody": "This room is too small for your party. Try a family room or book two rooms.",
     "select": "Select",
     "leftOnly": "{count, plural, one {Only 1 left} other {Only {n} left}}",
@@ -304,7 +304,7 @@
     "notAvailableTitle": "Not available for these dates",
     "unavailableReason": {
       "min_stay": "This room needs a stay of at least {count, plural, one {1 night} other {{n} nights}} starting on your check-in date.",
-      "capacity": "This room sleeps up to {a} adults and {c} children."
+      "capacity": "This room sleeps up to {adults, plural, one {1 adult} other {{a} adults}}{children, plural, =0 {} one { and 1 child} other { and {c} children}}."
     },
     "validation": {
       "name": "Please enter the guest's full name.",

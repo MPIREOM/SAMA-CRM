@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, ArrowUpRight, Footprints, MapPin, ShieldCheck, Users, Wallet } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Footprints, Scale, Users, Wind } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getAddonBySlug } from "@/lib/bk/catalogue";
 import { logger } from "@/lib/logger";
+import { siteImage } from "@/lib/bk/site-content";
+import { Reveal } from "@/components/guest/reveal";
+import { getSiteContent } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
 import { APEX_SLUG, formatRate, localizeAddon, n, type LocalizedAddon } from "@/components/guest/lib";
 
@@ -21,8 +24,8 @@ const FACTS = { length_m: 310, height_m: 20, speed_kmh: 60, max_weight_kg: 120 }
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
-  const t = await getTranslations({ locale, namespace: "meta" });
-  return pageMetadata({ locale, path: "/apex-zipline", title: t("apexTitle"), description: t("apexDescription"), image: APEX_IMAGE });
+  const [t, site] = await Promise.all([getTranslations({ locale, namespace: "meta" }), getSiteContent()]);
+  return pageMetadata({ locale, path: "/apex-zipline", title: t("apexTitle"), description: t("apexDescription"), image: siteImage(site, "apex_hero") || APEX_IMAGE });
 }
 
 function stat(addon: LocalizedAddon | null, key: keyof typeof FACTS): string {
@@ -30,10 +33,15 @@ function stat(addon: LocalizedAddon | null, key: keyof typeof FACTS): string {
   return n(typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : FACTS[key]);
 }
 
+/** "01", "02" … — serif ordinals for the route and the how-it-works steps. */
+function ordinal(i: number): string {
+  return String(i + 1).padStart(2, "0");
+}
+
 export default async function ApexZiplinePage({ params }: { params: { locale: string } }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [t, tc] = await Promise.all([getTranslations("apex"), getTranslations("common")]);
+  const [t, tc, site] = await Promise.all([getTranslations("apex"), getTranslations("common"), getSiteContent()]);
 
   let addon: LocalizedAddon | null = null;
   try {
@@ -43,6 +51,7 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
     logger.warn("guest.apex", "add-on record unavailable", { error: err instanceof Error ? err.message : String(err) });
   }
 
+  const hero = siteImage(site, "apex_hero") || addon?.image || APEX_IMAGE;
   const website = typeof addon?.details.website === "string" && addon.details.website.startsWith("https://") ? addon.details.website : APEX_WEBSITE;
   const operator = typeof addon?.details.operator === "string" && addon.details.operator ? addon.details.operator : APEX_OPERATOR;
   const websiteLabel = website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
@@ -56,113 +65,124 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
   ];
 
   const route = [t("route.start"), t("route.over"), t("route.end")];
-  const safety = [t("safety.shoes"), t("safety.weather"), t("safety.children"), t("safety.weight", { kg: stat(addon, "max_weight_kg") })];
+  const safety = [
+    { Icon: Footprints, text: t("safety.shoes") },
+    { Icon: Wind, text: t("safety.weather") },
+    { Icon: Users, text: t("safety.children") },
+    { Icon: Scale, text: t("safety.weight", { kg: stat(addon, "max_weight_kg") }) },
+  ];
+  const steps = [t("howStep1"), t("howStep2"), t("howStep3")];
 
   return (
     <>
-      <section className="relative">
-        <div className="relative h-[56svh] min-h-[400px] w-full">
-          <Image src={addon?.image ?? APEX_IMAGE} alt={t("heroAlt")} fill priority sizes="100vw" className="object-cover object-center" />
-          <div className="absolute inset-0 bg-gradient-to-t from-maroon-950/85 via-maroon-950/25 to-transparent" aria-hidden="true" />
-          <div className="g-container relative flex h-full flex-col justify-end pb-10">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-gold-300 rtl:text-base rtl:tracking-normal">{t("eyebrow")}</p>
-            <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl rtl:tracking-normal">{t("title")}</h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-stone-100/90 sm:text-lg">{addon?.tagline || t("subtitle")}</p>
+      {/* Hero ------------------------------------------------------------- */}
+      <section className="relative isolate" data-hero>
+        <div className="relative h-[80svh] min-h-[520px] w-full overflow-hidden lg:max-h-[860px]">
+          <Image src={hero} alt={t("heroAlt")} fill priority sizes="100vw" className="g-kenburns object-cover object-center" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-ink/20" aria-hidden="true" />
+          <div className="g-container relative flex h-full flex-col justify-end pb-14 sm:pb-20">
+            <p className="g-eyebrow g-fade-up text-gold-300" style={{ "--g-delay": "200ms" } as React.CSSProperties}>
+              {t("eyebrow")}
+            </p>
+            <h1 className="g-h1 g-fade-up mt-5 max-w-3xl text-paper [text-wrap:balance]" style={{ "--g-delay": "350ms" } as React.CSSProperties}>
+              {t("title")}
+            </h1>
+            <p className="g-fade-up mt-6 max-w-xl text-base leading-relaxed text-paper/80 sm:text-lg" style={{ "--g-delay": "550ms" } as React.CSSProperties}>
+              {addon?.tagline || t("subtitle")}
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Stat strip ------------------------------------------------------- */}
-      <section className="g-container relative z-10 -mt-8" aria-label={t("stats.label")}>
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-stone-200 bg-stone-200 shadow-card sm:grid-cols-4">
+      {/* Facts strip: one hairline row ------------------------------------- */}
+      <Reveal className="g-container pt-6 sm:pt-10">
+        <dl role="region" aria-label={t("stats.label")} className="grid grid-cols-2 gap-px border-y border-ink-line bg-ink-line md:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.key} className="flex flex-col-reverse bg-white px-5 py-6 text-center">
-              <dt className="mt-1 text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{s.label}</dt>
-              <dd className="text-3xl font-extrabold text-maroon-900 tabular-nums sm:text-4xl" dir="ltr">
+            <div key={s.key} className="flex flex-col-reverse justify-end bg-paper px-4 py-7 sm:px-8 md:py-9">
+              <dt className="g-eyebrow mt-2">{s.label}</dt>
+              <dd className="g-price text-4xl rtl:text-right" dir="ltr">
                 {s.value}
-                <span className="ms-1 text-base font-bold text-gold-700">{s.unit}</span>
+                <span className="ms-1.5 font-sans text-sm text-ink-mute">{s.unit}</span>
               </dd>
             </div>
           ))}
         </dl>
-      </section>
+      </Reveal>
 
-      <section className="g-container grid gap-10 pt-14 sm:pt-16 lg:grid-cols-[1.3fr_1fr] lg:gap-16">
-        <div>
-          <p className="g-eyebrow">{t("aboutEyebrow")}</p>
-          <h2 className="g-h2 mt-3">{t("aboutTitle")}</h2>
-          <div className="g-prose mt-5 text-base leading-relaxed text-maroon-800">
+      {/* About + booking card ---------------------------------------------- */}
+      <section className="g-container g-section grid gap-14 lg:grid-cols-[1.25fr_1fr] lg:gap-20">
+        <Reveal className="max-w-2xl">
+          <p className="g-eyebrow-gold">{t("aboutEyebrow")}</p>
+          <h2 className="g-h2 mt-5 [text-wrap:balance]">{t("aboutTitle")}</h2>
+          <div className="g-body g-prose mt-7">
             <p>{description}</p>
           </div>
 
-          <h3 className="g-h3 mt-10">{t("routeTitle")}</h3>
-          <ol className="mt-4 space-y-3">
+          <h3 className="g-h3 mt-14">{t("routeTitle")}</h3>
+          <ol className="mt-6 border-b border-ink-line">
             {route.map((text, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-100 text-sm font-extrabold text-gold-800 tabular-nums">{i + 1}</span>
-                <p className="pt-1 text-maroon-800">{text}</p>
+              <li key={i} className="grid grid-cols-[3rem_1fr] gap-4 border-t border-ink-line py-5">
+                <span className="font-display text-2xl leading-none text-gold-700 tabular-nums" dir="ltr" aria-hidden="true">
+                  {ordinal(i)}
+                </span>
+                <p className="g-body">{text}</p>
               </li>
             ))}
           </ol>
 
-          <h3 className="g-h3 mt-10">{t("safetyTitle")}</h3>
-          <ul className="mt-4 space-y-2.5">
-            {safety.map((text, i) => (
-              <li key={i} className="flex items-start gap-3 text-maroon-800">
-                {i === 0 ? (
-                  <Footprints className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-                ) : i === 2 ? (
-                  <Users className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-                ) : (
-                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-                )}
-                <span>{text}</span>
+          <h3 className="g-h3 mt-14">{t("safetyTitle")}</h3>
+          <ul className="mt-6 border-b border-ink-line">
+            {safety.map(({ Icon, text }, i) => (
+              <li key={i} className="flex items-start gap-4 border-t border-ink-line py-4">
+                <Icon className="mt-[0.4em] h-4 w-4 shrink-0 text-ink-mute" aria-hidden="true" />
+                <p className="g-body">{text}</p>
               </li>
             ))}
           </ul>
 
-          <p className="mt-8 text-sm text-maroon-600">
-            {t("operatedBy", { operator })}{" "}
-            <a href={website} target="_blank" rel="noopener noreferrer" className="g-link inline-flex items-center gap-1">
+          <p className="g-small mt-10 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>{t("operatedBy", { operator })}</span>
+            <a href={website} target="_blank" rel="noopener noreferrer" className="g-inline inline-flex items-center gap-1" dir="ltr">
               {websiteLabel}
               <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
             </a>
           </p>
-        </div>
+        </Reveal>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="g-card p-6">
-            <p className="g-eyebrow">{t("priceEyebrow")}</p>
+        <Reveal as="aside" delay={150} className="lg:sticky lg:top-28 lg:self-start">
+          <div className="g-card p-8">
+            <p className="g-eyebrow-gold">{t("priceEyebrow")}</p>
             {addon ? (
-              <p className="mt-3 text-4xl font-extrabold text-maroon-900 tabular-nums" dir="ltr">
-                {tc("omrAmount", { amount: formatRate(addon.price) })}
-                <span className="ms-2 text-base font-bold text-maroon-600">{t("perRider")}</span>
+              <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="g-price text-4xl" dir="ltr">
+                  {tc("omrAmount", { amount: formatRate(addon.price) })}
+                </span>
+                <span className="g-small">{t("perRider")}</span>
               </p>
             ) : (
-              <p className="mt-3 text-base text-maroon-800">{t("priceUnavailable")}</p>
+              <p className="g-body mt-4 text-ink">{t("priceUnavailable")}</p>
             )}
-            <p className="mt-2 text-sm leading-relaxed text-maroon-700">{t("priceNote")}</p>
-            <ul className="mt-5 space-y-3 text-sm text-maroon-800">
-              <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-                <span>{t("howStep1")}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Users className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-                <span>{t("howStep2")}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-                <span>{t("howStep3")}</span>
-              </li>
-            </ul>
-            <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-gold mt-6 w-full">
+            <p className="g-small mt-3">{t("priceNote")}</p>
+
+            <p className="g-eyebrow mt-8">{t("howTitle")}</p>
+            <ol className="mt-3 border-b border-ink-line">
+              {steps.map((text, i) => (
+                <li key={i} className="grid grid-cols-[2rem_1fr] gap-3 border-t border-ink-line py-4">
+                  <span className="font-display text-lg leading-none text-gold-700 tabular-nums" dir="ltr" aria-hidden="true">
+                    {ordinal(i)}
+                  </span>
+                  <p className="g-body text-[15px]">{text}</p>
+                </li>
+              ))}
+            </ol>
+
+            <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-gold mt-8 w-full">
               {t("cta")}
-              <ArrowRight className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />
+              <ArrowRight className="g-btn-arrow" aria-hidden="true" />
             </Link>
-            <p className="mt-3 text-center text-xs text-maroon-600">{t("ctaHint")}</p>
+            <p className="g-small mt-4 text-center">{t("ctaHint")}</p>
           </div>
-        </aside>
+        </Reveal>
       </section>
     </>
   );

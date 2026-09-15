@@ -1,27 +1,39 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, Baby, Ban, Car, CigaretteOff, Clock, Receipt, Sparkles, Wallet, XCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getAddons } from "@/lib/bk/catalogue";
 import { logger } from "@/lib/logger";
-import { safePublicSettings } from "@/components/guest/data";
+import { siteImage } from "@/lib/bk/site-content";
+import { Reveal } from "@/components/guest/reveal";
+import { getSiteContent, safePublicSettings } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
 import { APEX_SLUG, TRANSFER_UP_SLUG, formatRate, localizeAddon, n, pct, type LocalizedAddon } from "@/components/guest/lib";
 
-// Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
+// Policies — one hairline list; times, prices and percentages come from
+// settings and the add-on catalogue, never hard-coded.
 // Rendered per request: prices come from bk_addons and must never be frozen at build time.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
-  const t = await getTranslations({ locale, namespace: "meta" });
-  return pageMetadata({ locale, path: "/policies", title: t("policiesTitle"), description: t("policiesDescription") });
+  const [t, site] = await Promise.all([getTranslations({ locale, namespace: "meta" }), getSiteContent()]);
+  return pageMetadata({ locale, path: "/policies", title: t("policiesTitle"), description: t("policiesDescription"), image: siteImage(site, "policies_hero") });
 }
+
+const ARTICLE = "grid gap-3 border-t border-ink-line py-8 md:grid-cols-[16rem_1fr] md:gap-10";
 
 export default async function PoliciesPage({ params }: { params: { locale: string } }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [t, ta, tc, settings] = await Promise.all([getTranslations("policies"), getTranslations("addons"), getTranslations("common"), safePublicSettings()]);
+  const [t, ta, tc, settings, site] = await Promise.all([
+    getTranslations("policies"),
+    getTranslations("addons"),
+    getTranslations("common"),
+    safePublicSettings(),
+    getSiteContent(),
+  ]);
   const { times, cancellation, booking, taxes } = settings;
 
   // Transfer and zipline prices come from the catalogue; the section still renders without them.
@@ -39,18 +51,18 @@ export default async function PoliciesPage({ params }: { params: { locale: strin
   const maxWeight = typeof apex?.details.max_weight_kg === "number" ? apex.details.max_weight_kg : 120;
 
   const sections = [
-    { Icon: Clock, title: t("checkTimesTitle"), body: t("checkTimesBody", { checkIn: times.check_in, checkOut: times.check_out }) },
-    { Icon: XCircle, title: t("cancellationTitle"), body: locale === "ar" ? cancellation.policy_ar : cancellation.policy_en },
-    { Icon: Baby, title: t("childrenTitle"), body: t("childrenBody", { age: n(booking.child_free_under), price: n(booking.extra_bed_omr) }) },
-    { Icon: Ban, title: t("petsTitle"), body: t("petsBody") },
-    { Icon: CigaretteOff, title: t("smokingTitle"), body: t("smokingBody") },
-    { Icon: Wallet, title: t("paymentTitle"), body: t("paymentBody") },
+    { key: "times", title: t("checkTimesTitle"), body: t("checkTimesBody", { checkIn: times.check_in, checkOut: times.check_out }) },
+    { key: "cancellation", title: t("cancellationTitle"), body: locale === "ar" ? cancellation.policy_ar : cancellation.policy_en },
+    { key: "children", title: t("childrenTitle"), body: t("childrenBody", { age: n(booking.child_free_under), price: n(booking.extra_bed_omr) }) },
+    { key: "pets", title: t("petsTitle"), body: t("petsBody") },
+    { key: "smoking", title: t("smokingTitle"), body: t("smokingBody") },
+    { key: "payment", title: t("paymentTitle"), body: t("paymentBody") },
     {
-      Icon: Receipt,
+      key: "taxes",
       title: t("taxesTitle"),
       body: t("taxesBody", { service: pct(taxes.service_charge_pct), tourism: pct(taxes.tourism_fee_pct), vat: pct(taxes.vat_pct) }),
     },
-    { Icon: Car, title: t("fourWdTitle"), body: t("fourWdBody") },
+    { key: "fourwd", title: t("fourWdTitle"), body: t("fourWdBody") },
   ];
 
   const transferRules = [
@@ -62,49 +74,55 @@ export default async function PoliciesPage({ params }: { params: { locale: strin
   ];
 
   return (
-    <section className="g-container max-w-4xl pt-12 sm:pt-16">
-      <p className="g-eyebrow">{t("eyebrow")}</p>
-      <h1 className="g-h1 mt-3">{t("title")}</h1>
-      <p className="g-lead mt-4">{t("intro")}</p>
+    <div className="g-page">
+      <section className="g-container pb-24 sm:pb-32">
+        <div className="mx-auto max-w-4xl">
+          <Reveal>
+            <p className="g-eyebrow-gold">{t("eyebrow")}</p>
+            <h1 className="g-h1 mt-5">{t("title")}</h1>
+            <p className="g-lead mt-6 max-w-2xl">{t("intro")}</p>
+          </Reveal>
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-2">
-        {sections.map(({ Icon, title, body }) => (
-          <article key={title} className="g-card p-5 sm:p-6">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-100 text-gold-700">
-              <Icon className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <h2 className="g-h3 mt-4">{title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-maroon-800">{body}</p>
-          </article>
-        ))}
+          <Reveal delay={150} className="g-frame mt-12 aspect-[3/1] sm:mt-16">
+            <Image src={siteImage(site, "policies_hero")} alt="" fill priority sizes="(min-width: 1024px) 896px, 100vw" className="object-cover" />
+          </Reveal>
 
-        <article id="transfers" className="g-card scroll-mt-24 p-5 sm:col-span-2 sm:p-6" aria-labelledby="policies-transfers">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-100 text-gold-700">
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <h2 id="policies-transfers" className="g-h3 mt-4">
-            {ta("policy.title")}
-          </h2>
-          <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-maroon-800">
-            {transferRules.map((rule, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold-500" aria-hidden="true" />
-                <span>{rule}</span>
-              </li>
+          <div className="mt-14 border-b border-ink-line sm:mt-20">
+            {sections.map((s) => (
+              <Reveal as="article" key={s.key} className={ARTICLE}>
+                <h2 className="g-h4">{s.title}</h2>
+                <p className="g-body">{s.body}</p>
+              </Reveal>
             ))}
-          </ul>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/apex-zipline" className="g-btn-outline g-btn-sm">
-              {ta("policy.apexLink")}
-              <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-            </Link>
-            <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-primary g-btn-sm">
-              {ta("policy.bookLink")}
-              <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-            </Link>
+
+            <Reveal as="article" id="transfers" aria-labelledby="policies-transfers" className={`${ARTICLE} scroll-mt-28`}>
+              <h2 id="policies-transfers" className="g-h4">
+                {ta("policy.title")}
+              </h2>
+              <div>
+                <ul className="space-y-4">
+                  {transferRules.map((rule, i) => (
+                    <li key={i} className="flex gap-4">
+                      <span className="mt-[0.75em] h-1 w-1 shrink-0 rounded-full bg-gold-500" aria-hidden="true" />
+                      <p className="g-body">{rule}</p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Link href="/apex-zipline" className="g-btn-outline g-btn-sm w-full sm:w-auto">
+                    {ta("policy.apexLink")}
+                    <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+                  </Link>
+                  <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-primary g-btn-sm w-full sm:w-auto">
+                    {ta("policy.bookLink")}
+                    <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            </Reveal>
           </div>
-        </article>
-      </div>
-    </section>
+        </div>
+      </section>
+    </div>
   );
 }

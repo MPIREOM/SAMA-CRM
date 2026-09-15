@@ -297,6 +297,26 @@
     @apply g-note border-crimson-200 bg-crimson-50 text-crimson-900;
   }
 
+  /* ---- Lists --------------------------------------------------------- */
+  /* Hairline list: rows separated by hairlines, closed by one at the bottom. */
+  .g-list {
+    @apply border-b border-ink-line;
+  }
+  .g-list-row {
+    @apply border-t border-ink-line py-5;
+  }
+  /* Serif ordinal for numbered steps ("01", "02"). */
+  .g-ordinal {
+    @apply font-display text-2xl leading-none text-gold-700 tabular-nums;
+  }
+  /* Small sans unit after a serif number ("310 m", "OMR 5 per rider"). */
+  .g-unit {
+    @apply ms-1.5 font-sans text-sm font-normal normal-case tracking-normal text-ink-mute;
+  }
+  .g-btn-block {
+    @apply w-full sm:w-auto;
+  }
+
   /* ---- Forms --------------------------------------------------------- */
   .g-label {
     @apply mb-2 block text-[11px] font-semibold uppercase tracking-wide2 text-ink-soft;
