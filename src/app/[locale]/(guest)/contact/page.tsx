@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowUpRight } from "lucide-react";
 import { isLocale, type Locale } from "@/i18n/routing";
-import { siteImage } from "@/lib/bk/site-content";
+import { siteCopy, siteImage } from "@/lib/bk/site-content";
 import { Reveal } from "@/components/guest/reveal";
 import { getSiteContent, safePublicSettings } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
@@ -33,7 +33,7 @@ export default async function ContactPage({ params }: { params: { locale: string
         <Reveal>
           <p className="g-eyebrow-gold">{t("eyebrow")}</p>
           <h1 className="g-h1 mt-5 [text-wrap:balance]">{t("title")}</h1>
-          <p className="g-lead mt-6 max-w-lg">{t("intro")}</p>
+          <p className="g-lead mt-6 max-w-lg">{siteCopy(site, "contact_intro", locale) ?? t("intro")}</p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <a href={waLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="g-btn-primary w-full sm:w-auto">

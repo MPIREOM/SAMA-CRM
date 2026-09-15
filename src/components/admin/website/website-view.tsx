@@ -335,7 +335,10 @@ function CopyTab({ site, placeholders }: { site: SiteSettings; placeholders: Rec
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-5">
-          {SITE_COPY_FIELDS.map((f) => (
+          {SITE_PAGES.filter((p) => SITE_COPY_FIELDS.some((f) => f.page === p.key)).map((page) => (
+            <section key={page.key} className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-maroon-400">{page.label[lang]}</h3>
+              {SITE_COPY_FIELDS.filter((f) => f.page === page.key).map((f) => (
             <fieldset key={f.key} className="rounded-lg border border-maroon-100 p-3">
               <legend className="px-1 text-sm font-bold text-maroon-900">{f.label[lang]}</legend>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -360,6 +363,8 @@ function CopyTab({ site, placeholders }: { site: SiteSettings; placeholders: Rec
                 })}
               </div>
             </fieldset>
+              ))}
+            </section>
           ))}
           <InlineAlert kind="error" message={error} />
           <InlineAlert kind="success" message={notice} />

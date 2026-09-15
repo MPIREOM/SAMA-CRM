@@ -228,9 +228,9 @@ export default async function HomePage({ params }: { params: { locale: string } 
           <div className="max-w-2xl">
             <p className="g-eyebrow-gold">{t("roomsEyebrow")}</p>
             <h2 id="home-rooms" className="g-h2 mt-4">
-              {t("roomsTitle")}
+              {copy("rooms_title", t("roomsTitle"))}
             </h2>
-            <p className="g-body mt-5">{t("roomsIntro")}</p>
+            <p className="g-body mt-5">{copy("rooms_intro", t("roomsIntro"))}</p>
           </div>
           <Link href="/rooms" className="g-link">
             {t("viewAllRooms")}
@@ -263,7 +263,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
             <Reveal className="max-w-2xl">
               <p className="g-eyebrow-gold">{t("experiencesEyebrow")}</p>
               <h2 id="home-experiences" className="g-h2 mt-4">
-                {t("experiencesTitle")}
+                {copy("experiences_title", t("experiencesTitle"))}
               </h2>
             </Reveal>
             <ul className="mt-14 grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
@@ -273,8 +273,8 @@ export default async function HomePage({ params }: { params: { locale: string } 
                     <div className={`g-frame g-zoom ${x.tall ? "aspect-[3/4]" : "aspect-[4/3]"}`}>
                       <Image src={siteImage(site, x.slot)} alt="" fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover" />
                     </div>
-                    <h3 className="g-h3 mt-6">{t(`experiences.${x.key}.title`)}</h3>
-                    <p className="g-body mt-3">{t(`experiences.${x.key}.body`)}</p>
+                    <h3 className="g-h3 mt-6">{copy(`experience_${x.key}_title`, t(`experiences.${x.key}.title`))}</h3>
+                    <p className="g-body mt-3">{copy(`experience_${x.key}_body`, t(`experiences.${x.key}.body`))}</p>
                     <span className="g-link mt-5">
                       {t(`experiences.${x.key}.cta`)}
                       <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
@@ -294,7 +294,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
             <div>
               <p className="g-eyebrow-gold">{t("facilitiesEyebrow")}</p>
               <h2 id="home-facilities" className="g-h2 mt-4">
-                {t("facilitiesTitle")}
+                {copy("facilities_title", t("facilitiesTitle"))}
               </h2>
             </div>
           </Reveal>
@@ -311,7 +311,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
                     {/* The figcaption carries the name — an identical alt would be read twice. */}
                     <Image src={siteImage(site, slot)} alt="" fill sizes="(min-width: 1024px) 200px, 68vw" className="object-cover" />
                   </div>
-                  <figcaption className="g-eyebrow mt-4 text-ink">{t(`facilities.${key}`)}</figcaption>
+                  <figcaption className="g-eyebrow mt-4 text-ink">{copy(`facility_${key}`, t(`facilities.${key}`))}</figcaption>
                 </figure>
               </Reveal>
             ))}
@@ -365,9 +365,9 @@ export default async function HomePage({ params }: { params: { locale: string } 
             <Reveal className="lg:order-1">
               <p className="g-eyebrow-gold">{t("locationEyebrow")}</p>
               <h2 id="home-location" className="g-h2 mt-4">
-                {t("locationTitle")}
+                {copy("location_title", t("locationTitle"))}
               </h2>
-              <p className="g-body mt-6 max-w-lg">{t("locationBody")}</p>
+              <p className="g-body mt-6 max-w-lg">{copy("location_body", t("locationBody"))}</p>
               <div className="mt-8 max-w-lg border-s-2 border-gold-500 ps-5">
                 <h3 className="font-semibold text-ink">{t("fourWdTitle")}</h3>
                 <p className="g-body mt-2">{t("fourWdBody")}</p>
@@ -400,8 +400,8 @@ export default async function HomePage({ params }: { params: { locale: string } 
       <section className="g-container g-section">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="g-rule mx-auto" aria-hidden="true" />
-          <h2 className="g-h3 mt-6">{t("payAtHotelTitle")}</h2>
-          <p className="g-body mt-4">{t("payAtHotelBody")}</p>
+          <h2 className="g-h3 mt-6">{copy("pay_title", t("payAtHotelTitle"))}</h2>
+          <p className="g-body mt-4">{copy("pay_body", t("payAtHotelBody"))}</p>
         </Reveal>
       </section>
 

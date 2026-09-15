@@ -83,14 +83,41 @@ export const SITE_PAGES: { key: SitePage; label: Localized }[] = [
 
 /** Copy the owner can override per language. Empty = use the built-in translation. */
 export const SITE_COPY_FIELDS = [
-  { key: "hero_eyebrow", label: { en: "Hero — small line above the title", ar: "الواجهة — السطر الصغير فوق العنوان" }, multiline: false },
-  { key: "hero_title", label: { en: "Hero — title", ar: "الواجهة — العنوان" }, multiline: false },
-  { key: "hero_subtitle", label: { en: "Hero — subtitle", ar: "الواجهة — العنوان الفرعي" }, multiline: true },
-  { key: "welcome_eyebrow", label: { en: "Welcome — small line", ar: "الترحيب — السطر الصغير" }, multiline: false },
-  { key: "welcome_title", label: { en: "Welcome — title", ar: "الترحيب — العنوان" }, multiline: false },
-  { key: "welcome_body", label: { en: "Welcome — paragraph", ar: "الترحيب — الفقرة" }, multiline: true },
-  { key: "closing_title", label: { en: "Closing line above the footer", ar: "السطر الختامي فوق التذييل" }, multiline: false },
-  { key: "announcement", label: { en: "Announcement bar (leave empty to hide)", ar: "شريط الإعلان (اتركوه فارغاً لإخفائه)" }, multiline: false },
+  // Home
+  { key: "hero_eyebrow", page: "home", label: { en: "Hero — small line above the title", ar: "الواجهة — السطر الصغير فوق العنوان" }, multiline: false },
+  { key: "hero_title", page: "home", label: { en: "Hero — title", ar: "الواجهة — العنوان" }, multiline: false },
+  { key: "hero_subtitle", page: "home", label: { en: "Hero — subtitle", ar: "الواجهة — العنوان الفرعي" }, multiline: true },
+  { key: "welcome_eyebrow", page: "home", label: { en: "Welcome — small line", ar: "الترحيب — السطر الصغير" }, multiline: false },
+  { key: "welcome_title", page: "home", label: { en: "Welcome — title", ar: "الترحيب — العنوان" }, multiline: false },
+  { key: "welcome_body", page: "home", label: { en: "Welcome — paragraph", ar: "الترحيب — الفقرة" }, multiline: true },
+  { key: "rooms_title", page: "home", label: { en: "Rooms — title", ar: "الغرف — العنوان" }, multiline: false },
+  { key: "rooms_intro", page: "home", label: { en: "Rooms — intro", ar: "الغرف — المقدمة" }, multiline: true },
+  { key: "experiences_title", page: "home", label: { en: "Experiences — title", ar: "التجارب — العنوان" }, multiline: false },
+  { key: "experience_peak_title", page: "home", label: { en: "Experience 1 (The Peak) — title", ar: "التجربة 1 (ذا بيك) — العنوان" }, multiline: false },
+  { key: "experience_peak_body", page: "home", label: { en: "Experience 1 (The Peak) — text", ar: "التجربة 1 (ذا بيك) — النص" }, multiline: true },
+  { key: "experience_pool_title", page: "home", label: { en: "Experience 2 (Pool) — title", ar: "التجربة 2 (المسبح) — العنوان" }, multiline: false },
+  { key: "experience_pool_body", page: "home", label: { en: "Experience 2 (Pool) — text", ar: "التجربة 2 (المسبح) — النص" }, multiline: true },
+  { key: "experience_terraces_title", page: "home", label: { en: "Experience 3 (Terraces) — title", ar: "التجربة 3 (المدرجات) — العنوان" }, multiline: false },
+  { key: "experience_terraces_body", page: "home", label: { en: "Experience 3 (Terraces) — text", ar: "التجربة 3 (المدرجات) — النص" }, multiline: true },
+  { key: "facilities_title", page: "home", label: { en: "Facilities — title", ar: "المرافق — العنوان" }, multiline: false },
+  { key: "facility_pool", page: "home", label: { en: "Facility caption — pool", ar: "تعليق المرفق — المسبح" }, multiline: false },
+  { key: "facility_restaurant", page: "home", label: { en: "Facility caption — restaurant", ar: "تعليق المرفق — المطعم" }, multiline: false },
+  { key: "facility_kids", page: "home", label: { en: "Facility caption — children's park", ar: "تعليق المرفق — حديقة الأطفال" }, multiline: false },
+  { key: "facility_gym", page: "home", label: { en: "Facility caption — fitness centre", ar: "تعليق المرفق — صالة اللياقة" }, multiline: false },
+  { key: "facility_peak", page: "home", label: { en: "Facility caption — The Peak", ar: "تعليق المرفق — ذا بيك" }, multiline: false },
+  { key: "facility_majlis", page: "home", label: { en: "Facility caption — majlis", ar: "تعليق المرفق — المجلس" }, multiline: false },
+  { key: "location_title", page: "home", label: { en: "Getting here — title", ar: "الوصول إلينا — العنوان" }, multiline: false },
+  { key: "location_body", page: "home", label: { en: "Getting here — paragraph", ar: "الوصول إلينا — الفقرة" }, multiline: true },
+  { key: "pay_title", page: "home", label: { en: "Pay at the hotel — title", ar: "الدفع في الفندق — العنوان" }, multiline: false },
+  { key: "pay_body", page: "home", label: { en: "Pay at the hotel — text", ar: "الدفع في الفندق — النص" }, multiline: true },
+  { key: "closing_title", page: "home", label: { en: "Closing line above the footer", ar: "السطر الختامي فوق التذييل" }, multiline: false },
+  { key: "announcement", page: "home", label: { en: "Announcement bar (leave empty to hide)", ar: "شريط الإعلان (اتركوه فارغاً لإخفائه)" }, multiline: false },
+  // Rooms
+  { key: "rooms_page_intro", page: "rooms", label: { en: "Rooms page — intro", ar: "صفحة الغرف — المقدمة" }, multiline: true },
+  // The Peak
+  { key: "peak_intro", page: "peak", label: { en: "Intro paragraph", ar: "فقرة المقدمة" }, multiline: true },
+  // Contact
+  { key: "contact_intro", page: "contact", label: { en: "Intro paragraph", ar: "فقرة المقدمة" }, multiline: true },
 ] as const;
 
 export type SiteCopyKey = (typeof SITE_COPY_FIELDS)[number]["key"];

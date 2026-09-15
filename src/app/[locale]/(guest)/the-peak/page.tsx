@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowRight } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
-import { siteImage } from "@/lib/bk/site-content";
+import { siteCopy, siteImage } from "@/lib/bk/site-content";
 import { Reveal } from "@/components/guest/reveal";
 import { getSiteContent } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
@@ -47,7 +47,7 @@ export default async function ThePeakPage({ params }: { params: { locale: string
       {/* Story + photos ---------------------------------------------------- */}
       <section className="g-container g-section grid gap-14 lg:grid-cols-[1.1fr_1fr] lg:gap-20">
         <Reveal>
-          <p className="g-lead max-w-xl">{t("intro")}</p>
+          <p className="g-lead max-w-xl">{siteCopy(site, "peak_intro", locale) ?? t("intro")}</p>
 
           <dl className="mt-10 grid max-w-xl gap-2 border-y border-ink-line py-6 sm:grid-cols-[9rem_1fr] sm:items-baseline">
             <dt className="g-eyebrow">{t("hoursLabel")}</dt>

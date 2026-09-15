@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getRoomTypes } from "@/lib/bk/catalogue";
 import { muscatToday } from "@/lib/booking-engine/dates";
-import { siteImage } from "@/lib/bk/site-content";
+import { siteCopy, siteImage } from "@/lib/bk/site-content";
 import { cn } from "@/lib/utils";
 import { AvailabilityWidget } from "@/components/guest/availability-widget";
 import { Reveal } from "@/components/guest/reveal";
@@ -47,7 +47,7 @@ export default async function RoomsPage({ params }: { params: { locale: string }
           <h1 id="rooms-title" className="g-h1 mt-5 [text-wrap:balance]">
             {t("title")}
           </h1>
-          <p className="g-lead mt-6">{t("intro")}</p>
+          <p className="g-lead mt-6">{siteCopy(site, "rooms_page_intro", locale) ?? t("intro")}</p>
         </Reveal>
       </section>
 
