@@ -22,6 +22,7 @@ import {
   UserCog,
   Users,
   Zap,
+  Globe,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/components/providers/lang-provider";
@@ -61,6 +62,7 @@ const SECTIONS: NavSection[] = [
       { href: "/rooms", label: COMMON.rooms, icon: BedDouble, roles: ADMIN },
       { href: "/rates", label: COMMON.rates, icon: Tag, roles: ADMIN },
       { href: "/addons", label: COMMON.addons, icon: Sparkles, roles: ADMIN },
+      { href: "/website", label: COMMON.website, icon: Globe, roles: ADMIN },
       { href: "/settings", label: COMMON.settings, icon: Settings, roles: ADMIN },
       { href: "/audit", label: COMMON.audit, icon: ScrollText, roles: ADMIN },
     ],

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 // EN/AR toggle that keeps the current path AND query (dates, guests, token).
 
-export function LanguageSwitcher({ tone = "dark", className }: { tone?: "dark" | "light"; className?: string }) {
+export function LanguageSwitcher({ tone = "auto", className, tabIndex }: { tone?: "auto" | "light" | "dark"; className?: string; tabIndex?: number }) {
   const t = useTranslations("nav");
   const locale = useLocale() as Locale;
   const pathname = usePathname();
@@ -34,16 +34,16 @@ export function LanguageSwitcher({ tone = "dark", className }: { tone?: "dark" |
       type="button"
       onClick={switchLocale}
       disabled={pending}
+      tabIndex={tabIndex}
       lang={target}
       dir={target === "ar" ? "rtl" : "ltr"}
       aria-label={`${t("language")}: ${label}`}
       className={cn(
-        "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold transition-colors",
+        "g-nav-link inline-flex min-h-9 items-center rounded-sm px-1 transition-opacity",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2",
-        tone === "dark"
-          ? "border-gold-500/40 text-gold-200 hover:border-gold-400 hover:text-gold-100 focus-visible:ring-offset-maroon-900"
-          : "border-maroon-300 text-maroon-800 hover:bg-maroon-50 focus-visible:ring-offset-stone-50",
-        pending && "opacity-60",
+        tone === "light" && "text-paper/85 hover:text-paper",
+        tone === "dark" && "text-ink-soft hover:text-ink",
+        pending && "opacity-50",
         className
       )}
     >

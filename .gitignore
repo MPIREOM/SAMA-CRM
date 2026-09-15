@@ -36,3 +36,4 @@ supabase/.branches
 qa/
 e2e/report/
 test-results/
+messages/.lock

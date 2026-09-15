@@ -7,6 +7,7 @@ import { DEFAULT_TAXES } from "@/lib/booking-engine/pricing";
 import { DEFAULT_SCHEDULE } from "@/lib/booking-engine/dates";
 import type { Json } from "@/lib/database.types";
 import type { AllSettings, PublicSettings, SettingsKey } from "./types";
+import { SITE_DEFAULTS } from "./site-content";
 
 // Defaults mirror migration 0006 so the app renders sensibly even if a key is
 // missing. Values from the database always win.
@@ -64,6 +65,7 @@ export const SETTINGS_DEFAULTS: AllSettings = {
   },
   promo: { codes: [] },
   cron: { secret: "", dispatch_url: "" },
+  site: SITE_DEFAULTS,
 };
 
 function merge<K extends SettingsKey>(key: K, value: Json | undefined): AllSettings[K] {
@@ -91,7 +93,21 @@ export const getSettings = cache(async (): Promise<AllSettings> => {
     messaging: merge("messaging", map.get("messaging")),
     promo: merge("promo", map.get("promo")),
     cron: merge("cron", map.get("cron")),
+    site: merge("site", map.get("site")),
   };
+});
+
+/**
+ * Website content (photos, hero copy, section toggles) for the guest site.
+ * Read with the service role because bk_public_settings() whitelists only
+ * the booking keys; the row holds nothing but public page content. Falls
+ * back to the defaults on any failure so a page can never fail on it.
+ */
+export const getSiteSettings = cache(async (): Promise<AllSettings["site"]> => {
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("bk_settings").select("value").eq("key", "site").maybeSingle();
+  if (error) throw new Error(`bk_settings site read failed: ${error.message}`);
+  return merge("site", data?.value ?? undefined);
 });
 
 /** Whitelisted settings for the public site (anon RPC). Cached per request. */

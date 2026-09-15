@@ -1,8 +1,9 @@
 import "server-only";
 
 import { cache } from "react";
-import { getPublicSettings, SETTINGS_DEFAULTS } from "@/lib/bk/settings";
+import { getPublicSettings, getSiteSettings, SETTINGS_DEFAULTS } from "@/lib/bk/settings";
 import type { PublicSettings } from "@/lib/bk/types";
+import { SITE_DEFAULTS, type SiteSettings } from "@/lib/bk/site-content";
 import { logger } from "@/lib/logger";
 
 // Server-side helpers for guest pages.
@@ -21,6 +22,22 @@ export const safePublicSettings = cache(async (): Promise<PublicSettings> => {
     });
     const { times, cancellation, contact, booking, taxes, reviews, hotel } = SETTINGS_DEFAULTS;
     return { times, cancellation, contact, booking, taxes, reviews, hotel };
+  }
+});
+
+/**
+ * Owner-managed website content (photo slots, hero copy, section toggles).
+ * Never throws: a missing service key or a transient error yields the
+ * built-in defaults, so every page still renders.
+ */
+export const getSiteContent = cache(async (): Promise<SiteSettings> => {
+  try {
+    return await getSiteSettings();
+  } catch (err) {
+    logger.warn("guest.site", "falling back to default site content", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return SITE_DEFAULTS;
   }
 });
 

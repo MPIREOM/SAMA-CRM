@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { createAddon, updateAddon } from "@/app/(crm)/(app)/addons/actions";
+import { createAddon, updateAddon, uploadAddonImage } from "@/app/(crm)/(app)/addons/actions";
 import { InlineAlert } from "../load-error";
 import { ADDON_KINDS, ADDON_UNITS, addonKindLabel, addonUnitLabel } from "../shared";
 import type { AddonRow } from "./addons-view";
@@ -34,7 +35,10 @@ const STR = {
   requiresNote: { en: "Ask the guest for a note (time, day, riders…)", ar: "اطلب ملاحظة من النزيل (الوقت، اليوم، عدد الراكبين…)" },
   hintEn: { en: "Note hint (EN)", ar: "تلميح الملاحظة (إنجليزي)" },
   hintAr: { en: "Note hint (AR)", ar: "تلميح الملاحظة (عربي)" },
-  image: { en: "Image path", ar: "مسار الصورة" },
+  image: { en: "Photo", ar: "الصورة" },
+  imageHint: { en: "Upload a photo, or type a path under /images.", ar: "ارفعوا صورة أو اكتبوا مساراً تحت /images." },
+  upload: { en: "Upload photo", ar: "رفع صورة" },
+  uploading: { en: "Uploading…", ar: "جارٍ الرفع…" },
   details: { en: "Details (JSON)", ar: "التفاصيل (JSON)" },
   detailsHint: { en: "Free-form facts shown on the website, e.g. {\"length_m\": 310}", ar: "معلومات حرة تُعرض على الموقع، مثل {\"length_m\": 310}" },
   sortOrder: { en: "Sort order", ar: "الترتيب" },
@@ -127,6 +131,20 @@ export function AddonDialog({ addon, onClose }: { addon: AddonRow | "new" | null
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function upload(file: File) {
+    setError(null);
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("slug", form.slug);
+    fd.append("file", file);
+    const r = await uploadAddonImage(fd);
+    setUploading(false);
+    if (!r.ok) setError(r.error);
+    else setForm((f) => ({ ...f, image: r.data.url }));
+  }
 
   useEffect(() => {
     setError(null);
@@ -252,7 +270,36 @@ export function AddonDialog({ addon, onClose }: { addon: AddonRow | "new" | null
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="ad-image">{STR.image[lang]}</Label>
-            <Input id="ad-image" dir="ltr" value={form.image} onChange={(e) => set("image", e.target.value)} placeholder="/images/addons/apex-zipline.jpg" />
+            <div className="flex items-start gap-3">
+              {form.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.image} alt="" className="h-20 w-28 shrink-0 rounded-lg border border-maroon-100 object-cover" />
+              ) : (
+                <div className="h-20 w-28 shrink-0 rounded-lg border border-dashed border-maroon-200 bg-maroon-50" aria-hidden="true" />
+              )}
+              <div className="min-w-0 flex-1 space-y-2">
+                <Input id="ad-image" dir="ltr" value={form.image} onChange={(e) => set("image", e.target.value)} placeholder="/images/addons/apex-zipline.jpg" />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  className="hidden"
+                  aria-label={STR.upload[lang]}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void upload(file);
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex items-center gap-3">
+                  <Button type="button" size="sm" variant="outline" loading={uploading} onClick={() => fileRef.current?.click()}>
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploading ? STR.uploading[lang] : STR.upload[lang]}
+                  </Button>
+                  <p className="text-[11px] text-maroon-400">{STR.imageHint[lang]}</p>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="ad-details">{STR.details[lang]}</Label>

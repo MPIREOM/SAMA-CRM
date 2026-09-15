@@ -3,6 +3,7 @@
 // the template builders stay pure (settings.ts is server-only and reads the
 // database). Callers with database access should pass `await getSettings()`.
 import type { AllSettings } from "@/lib/bk/types";
+import { SITE_DEFAULTS } from "@/lib/bk/site-content";
 import { DEFAULT_SCHEDULE } from "@/lib/booking-engine/dates";
 import { DEFAULT_TAXES } from "@/lib/booking-engine/pricing";
 
@@ -60,4 +61,5 @@ export const SAMPLE_SETTINGS: AllSettings = {
   },
   promo: { codes: [] },
   cron: { secret: "", dispatch_url: "" },
+  site: SITE_DEFAULTS,
 };

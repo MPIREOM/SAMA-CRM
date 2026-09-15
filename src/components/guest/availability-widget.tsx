@@ -2,13 +2,17 @@
 
 import { useEffect, useId, useState, useTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import { Search } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "@/i18n/routing";
 import { addDays, nightsBetween } from "@/lib/booking-engine/pricing";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { cn } from "@/lib/utils";
 import { MAX_ADULTS, MAX_CHILDREN, searchParamsFor, type SearchQuery } from "./schemas";
 import { n } from "./lib";
+
+// The booking bar: four fields on one line (stacked on phones) and one
+// button. On the home page it floats over the foot of the hero ("hero");
+// elsewhere it sits inside the page ("panel").
 
 export interface AvailabilityWidgetProps {
   /** Muscat "today" computed on the server so SSR and hydration agree. */
@@ -97,29 +101,24 @@ export function AvailabilityWidget({
   }
 
   const hero = variant === "hero";
-  const fieldLabel = "mb-1 block text-xs font-bold uppercase tracking-wider text-maroon-700 rtl:text-sm rtl:tracking-normal";
+  const cell = "flex flex-col gap-1 px-4 py-3 sm:px-5 sm:py-4";
+  const fieldLabel = "g-eyebrow text-[10px] text-ink-mute";
+  const field =
+    "h-9 w-full border-0 bg-transparent p-0 font-display text-[1.35rem] leading-none text-ink tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm rtl:font-display-ar";
 
   return (
     <form
       id={id}
       onSubmit={submit}
       aria-labelledby={`${uid}-title`}
-      className={cn(
-        "g-card p-4 sm:p-5",
-        hero ? "shadow-[0_20px_60px_-20px_rgba(59,23,27,0.45)]" : "shadow-card"
-      )}
+      className={cn("bg-white text-ink", hero ? "rounded-[4px] shadow-float" : "g-card")}
     >
-      <div className="mb-3 flex min-h-6 items-baseline justify-between gap-3">
-        <h2 id={`${uid}-title`} className="text-base font-extrabold text-maroon-900">
-          {roomName ? t("forRoom", { name: roomName }) : t("title")}
-        </h2>
-        <p className="text-sm font-semibold text-maroon-700 tabular-nums" aria-live="polite">
-          {t("nights", { count: nights, n: n(nights) })}
-        </p>
-      </div>
+      <h2 id={`${uid}-title`} className="sr-only">
+        {roomName ? t("forRoom", { name: roomName }) : t("title")}
+      </h2>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-[1fr_1fr_0.8fr_0.8fr_auto]">
-        <div>
+      <div className="grid grid-cols-2 divide-ink-line md:grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_auto] md:divide-x rtl:md:divide-x-reverse">
+        <div className={cn(cell, "border-b border-ink-line md:border-b-0")}>
           <label htmlFor={`${uid}-in`} className={fieldLabel}>
             {t("checkIn")}
           </label>
@@ -132,10 +131,10 @@ export function AvailabilityWidget({
             min={today}
             max={maxCheckIn}
             onChange={(e) => onCheckInChange(e.target.value)}
-            className="g-input tabular-nums"
+            className={field}
           />
         </div>
-        <div>
+        <div className={cn(cell, "border-b border-s border-ink-line md:border-b-0 md:border-s-0")}>
           <label htmlFor={`${uid}-out`} className={fieldLabel}>
             {t("checkOut")}
           </label>
@@ -147,19 +146,14 @@ export function AvailabilityWidget({
             min={minCheckOut}
             max={maxCheckOut}
             onChange={(e) => onCheckOutChange(e.target.value)}
-            className="g-input tabular-nums"
+            className={field}
           />
         </div>
-        <div>
+        <div className={cell}>
           <label htmlFor={`${uid}-adults`} className={fieldLabel}>
             {t("adults")}
           </label>
-          <select
-            id={`${uid}-adults`}
-            value={adults}
-            onChange={(e) => setAdults(parseInt(e.target.value, 10))}
-            className="g-select tabular-nums"
-          >
+          <select id={`${uid}-adults`} value={adults} onChange={(e) => setAdults(parseInt(e.target.value, 10))} className={cn(field, "cursor-pointer appearance-none")}>
             {Array.from({ length: MAX_ADULTS }, (_, i) => i + 1).map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -167,16 +161,11 @@ export function AvailabilityWidget({
             ))}
           </select>
         </div>
-        <div>
+        <div className={cn(cell, "border-s border-ink-line md:border-s-0")}>
           <label htmlFor={`${uid}-children`} className={fieldLabel}>
             {t("children")}
           </label>
-          <select
-            id={`${uid}-children`}
-            value={children}
-            onChange={(e) => setChildren(parseInt(e.target.value, 10))}
-            className="g-select tabular-nums"
-          >
+          <select id={`${uid}-children`} value={children} onChange={(e) => setChildren(parseInt(e.target.value, 10))} className={cn(field, "cursor-pointer appearance-none")}>
             {Array.from({ length: MAX_CHILDREN + 1 }, (_, i) => i).map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -184,16 +173,19 @@ export function AvailabilityWidget({
             ))}
           </select>
         </div>
-        <div className="col-span-2 flex items-end md:col-span-1">
-          <button type="submit" disabled={pending} className="g-btn-primary h-12 w-full md:w-auto md:px-5">
-            <Search className="h-5 w-5" aria-hidden="true" />
+        <div className="col-span-2 flex items-stretch border-t border-ink-line p-2 md:col-span-1 md:border-t-0 md:p-2">
+          <button type="submit" disabled={pending} className="g-btn-primary h-full min-h-12 w-full md:min-w-[11rem]">
             <span>{pending ? t("searching") : t("search")}</span>
+            <ArrowRight className="g-btn-arrow" aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      <p className="mt-3 min-h-5 text-xs text-maroon-600">
-        {nights >= maxNights ? t("maxNights", { n: n(maxNights) }) : t("dateHint", { time: checkInTime, time2: checkOutTime })}
+      <p className="flex min-h-9 items-center justify-between gap-4 border-t border-ink-line px-4 text-xs text-ink-mute sm:px-5">
+        <span>{nights >= maxNights ? t("maxNights", { n: n(maxNights) }) : t("dateHint", { time: checkInTime, time2: checkOutTime })}</span>
+        <span className="shrink-0 tabular-nums" aria-live="polite">
+          {t("nights", { count: nights, n: n(nights) })}
+        </span>
       </p>
     </form>
   );

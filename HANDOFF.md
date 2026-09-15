@@ -31,8 +31,9 @@ _Built 7–8 September 2026 on top of the existing SAMA CRM. Read this first, th
 | **Room counts per type** | Placeholder split 14 / 14 / 14 / 8 / 5 / 5 (only "60 total" and "14 chalets" are confirmed) | `/rooms` → Rooms tab: rename/re-type rooms to match the real inventory |
 | **Rates** | Placeholders OMR 50 / 55 / 65 / 70 / 85 / 95, weekend (Thu+Fri) +20 % | `/rates` → set real base rates and seasons |
 | **Room photos** | Real photos but thin: Sama Suites reuse Deluxe shots, Deluxe Mountain View reuses the twin-bed shot | `/rooms` → Room types → upload real photos (stored in Supabase Storage `bk-room-images`) |
+| **Website photos** | Every other photo on the guest site (hero, welcome, experiences, facilities, The Peak, contact, policies, sharing image, logo) is a *slot* with a sensible default | `/website` → Photos: Upload, pick from the library, or reset to default per slot |
 | **Transfer price** | OMR 15 per car each way is a placeholder | `/addons` → edit "4WD transfer up/down" |
-| **APEX photos** | The APEX page and add-on card use hotel aerial photos | `/addons` → image path, or drop photos into `public/images/addons/` |
+| **APEX photos** | The APEX page and add-on card use hotel aerial photos | `/addons` → Edit → Upload photo (or `/website` → APEX → Hero photo to override the page hero only) |
 | **Review links** | Empty | `/settings` → Reviews: paste the Google "write a review" short link (g.page/r/…) and TripAdvisor |
 | **Cancellation policy text** | Sensible default (48 h, first night charged) | `/settings` → Cancellation |
 | **Children pricing** | Children are free up to the room's max (extra bed OMR 10 is text only) | Policy decision; can be added as a rate rule later |
@@ -137,6 +138,22 @@ Migrations live in `supabase/migrations/` (`0005_booking_engine.sql` … `0010_b
 6. **See what was sent:** `/messaging` (queue + log) or the guest's thread in the WhatsApp inbox.
 
 **Twin or king (Deluxe rooms).** Both Deluxe types offer a choice of bed layout: the guest must pick *Twin beds* or *King bed* when booking (the two Deluxe rooms only, at launch — tick the layouts a type offers on `/rooms` → room type → *Guest chooses the bed layout*). The choice is stored on the booking, shown on the reservation, the calendar drawer and in the confirmation messages, and the room-assignment lists put rooms with that layout first. For that to work, record each Deluxe room's actual layout once: `/rooms` → Rooms tab → Edit → *Beds*. Rooms left as *not recorded* are listed after the matching ones. Migration `0013_bed_options.sql`.
+
+## 11b. The website — design system and the `/website` page (15 Sept)
+
+The guest site was redesigned as an editorial boutique-hotel site: light serif display type (Cormorant Garamond for Latin, Amiri for Arabic — self-hosted under `src/fonts/`), Nunito Sans / Tajawal body, a warm paper ground, ink-maroon text, gold only as hairlines and small accents, full-bleed photography, reveal-on-scroll motion that respects `prefers-reduced-motion`. Everything reusable is a `g-*` class in `src/app/globals.css` (typography, buttons, links, cards, forms, motion) and the tokens are in `tailwind.config.ts` (`paper`, `ink`, `font-display`).
+
+**`/website` (super_admin)** controls the guest site without a deploy:
+
+- **Photos** — every photo slot on the site, grouped by page (Brand · Home · Rooms · The Peak · APEX · Contact · Policies · Sharing). Each slot shows the current image, the recommended ratio, and three actions: *Upload* (JPEG/PNG/WebP/AVIF up to 8 MB → Supabase Storage bucket `bk-room-images/site/…`), *Library* (pick any photo already shipped with the site) and *Default* (back to the built-in photo). Room photos stay under `/rooms`, add-on photos under `/addons` (both now have an upload button).
+- **Words** — override the hero eyebrow / title / subtitle, the welcome title / paragraph, the closing line and an optional announcement bar, in English and Arabic. Empty = the built-in translation (shown as the placeholder).
+- **Sections** — switch the optional home-page sections on or off (welcome, experiences, facilities, add-ons, getting here, closing photo).
+
+Storage: one jsonb row `bk_settings.key = 'site'` (`{ images, copy, sections }`, see `src/lib/bk/site-content.ts`). No migration was needed. The guest pages read it server-side with the service role (`getSiteContent()` in `src/components/guest/data.ts`) and fall back to the defaults on any error, so a missing key or a database hiccup never breaks a page. Changes are visible on the next page load (guest pages are rendered per request).
+
+Adding a new photo slot = one entry in `SITE_IMAGE_SLOTS` (`src/lib/bk/site-content.ts`) + `siteImage(site, "key")` where the page renders it. Adding a built-in library photo = drop the file under `public/images/…` and append it to `src/lib/bk/site-library.ts`.
+
+Strings: `messages/en.json` + `messages/ar.json`. Edit them with `node scripts/i18n-set.mjs '{"home.heroTitle":{"en":"…","ar":"…"}}'` (atomic, keeps both files in sync) rather than by hand.
 
 ## 12. Files worth knowing
 

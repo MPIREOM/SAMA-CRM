@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 // Brand splash shown the first time a guest lands on the site in a browser
-// tab: the logo settles in over a stone ground, then the page fades through.
+// tab: the logo settles in over the paper ground, a gold hairline draws, the
+// place name fades in, then the page fades through.
 //
 // It is server-rendered so it paints with the very first HTML, before any
 // JavaScript runs. Whether it shows at all is decided by the tiny inline
@@ -17,20 +18,21 @@ import { useEffect, useState } from "react";
 const STORAGE_KEY = "sama:splash";
 const OPEN_CLASS = "splash-open";
 /** Measured from navigation start, so a slow hydration does not extend the intro. */
-const MIN_VISIBLE_MS = 1600;
+const MIN_VISIBLE_MS = 1800;
 const MIN_VISIBLE_REDUCED_MS = 800;
 /** Upper bound: a page that is still loading is revealed anyway. */
 const MAX_VISIBLE_MS = 4000;
 /** Keep in sync with the opacity transition on #g-splash in globals.css. */
-const FADE_OUT_MS = 600;
+const FADE_OUT_MS = 700;
 
 const PRE_HYDRATION_SCRIPT =
+  `document.documentElement.classList.add("js");` +
   `try{if(!sessionStorage.getItem(${JSON.stringify(STORAGE_KEY)}))` +
   `document.documentElement.classList.add(${JSON.stringify(OPEN_CLASS)})}catch(e){}`;
 
 type Phase = "visible" | "leaving" | "done";
 
-export function SplashScreen() {
+export function SplashScreen({ logo, word }: { logo: string; word: string }) {
   const [phase, setPhase] = useState<Phase>("visible");
 
   useEffect(() => {
@@ -90,17 +92,10 @@ export function SplashScreen() {
       {phase !== "done" && (
         <div id="g-splash" aria-hidden="true" data-leaving={phase === "leaving" ? "" : undefined}>
           <div className="g-splash-logo">
-            <Image
-              src="/images/brand/logo.png"
-              alt=""
-              width={792}
-              height={742}
-              priority
-              sizes="(min-width: 640px) 240px, 192px"
-              className="h-44 w-auto sm:h-56"
-            />
+            <Image src={logo} alt="" width={792} height={742} priority sizes="(min-width: 640px) 200px, 160px" className="h-36 w-auto sm:h-44" />
           </div>
           <span className="g-splash-line" />
+          <p className="g-splash-word">{word}</p>
         </div>
       )}
     </>

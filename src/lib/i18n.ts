@@ -89,6 +89,7 @@ export const COMMON = {
   blocks: { en: "Blocks", ar: "الإغلاقات" },
   messaging: { en: "Messaging", ar: "الرسائل" },
   settings: { en: "Settings", ar: "الإعدادات" },
+  website: { en: "Website", ar: "الموقع الإلكتروني" },
   audit: { en: "Audit log", ar: "سجل التدقيق" },
   today: { en: "Today", ar: "اليوم" },
   create: { en: "Create", ar: "إنشاء" },

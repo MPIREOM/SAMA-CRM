@@ -28,7 +28,7 @@
     "apex": "APEX Zipline",
     "contact": "Contact",
     "policies": "Policies",
-    "bookNow": "Book now",
+    "bookNow": "Book",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "language": "Language",
@@ -41,9 +41,9 @@
     "mobileNav": "Mobile navigation"
   },
   "home": {
-    "heroEyebrow": "Jabal Al Akhdar · 2,000 m above the sea",
-    "heroTitle": "A quiet stay at the edge of the canyon",
-    "heroSubtitle": "Rooms, suites and chalets on Oman's Green Mountain — cool air, big skies and no online payment. Book direct and pay when you arrive.",
+    "heroEyebrow": "Jabal Al Akhdar · 2,000 m",
+    "heroTitle": "Where the mountain slows the day down",
+    "heroSubtitle": "Rooms, suites and chalets on the edge of the canyon in Oman’s Green Mountain. Book directly with us and pay when you arrive.",
     "heroImageAlt": "The canyon below Sama Hotel in Jabal Al Akhdar at golden hour",
     "highlightsEyebrow": "Why guests come back",
     "highlightsTitle": "The mountain does the rest",
@@ -70,10 +70,10 @@
       }
     },
     "roomsEyebrow": "Stay",
-    "roomsTitle": "Rooms, suites & chalets",
-    "roomsIntro": "From a deluxe room for two to a chalet with its own garden. Prices are per night, taxes shown separately.",
+    "roomsTitle": "Rooms, suites and chalets",
+    "roomsIntro": "Every room faces either the canyon and the sunset, or the village and the sunrise. Prices are per night; taxes are shown separately when you book.",
     "roomsUnavailable": "Room details are not available right now. Please call or WhatsApp us and we will help you book.",
-    "viewAllRooms": "See all rooms",
+    "viewAllRooms": "All rooms",
     "facilitiesEyebrow": "Around the hotel",
     "facilitiesTitle": "Everything within a short walk",
     "facilities": {
@@ -86,14 +86,44 @@
     },
     "locationEyebrow": "Getting here",
     "locationTitle": "About two hours from Muscat",
-    "locationBody": "Sama Hotel is in Sayq, Jabal Al Akhdar, in the Ad Dakhiliyah governorate. Take the road through Nizwa and Birkat Al Mouz, then the climb up the mountain — the last stretch is the best part of the drive.",
-    "fourWdTitle": "A 4WD is required",
-    "fourWdBody": "The police checkpoint at Birkat Al Mouz does not allow two-wheel-drive cars up the mountain. If you do not have a 4WD, park at the checkpoint car park and let us bring you up.",
+    "locationBody": "Take the road through Nizwa and Birkat Al Mouz, then climb. The last stretch, with the canyon opening beside you, is the best part of the drive.",
+    "fourWdTitle": "A 4WD is required past the checkpoint",
+    "fourWdBody": "The police checkpoint at Birkat Al Mouz does not allow two-wheel-drive cars up the mountain. Without a 4WD, park at the checkpoint and let us bring you up.",
     "fuelTip": "Fill up in Nizwa or Birkat Al Mouz — it is the last petrol station before the climb.",
     "openMaps": "Open in Google Maps",
     "stickyCta": "Check availability",
-    "payAtHotelTitle": "Pay at the hotel",
-    "payAtHotelBody": "No deposit and no card details online. Your booking is confirmed by email and WhatsApp, and you pay by cash or card when you arrive."
+    "payAtHotelTitle": "Book direct, pay when you arrive",
+    "payAtHotelBody": "No deposit and no card details online. Your booking is confirmed by email and WhatsApp, and you settle by cash or card at check-in.",
+    "heroScroll": "Scroll",
+    "welcomeEyebrow": "Welcome",
+    "welcomeTitle": "Two thousand metres up, the air changes and so does the pace",
+    "welcomeBody": "Sama sits in Sayq, above the terraces where roses bloom in April and pomegranates ripen in September. Mornings begin with coffee on the cliff; evenings end under a sky full of stars, ten degrees cooler than the coast.",
+    "welcomeFacts": {
+      "altitude": "above sea level",
+      "drive": "drive from Muscat",
+      "cooler": "cooler than the coast"
+    },
+    "experiencesEyebrow": "Days here",
+    "experiencesTitle": "Small rituals, kept simple",
+    "experiences": {
+      "peak": {
+        "title": "Coffee above the canyon",
+        "body": "The Peak, our coffee shop on the terrace, opens at seven for the sunrise and stays open until ten for the last of the light.",
+        "cta": "The Peak"
+      },
+      "pool": {
+        "title": "A pool on the cliff edge",
+        "body": "An outdoor pool and jacuzzi right on the edge, with a shallow pool for children beside it and loungers that face the drop.",
+        "cta": "See the rooms"
+      },
+      "terraces": {
+        "title": "Rose water and pomegranates",
+        "body": "The terraced villages are a short walk away. Come in April for the rose harvest, September for pomegranates, any month for the quiet.",
+        "cta": "Plan the drive"
+      }
+    },
+    "closingTitle": "The mountain is waiting",
+    "closingCta": "Check availability"
   },
   "widget": {
     "title": "Check availability",
@@ -109,14 +139,14 @@
     "forRoom": "Checking dates for {name}"
   },
   "rooms": {
-    "eyebrow": "Rooms",
+    "eyebrow": "Stay",
     "title": "Rooms, suites & chalets",
-    "intro": "All rooms have a private balcony or garden, tea and coffee, air-conditioning and heating for the cool mountain evenings.",
+    "intro": "Every room has a private balcony or garden, a tray for tea and coffee, and both air-conditioning and heating for the cool mountain evenings. The chalets sit in their own garden beside the pool.",
     "fromPrice": "from OMR {price} / night",
     "from": "from",
-    "perNight": "per night",
+    "perNight": "night",
     "sleeps": "{adults, plural, one {1 adult} other {{a} adults}} + {children, plural, =0 {no children} one {1 child} other {{c} children}}",
-    "sleepsShort": "Up to {a} adults + {c} children",
+    "sleepsShort": "{adults, plural, one {1 adult} other {{a} adults}}{children, plural, =0 {} one { + 1 child} other { + {c} children}}",
     "viewRoom": "View room",
     "bookThisRoom": "Book this room",
     "checkDates": "Check dates for this room",
@@ -133,7 +163,16 @@
     "otherRooms": "Other rooms",
     "extraBedNote": "Extra bed on request: OMR {price} per night. Children under {age} stay free.",
     "taxesNote": "Prices per night before taxes. Service charge, tourism fee and VAT are shown as separate lines when you book.",
-    "chaletsNote": "Our chalets are set in a private garden by the pool."
+    "chaletsNote": "Our chalets are set in a private garden by the pool.",
+    "checkDatesShort": "Check dates",
+    "detailsTitle": "At a glance",
+    "otherRoomsEyebrow": "Also consider",
+    "openPhoto": "Open photo {n} of {total} full screen",
+    "photoOf": "Photo {n} of {total}",
+    "prevPhoto": "Previous photo",
+    "nextPhoto": "Next photo",
+    "closePhotos": "Close photos",
+    "lightboxTitle": "{name} — photos"
   },
   "search": {
     "eyebrow": "Availability",
@@ -178,7 +217,10 @@
       "unknown": "We could not load availability just now. Please try again in a moment."
     },
     "payAtHotel": "Pay at the hotel — nothing is charged now",
-    "weekendNote": "Thursday and Friday nights are priced higher."
+    "weekendNote": "Thursday and Friday nights are priced higher.",
+    "checkInLabel": "Check-in",
+    "checkOutLabel": "Check-out",
+    "guestsLabel": "Guests"
   },
   "booking": {
     "eyebrow": "Booking",
@@ -363,22 +405,38 @@
     "policyTitle": "Cancellation policy"
   },
   "peak": {
-    "eyebrow": "The Peak",
+    "eyebrow": "The Peak · Speciality coffee",
     "title": "Coffee above the canyon",
-    "intro": "The Peak is our speciality coffee shop on the terrace — the best seat on the mountain for sunrise, sunset and everything in between.",
+    "intro": "The Peak is our speciality coffee shop on the terrace at the edge of the canyon — the best seat on the mountain for sunrise, sunset and everything in between.",
     "hoursLabel": "Opening hours",
-    "hours": "Every day, 07:00–22:00",
-    "body1": "Single-origin espresso, pour-overs, Omani coffee with dates, fresh juices and a short menu of cakes and light bites. In the evening the terrace turns into the quietest spot to watch the lights of Sayq come on.",
-    "body2": "Open to hotel guests and visitors alike. No reservation needed — arrive early for a seat at the edge on weekends.",
+    "body1": "The coffee is taken seriously — single-origin espresso, pour-overs and Omani coffee with dates — but the terrace is the reason to come. In the evening it becomes the quietest place on the mountain to watch the lights of Sayq come on.",
+    "body2": "Open to hotel guests and visitors alike. No reservation needed — on weekends, come early for a seat at the edge.",
     "imageAlt1": "The Peak terrace at sunset",
     "imageAlt2": "The Peak terrace in the evening",
     "imageAlt3": "The courtyard by The Peak",
-    "cta": "Stay the night"
+    "cta": "Stay the night",
+    "hoursTime": "07:00 – 22:00",
+    "hoursDays": "Every day",
+    "menuEyebrow": "On the menu",
+    "menu": {
+      "espresso": {
+        "name": "Espresso & pour-overs",
+        "note": "Single-origin beans"
+      },
+      "qahwa": {
+        "name": "Omani coffee with dates",
+        "note": "Served the traditional way"
+      },
+      "bites": {
+        "name": "Cakes & light bites",
+        "note": "With fresh juices"
+      }
+    }
   },
   "contact": {
     "eyebrow": "Contact",
     "title": "We are here to help",
-    "intro": "For bookings, questions about the road, or anything else — WhatsApp is the fastest way to reach the reservations team.",
+    "intro": "For bookings, questions about the road up, or anything else — WhatsApp is the quickest way to reach the reservations team.",
     "phone": "Phone",
     "whatsapp": "WhatsApp",
     "whatsappCta": "Chat on WhatsApp",
@@ -386,15 +444,15 @@
     "emailCta": "Send an email",
     "address": "Address",
     "maps": "Open in Google Maps",
-    "hoursLabel": "Reservations desk",
-    "hours": "Open 24 hours, every day",
+    "hoursLabel": "Reservations",
+    "hours": "Around the clock, every day",
     "checkTimes": "Check-in from {checkIn} · Check-out by {checkOut}",
     "mailSubject": "Enquiry — Sama Hotel"
   },
   "policies": {
     "eyebrow": "Policies",
     "title": "Hotel policies",
-    "intro": "The short version of how things work at Sama Hotel. If anything is unclear, just ask.",
+    "intro": "The short version of how things work at Sama Hotel. If anything is unclear, ask us — we would rather you knew before you arrive.",
     "checkTimesTitle": "Check-in & check-out",
     "checkTimesBody": "Check-in from {checkIn}, check-out by {checkOut}. Early check-in and late check-out depend on availability — message us on the day.",
     "cancellationTitle": "Cancellation",
@@ -500,7 +558,7 @@
       "children": "Children ride with a guardian's consent; tell us their ages when you book.",
       "weight": "Maximum rider weight {kg} kg."
     },
-    "operatedBy": "Operated by {operator} ·",
+    "operatedBy": "Operated by {operator}",
     "priceEyebrow": "Hotel-guest rate",
     "perRider": "per rider",
     "priceUnavailable": "Special rate for hotel guests — ask us for today's price.",
@@ -509,23 +567,27 @@
     "howStep2": "Tell us your preferred day and any riders under 16 — we book the slot with APEX.",
     "howStep3": "We confirm by WhatsApp; you pay with your room at check-out.",
     "cta": "Add it when you book",
-    "ctaHint": "Already booked? Message us on WhatsApp and we will add it."
+    "ctaHint": "Already booked? Message us on WhatsApp and we will add it.",
+    "howTitle": "How it works"
   },
   "footer": {
-    "tagline": "A mountain resort at 2,000 m in Jabal Al Akhdar, Oman.",
+    "tagline": "A small mountain hotel at 2,000 metres in Jabal Al Akhdar, Oman — cool air, canyon views and an honest welcome.",
     "contact": "Contact",
     "explore": "Explore",
     "policies": "Policies",
     "staffLogin": "Staff login",
-    "payAtHotel": "Pay at the hotel — no online payment",
+    "payAtHotel": "Pay at the hotel — nothing is charged online",
     "payAtHotelBody": "We never ask for card details online. Your room is held on your name and you settle at check-in.",
     "whatsapp": "WhatsApp",
     "rights": "© {year} Sama Hotel. All rights reserved.",
-    "legal": "Riyadha Al Jabal Al Akhdar Trading Co. L.L.C"
+    "legal": "Riyadha Al Jabal Al Akhdar Trading Co. L.L.C",
+    "visit": "Visit",
+    "talk": "Talk to us",
+    "directions": "Directions"
   },
   "errors": {
     "notFoundTitle": "This page has wandered off the mountain",
-    "notFoundBody": "The page you are looking for does not exist. Let us get you back to the hotel.",
+    "notFoundBody": "The page you are looking for does not exist or has moved. Let us take you back to the hotel.",
     "backHome": "Back to home",
     "genericTitle": "Something went wrong",
     "genericBody": "We could not load this page. Please try again — or call or WhatsApp us and we will help you directly.",

@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { nunito, tajawal } from "@/fonts";
+import { amiri, cormorant, nunito, tajawal } from "@/fonts";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing, isLocale } from "@/i18n/routing";
+import { siteImage } from "@/lib/bk/site-content";
 import { SplashScreen } from "@/components/guest/splash-screen";
+import { getSiteContent } from "@/components/guest/data";
 import "../globals.css";
 
 // Guest-site root layout (one of two root layouts — the CRM has its own under
 // src/app/(crm)). <html lang dir> come from the URL locale.
-// suppressHydrationWarning: the splash script adds a class to <html> before
+// suppressHydrationWarning: the splash script adds classes to <html> before
 // React hydrates (see components/guest/splash-screen.tsx).
 
 export function generateStaticParams() {
@@ -18,7 +20,7 @@ export function generateStaticParams() {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#3b171b",
+  themeColor: "#f7f3ec",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -26,7 +28,7 @@ export const viewport: Viewport = {
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : "en";
-  const t = await getTranslations({ locale, namespace: "meta" });
+  const [t, site] = await Promise.all([getTranslations({ locale, namespace: "meta" }), getSiteContent()]);
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
   return {
     metadataBase: new URL(base),
@@ -44,7 +46,7 @@ export async function generateMetadata({ params }: { params: { locale: string } 
       title: t("siteTitle"),
       description: t("siteDescription"),
       locale: locale === "ar" ? "ar_OM" : "en_GB",
-      images: [{ url: "/images/og.jpg", width: 1200, height: 630 }],
+      images: [{ url: siteImage(site, "og_image"), width: 1200, height: 630 }],
     },
     twitter: { card: "summary_large_image" },
     icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
@@ -65,13 +67,18 @@ export default async function LocaleLayout({
   const { locale } = params;
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
-  const messages = await getMessages();
+  const [messages, site, tNav] = await Promise.all([getMessages(), getSiteContent(), getTranslations("nav")]);
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir} className={`${nunito.variable} ${tajawal.variable} guest`} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${nunito.variable} ${tajawal.variable} ${cormorant.variable} ${amiri.variable} guest`}
+      suppressHydrationWarning
+    >
       <body className="guest-body">
-        <SplashScreen />
+        <SplashScreen logo={siteImage(site, "brand_logo")} word={tNav("brandSub")} />
         {GTM_ID_SAFE && (
           <>
             <Script id="gtm" strategy="afterInteractive">

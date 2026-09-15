@@ -23,6 +23,7 @@ const CRM_PREFIXES = [
   "/blocks",
   "/messaging",
   "/settings",
+  "/website",
   "/audit",
   "/inbox",
   "/contacts",

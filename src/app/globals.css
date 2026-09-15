@@ -40,21 +40,34 @@
     background: #cda6ab;
     border-radius: 9999px;
   }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-/* ---------------------------------------------------------------------------
-   Guest site (src/app/[locale]) — appended by the guest-site build.
-   Warm, calm mountain-resort feel: stone off-white ground, maroon text,
-   gold accents. Contrast: text on light backgrounds uses maroon-* / gold-700+.
---------------------------------------------------------------------------- */
+/* ===========================================================================
+   Guest site (src/app/[locale]) — editorial, quiet, photographic.
+
+   Ground: warm paper. Ink: deep maroon. Gold only as a hairline or a small
+   accent. Display type is a light serif (Cormorant Garamond / Amiri); the
+   body stays in the brand sans. Nothing heavier than weight 600 on this side.
+   Motion is slow and eased (see the .g-reveal / .g-zoom primitives).
+=========================================================================== */
 @layer base {
   html.guest {
     scroll-behavior: smooth;
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 6rem;
+    --g-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --g-header: 4.5rem;
   }
   html.guest body {
-    @apply bg-stone-50 text-maroon-950;
+    @apply bg-paper text-ink;
     -webkit-tap-highlight-color: transparent;
+    font-feature-settings: "kern" 1, "liga" 1;
+    text-rendering: optimizeLegibility;
   }
   html.guest input[type="date"] {
     -webkit-appearance: none;
@@ -70,72 +83,239 @@
   html.guest details > summary::-webkit-details-marker {
     display: none;
   }
+  html.guest ::selection {
+    @apply bg-gold-200 text-ink;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html.guest {
+      scroll-behavior: auto;
+    }
+  }
 }
 
 @layer components {
+  /* ---- Layout -------------------------------------------------------- */
   .g-container {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+    @apply mx-auto w-full max-w-[84rem] px-5 sm:px-8 lg:px-12;
   }
-  .g-eyebrow {
-    @apply text-xs font-bold uppercase tracking-[0.2em] text-gold-700;
+  .g-narrow {
+    @apply mx-auto w-full max-w-3xl px-5 sm:px-8;
   }
-  [dir="rtl"] .g-eyebrow {
-    letter-spacing: 0;
-    font-size: 0.875rem;
+  .g-section {
+    padding-block: clamp(4rem, 9vw, 8rem);
   }
-  .g-h1 {
-    @apply text-4xl font-extrabold leading-[1.05] tracking-tight text-maroon-900 sm:text-5xl lg:text-6xl;
+  .g-section-tight {
+    padding-block: clamp(3rem, 6vw, 5rem);
   }
-  .g-h2 {
-    @apply text-3xl font-extrabold leading-tight tracking-tight text-maroon-900 sm:text-4xl;
+  /* Pages without a full-bleed hero start below the fixed header. */
+  .g-page {
+    padding-top: calc(var(--g-header) + clamp(2rem, 6vw, 4.5rem));
   }
-  .g-h3 {
-    @apply text-xl font-bold leading-snug text-maroon-900;
+  .g-hairline {
+    @apply border-0 border-t border-ink-line;
   }
-  [dir="rtl"] .g-h1,
-  [dir="rtl"] .g-h2,
-  [dir="rtl"] .g-h3 {
+
+  /* ---- Type ---------------------------------------------------------- */
+  .g-display {
+    @apply font-display font-normal text-ink;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+  }
+  [dir="rtl"] .g-display {
+    @apply font-display-ar;
     letter-spacing: 0;
     line-height: 1.3;
   }
-  .g-lead {
-    @apply text-lg leading-relaxed text-maroon-700;
+  .g-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-caps text-ink-mute;
   }
+  .g-eyebrow-gold {
+    @apply g-eyebrow text-gold-700;
+  }
+  [dir="rtl"] .g-eyebrow,
+  [dir="rtl"] .g-eyebrow-gold {
+    letter-spacing: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .g-h1 {
+    @apply g-display;
+    font-size: clamp(2.5rem, 5.6vw, 4.75rem);
+  }
+  .g-h2 {
+    @apply g-display;
+    font-size: clamp(2rem, 3.8vw, 3.25rem);
+    line-height: 1.08;
+  }
+  .g-h3 {
+    @apply g-display;
+    font-size: clamp(1.5rem, 2.2vw, 1.9rem);
+    line-height: 1.15;
+  }
+  .g-h4 {
+    @apply g-display;
+    font-size: 1.375rem;
+    line-height: 1.2;
+  }
+  [dir="rtl"] .g-h2 {
+    line-height: 1.35;
+  }
+  [dir="rtl"] .g-h3,
+  [dir="rtl"] .g-h4 {
+    line-height: 1.4;
+  }
+  .g-lead {
+    @apply text-lg leading-relaxed text-ink-soft;
+  }
+  .g-body {
+    @apply text-base leading-[1.75] text-ink-soft;
+  }
+  .g-small {
+    @apply text-sm leading-relaxed text-ink-mute;
+  }
+  .g-price {
+    @apply font-display text-ink tabular-nums;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .g-prose p + p {
+    @apply mt-5;
+  }
+  .g-rule {
+    @apply block h-px w-10 bg-gold-500;
+  }
+
+  /* ---- Buttons ------------------------------------------------------- */
   .g-btn {
-    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-base font-bold transition-colors;
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50;
-    @apply disabled:pointer-events-none disabled:opacity-60;
+    @apply relative inline-flex min-h-12 items-center justify-center gap-2.5 rounded-[3px] px-7 text-[12px] font-semibold uppercase tracking-caps;
+    @apply transition-all duration-400 ease-out;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-paper;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply active:scale-[0.985];
+  }
+  [dir="rtl"] .g-btn {
+    letter-spacing: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
   }
   .g-btn-primary {
-    @apply g-btn bg-maroon-800 text-gold-100 hover:bg-maroon-700;
+    @apply g-btn bg-ink text-paper hover:bg-maroon-800;
   }
   .g-btn-gold {
-    @apply g-btn bg-gold-500 text-maroon-950 hover:bg-gold-400;
+    @apply g-btn bg-gold-500 text-ink hover:bg-gold-400;
   }
   .g-btn-outline {
-    @apply g-btn border border-maroon-300 bg-white text-maroon-800 hover:border-maroon-500 hover:bg-maroon-50;
+    @apply g-btn border border-ink/40 bg-transparent text-ink hover:border-ink hover:bg-ink hover:text-paper;
   }
   .g-btn-ghost {
-    @apply g-btn text-maroon-800 hover:bg-maroon-100;
+    @apply g-btn px-4 text-ink-soft hover:text-ink;
+  }
+  .g-btn-light {
+    @apply g-btn border border-paper/60 bg-transparent text-paper hover:border-paper hover:bg-paper hover:text-ink;
   }
   .g-btn-sm {
-    @apply min-h-10 px-4 text-sm;
+    @apply min-h-10 px-5 text-[11px];
   }
+  [dir="rtl"] .g-btn-sm {
+    font-size: 0.875rem;
+  }
+  .g-btn .g-btn-arrow {
+    @apply h-3.5 w-3.5 transition-transform duration-400 ease-out rtl:rotate-180;
+  }
+  .g-btn:hover .g-btn-arrow {
+    transform: translateX(3px);
+  }
+  [dir="rtl"] .g-btn:hover .g-btn-arrow {
+    transform: translateX(-3px) rotate(180deg);
+  }
+
+  /* Text link with a sweeping underline. */
+  .g-link {
+    @apply relative inline-flex items-center gap-1.5 self-start text-[12px] font-semibold uppercase tracking-caps text-ink;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 rounded-sm;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 100% 1px;
+    padding-bottom: 3px;
+    transition: background-size 500ms var(--g-ease), color 300ms;
+  }
+  [dir="rtl"] .g-link {
+    letter-spacing: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    background-position: 100% 100%;
+  }
+  .g-link:hover {
+    background-size: 0% 1px;
+    background-position: 100% 100%;
+  }
+  [dir="rtl"] .g-link:hover {
+    background-position: 0 100%;
+  }
+  .g-link-light {
+    @apply g-link text-paper/85 hover:text-paper;
+  }
+  /* Plain inline link in running text. */
+  .g-inline {
+    @apply text-ink underline decoration-gold-500 decoration-1 underline-offset-[5px] transition-colors hover:decoration-ink;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 rounded-sm;
+  }
+
+  /* ---- Surfaces ------------------------------------------------------ */
   .g-card {
-    @apply rounded-2xl border border-stone-200 bg-white shadow-card;
+    @apply rounded-[4px] border border-ink-line bg-white;
   }
+  .g-card-soft {
+    @apply rounded-[4px] bg-paper-200;
+  }
+  .g-frame {
+    @apply relative overflow-hidden rounded-[4px] bg-paper-200;
+  }
+  .g-tag {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-line bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide2 text-ink-soft backdrop-blur;
+  }
+  [dir="rtl"] .g-tag {
+    letter-spacing: 0;
+    font-size: 0.8125rem;
+  }
+  .g-tag-dark {
+    @apply g-tag border-transparent bg-ink/85 text-paper;
+  }
+  .g-tag-gold {
+    @apply g-tag border-transparent bg-gold-500 text-ink;
+  }
+  .g-note {
+    @apply rounded-[4px] border border-ink-line bg-paper-50 px-5 py-4 text-sm leading-relaxed text-ink-soft;
+  }
+  .g-note-gold {
+    @apply g-note border-gold-300 bg-gold-50 text-ink;
+  }
+  .g-note-green {
+    @apply g-note border-jabal-200 bg-jabal-50 text-jabal-900;
+  }
+  .g-note-red {
+    @apply g-note border-crimson-200 bg-crimson-50 text-crimson-900;
+  }
+
+  /* ---- Forms --------------------------------------------------------- */
   .g-label {
-    @apply mb-1.5 block text-sm font-bold text-maroon-800;
+    @apply mb-2 block text-[11px] font-semibold uppercase tracking-wide2 text-ink-soft;
+  }
+  [dir="rtl"] .g-label {
+    letter-spacing: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
   .g-input {
-    @apply block h-12 w-full rounded-xl border border-stone-300 bg-white px-3.5 text-base text-maroon-950 placeholder:text-maroon-500;
-    @apply focus:border-gold-600 focus:outline-none focus:ring-2 focus:ring-gold-300;
-    @apply disabled:cursor-not-allowed disabled:bg-stone-100;
-    @apply aria-[invalid=true]:border-crimson-600 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-crimson-300;
+    @apply block h-12 w-full rounded-[3px] border border-ink/25 bg-white px-3.5 text-base text-ink placeholder:text-ink-mute/70;
+    @apply transition-[border-color,box-shadow] duration-300;
+    @apply focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink;
+    @apply disabled:cursor-not-allowed disabled:bg-paper-200;
+    @apply aria-[invalid=true]:border-crimson-600 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-crimson-400;
   }
   .g-select {
     @apply g-input cursor-pointer appearance-none bg-no-repeat pe-10;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f2a31' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23221416' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 0.9rem center;
     background-size: 1rem;
   }
@@ -146,20 +326,167 @@
     @apply g-input h-auto min-h-28 resize-y py-3;
   }
   .g-hint {
-    @apply mt-1.5 text-sm text-maroon-600;
+    @apply mt-2 text-sm leading-relaxed text-ink-mute;
   }
   .g-error {
-    @apply mt-1.5 text-sm font-semibold text-crimson-700;
+    @apply mt-2 text-sm font-semibold text-crimson-700;
   }
-  .g-link {
-    @apply rounded-sm font-semibold text-maroon-800 underline decoration-gold-500 decoration-2 underline-offset-4 hover:text-crimson-700;
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2;
+  .g-check {
+    @apply h-5 w-5 shrink-0 rounded-[3px] border-ink/40 text-ink accent-ink focus:ring-2 focus:ring-gold-400;
   }
+  /* Segmented choice (language, bed layout). */
+  .g-choice {
+    @apply flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-[3px] border border-ink/25 bg-white px-4 text-sm font-semibold text-ink;
+    @apply transition-colors duration-300 focus-within:ring-2 focus-within:ring-gold-400 hover:border-ink;
+  }
+  .g-choice-on {
+    @apply border-ink bg-ink text-paper hover:border-ink;
+  }
+
+  /* ---- Skeletons ----------------------------------------------------- */
   .g-skeleton {
-    @apply animate-pulse rounded-xl bg-stone-200;
+    @apply animate-pulse rounded-[4px] bg-paper-300/70;
   }
-  .g-prose p + p {
-    @apply mt-4;
+
+  /* ---- Motion primitives ------------------------------------------- */
+  /* Reveal on scroll: the client <Reveal> component adds .is-in. Elements
+     render visible without JavaScript and for reduced-motion users. */
+  .g-reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 1000ms var(--g-ease),
+      transform 1000ms var(--g-ease);
+    transition-delay: var(--g-delay, 0ms);
+    will-change: opacity, transform;
+  }
+  .g-reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  html.no-js .g-reveal,
+  html.guest:not(.js) .g-reveal {
+    opacity: 1;
+    transform: none;
+  }
+  /* Photo hover: slow, small zoom. Put on the frame; the <img> inside scales. */
+  .g-zoom img {
+    transition: transform 1400ms var(--g-ease);
+    will-change: transform;
+  }
+  .g-zoom:hover img,
+  .g-zoom:focus-within img {
+    transform: scale(1.04);
+  }
+  .g-kenburns {
+    animation: g-kenburns 16s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .g-fade-up {
+    animation: g-fade-up 900ms var(--g-ease) both;
+    animation-delay: var(--g-delay, 0ms);
+  }
+  .g-fade {
+    animation: g-fade 700ms ease both;
+    animation-delay: var(--g-delay, 0ms);
+  }
+  /* Header nav item: hairline grows from the start edge. */
+  .g-nav-link {
+    @apply relative py-1 text-[11px] font-semibold uppercase tracking-caps transition-colors duration-300;
+  }
+  [dir="rtl"] .g-nav-link {
+    letter-spacing: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+  .g-nav-link::after {
+    content: "";
+    @apply absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-500 ease-out;
+  }
+  [dir="rtl"] .g-nav-link::after {
+    transform-origin: right;
+  }
+  .g-nav-link:hover::after,
+  .g-nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* ---- Header ------------------------------------------------------ */
+  .g-header {
+    @apply bg-paper/90 text-ink backdrop-blur-md;
+    box-shadow: 0 1px 0 0 rgba(34, 20, 22, 0.1);
+    transition: background-color 500ms var(--g-ease), color 500ms var(--g-ease), box-shadow 500ms var(--g-ease);
+  }
+  .g-header .g-header-cta {
+    @apply bg-ink text-paper hover:bg-maroon-800;
+  }
+  .g-header .g-header-mark {
+    filter: none;
+  }
+  .g-announce {
+    @apply bg-ink text-paper;
+  }
+  /* Over a page hero, before any scroll: transparent with light type. */
+  body:has([data-hero]) .g-header:not(.is-scrolled):not(.is-open) {
+    background-color: transparent;
+    color: theme("colors.paper.DEFAULT");
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  body:has([data-hero]) .g-header:not(.is-scrolled):not(.is-open) .g-header-cta {
+    @apply border border-paper/70 bg-transparent text-paper hover:border-paper hover:bg-paper hover:text-ink;
+  }
+  body:has([data-hero]) .g-header:not(.is-scrolled):not(.is-open) .g-header-mark {
+    filter: brightness(0) invert(1);
+  }
+  body:has([data-hero]) .g-header:not(.is-scrolled):not(.is-open) .g-announce {
+    @apply bg-transparent text-paper/90;
+  }
+  /* backdrop-filter would make the header the containing block of the
+     fixed full-screen menu, so it is dropped while the menu is open. */
+  .g-header.is-open {
+    @apply bg-ink text-paper;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .g-header.is-open .g-header-mark {
+    filter: brightness(0) invert(1);
+  }
+  .g-burger-line {
+    @apply absolute block h-px w-6 bg-current transition-transform duration-400 ease-out;
+  }
+  .g-burger-line:first-child {
+    transform: translateY(-3.5px);
+  }
+  .g-burger-line:last-child {
+    transform: translateY(3.5px);
+  }
+  .g-burger[aria-expanded="true"] .g-burger-line:first-child {
+    transform: rotate(45deg);
+  }
+  .g-burger[aria-expanded="true"] .g-burger-line:last-child {
+    transform: rotate(-45deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .g-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .g-zoom img,
+    .g-kenburns,
+    .g-fade-up,
+    .g-fade {
+      animation: none;
+      transition: none;
+      transform: none;
+    }
+    .g-btn,
+    .g-link,
+    .g-nav-link::after {
+      transition: none;
+    }
   }
 }
 
@@ -174,28 +501,32 @@
     display: none;
   }
   html.splash-open #g-splash {
-    @apply fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8 bg-stone-50;
-    transition: opacity 600ms ease;
+    @apply fixed inset-0 z-[100] flex flex-col items-center justify-center gap-7 bg-paper;
+    transition: opacity 700ms var(--g-ease);
   }
   #g-splash[data-leaving] {
     opacity: 0;
     pointer-events: none;
   }
   .g-splash-logo {
-    animation: g-splash-in 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: g-splash-in 1100ms var(--g-ease) both;
   }
   .g-splash-line {
-    @apply h-px w-16 bg-gold-500/80;
+    @apply h-px w-14 bg-gold-500;
     transform-origin: left center;
-    animation: g-splash-line 1600ms ease-in-out both;
+    animation: g-splash-line 1400ms var(--g-ease) 300ms both;
   }
   [dir="rtl"] .g-splash-line {
     transform-origin: right center;
   }
+  .g-splash-word {
+    @apply g-eyebrow text-ink-mute;
+    animation: g-splash-fade 900ms ease 700ms both;
+  }
   @keyframes g-splash-in {
     from {
       opacity: 0;
-      transform: scale(0.94) translateY(8px);
+      transform: scale(0.96) translateY(6px);
     }
     to {
       opacity: 1;
@@ -210,20 +541,21 @@
       transform: scaleX(1);
     }
   }
+  @keyframes g-splash-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .g-splash-logo {
+    .g-splash-logo,
+    .g-splash-word {
       animation: g-splash-fade 400ms ease both;
     }
     .g-splash-line {
       animation: none;
-    }
-    @keyframes g-splash-fade {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
     }
   }
 }
