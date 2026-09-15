@@ -114,7 +114,7 @@ export function ManageBooking({
       {contactRow}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
           <button type="button" aria-label={t("keepBooking")} onClick={() => setOpen(false)} className="absolute inset-0 bg-ink/70 backdrop-blur-[2px]" />
           <div
             ref={dialogRef}

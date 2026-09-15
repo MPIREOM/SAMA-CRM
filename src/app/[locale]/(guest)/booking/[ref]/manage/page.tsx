@@ -74,7 +74,8 @@ export default async function ManagePage({ params, searchParams }: Props) {
           </Reveal>
         )}
 
-        <Reveal as="section" className="mt-6" aria-label={t("requestCancel")}>
+        {/* No <Reveal> here: its will-change/transform would trap the fixed-position cancellation dialog inside the section. */}
+        <section className="mt-6" aria-label={t("requestCancel")}>
           <ManageBooking
             bookingRef={booking.ref}
             token={token}
@@ -88,7 +89,7 @@ export default async function ManagePage({ params, searchParams }: Props) {
             hasAddons={liveBookingAddons(booking.addons).length > 0}
             action={requestCancellationAction}
           />
-        </Reveal>
+        </section>
 
         <Reveal as="section" className="mt-12 border-t border-ink-line pt-8" aria-labelledby="manage-policy">
           <h2 id="manage-policy" className="g-h4">

@@ -101,7 +101,7 @@ export function AddonPicker({
                         id={qtyId}
                         aria-live="polite"
                         aria-label={t("quantityLabel", { name: addon.name })}
-                        className="w-11 border-x border-ink-line text-center font-display text-xl leading-[2.75rem] text-ink lining-nums tabular-nums"
+                        className="w-11 border-x border-ink-line text-center text-base font-semibold leading-[2.75rem] text-ink tabular-nums"
                       >
                         {choice.quantity}
                       </output>
