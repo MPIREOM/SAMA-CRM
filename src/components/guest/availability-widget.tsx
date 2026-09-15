@@ -12,7 +12,8 @@ import { n } from "./lib";
 
 // The booking bar: four fields on one line (stacked on phones) and one
 // button. On the home page it floats over the foot of the hero ("hero");
-// elsewhere it sits inside the page ("panel").
+// elsewhere it sits inside the page ("panel"); in a narrow sidebar the
+// fields stack two by two with a full-width button ("stack").
 
 export interface AvailabilityWidgetProps {
   /** Muscat "today" computed on the server so SSR and hydration agree. */
@@ -25,7 +26,7 @@ export interface AvailabilityWidgetProps {
   /** When set, the search goes straight to /book/[slug]. */
   roomSlug?: string;
   roomName?: string;
-  variant?: "hero" | "panel";
+  variant?: "hero" | "panel" | "stack";
   id?: string;
   onSubmitted?: () => void;
   autoFocus?: boolean;
@@ -101,7 +102,8 @@ export function AvailabilityWidget({
   }
 
   const hero = variant === "hero";
-  const cell = "flex flex-col gap-1 px-4 py-3 sm:px-5 sm:py-4";
+  const stack = variant === "stack";
+  const cell = stack ? "flex flex-col gap-1 px-4 py-3" : "flex flex-col gap-1 px-4 py-3 sm:px-5 sm:py-4";
   const fieldLabel = "g-eyebrow text-[10px] text-ink-mute";
   const field =
     "h-9 w-full border-0 bg-transparent p-0 font-display text-[1.35rem] leading-none text-ink tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm rtl:font-display-ar";
@@ -117,8 +119,13 @@ export function AvailabilityWidget({
         {roomName ? t("forRoom", { name: roomName }) : t("title")}
       </h2>
 
-      <div className="grid grid-cols-2 divide-ink-line md:grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_auto] md:divide-x rtl:md:divide-x-reverse">
-        <div className={cn(cell, "border-b border-ink-line md:border-b-0")}>
+      <div
+        className={cn(
+          "grid grid-cols-2 divide-ink-line",
+          !stack && "md:grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_auto] md:divide-x rtl:md:divide-x-reverse"
+        )}
+      >
+        <div className={cn(cell, "border-b border-ink-line", !stack && "md:border-b-0")}>
           <label htmlFor={`${uid}-in`} className={fieldLabel}>
             {t("checkIn")}
           </label>
@@ -134,7 +141,7 @@ export function AvailabilityWidget({
             className={field}
           />
         </div>
-        <div className={cn(cell, "border-b border-s border-ink-line md:border-b-0 md:border-s-0")}>
+        <div className={cn(cell, "border-b border-s border-ink-line", !stack && "md:border-b-0 md:border-s-0")}>
           <label htmlFor={`${uid}-out`} className={fieldLabel}>
             {t("checkOut")}
           </label>
@@ -161,7 +168,7 @@ export function AvailabilityWidget({
             ))}
           </select>
         </div>
-        <div className={cn(cell, "border-s border-ink-line md:border-s-0")}>
+        <div className={cn(cell, "border-s border-ink-line", !stack && "md:border-s-0")}>
           <label htmlFor={`${uid}-children`} className={fieldLabel}>
             {t("children")}
           </label>
@@ -173,8 +180,8 @@ export function AvailabilityWidget({
             ))}
           </select>
         </div>
-        <div className="col-span-2 flex items-stretch border-t border-ink-line p-2 md:col-span-1 md:border-t-0 md:p-2">
-          <button type="submit" disabled={pending} className="g-btn-primary h-full min-h-12 w-full md:min-w-[11rem]">
+        <div className={cn("col-span-2 flex items-stretch border-t border-ink-line p-2", !stack && "md:col-span-1 md:border-t-0")}>
+          <button type="submit" disabled={pending} className={cn("g-btn-primary h-full min-h-12 w-full", !stack && "md:min-w-[11rem]")}>
             <span>{pending ? t("searching") : t("search")}</span>
             <ArrowRight className="g-btn-arrow" aria-hidden="true" />
           </button>

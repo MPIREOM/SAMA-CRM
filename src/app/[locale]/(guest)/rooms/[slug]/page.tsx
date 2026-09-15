@@ -127,8 +127,8 @@ export default async function RoomPage({ params }: Props) {
             </div>
           </div>
 
-          <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
-            <div className="g-card p-7">
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="g-card hidden p-7 lg:block">
               <p className="g-eyebrow">{t("from")}</p>
               <p className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                 <span className="g-price text-[2.75rem] leading-none" dir="ltr">
@@ -137,31 +137,25 @@ export default async function RoomPage({ params }: Props) {
                 <span className="g-small">/ {t("perNight")}</span>
               </p>
               <p className="g-small mt-5 border-t border-ink-line pt-4">{t("taxesNote")}</p>
-              <a href="#availability" className="g-btn-primary mt-6 w-full">
-                {t("checkDates")}
-              </a>
+            </div>
+            <h2 id="room-dates" className="g-h3 mb-5 lg:sr-only">
+              {t("checkDates")}
+            </h2>
+            <div className="lg:mt-4">
+              <AvailabilityWidget
+                today={muscatToday()}
+                maxNights={settings.booking.max_nights}
+                maxAdvanceDays={settings.booking.max_advance_days}
+                checkInTime={settings.times.check_in}
+                checkOutTime={settings.times.check_out}
+                roomSlug={room.slug}
+                roomName={room.name}
+                variant="stack"
+              />
             </div>
           </aside>
         </div>
 
-        {/* Dates ------------------------------------------------------------ */}
-        <section className="mt-16 border-t border-ink-line pt-10 sm:mt-20 sm:pt-12" aria-labelledby="room-dates">
-          <h2 id="room-dates" className="g-h3">
-            {t("checkDates")}
-          </h2>
-          <div className="mt-6">
-            <AvailabilityWidget
-              today={muscatToday()}
-              maxNights={settings.booking.max_nights}
-              maxAdvanceDays={settings.booking.max_advance_days}
-              checkInTime={settings.times.check_in}
-              checkOutTime={settings.times.check_out}
-              roomSlug={room.slug}
-              roomName={room.name}
-              variant="panel"
-            />
-          </div>
-        </section>
       </div>
 
       {/* Other rooms --------------------------------------------------------- */}

@@ -51,8 +51,8 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
   );
   const stepRef = useRef(step);
   stepRef.current = step;
-  const closeRef2 = useRef(onClose);
-  closeRef2.current = onClose;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Scroll lock + focus management for the lifetime of one opening.
   useEffect(() => {
@@ -75,7 +75,7 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        closeRef2.current();
+        onCloseRef.current();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         stepRef.current(rtl ? -1 : 1);

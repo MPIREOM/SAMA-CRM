@@ -45,7 +45,7 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
   { key: "home_closing", page: "home", label: { en: "Closing photo", ar: "الصورة الختامية" }, hint: { en: "Wide band above the footer.", ar: "شريط عريض فوق التذييل." }, default: "/images/hotel/terrace-sunset.jpg", ratio: "wide" },
 
   // Rooms
-  { key: "rooms_hero", page: "rooms", label: { en: "Rooms page — header photo", ar: "صفحة الغرف — صورة الترويسة" }, default: "/images/rooms/chalet/2.jpg", ratio: "wide" },
+  { key: "rooms_hero", page: "rooms", label: { en: "Rooms page — header photo", ar: "صفحة الغرف — صورة الترويسة" }, default: "/images/hotel/terrace-evening.jpg", ratio: "wide" },
 
   // The Peak
   { key: "peak_hero", page: "peak", label: { en: "Hero photo", ar: "صورة الواجهة" }, default: "/images/hotel/peak-4.jpg", ratio: "16:9" },
