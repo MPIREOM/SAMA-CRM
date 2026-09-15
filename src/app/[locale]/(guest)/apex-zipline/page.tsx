@@ -144,7 +144,7 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
             <span>{t("operatedBy", { operator })}</span>
             <a href={website} target="_blank" rel="noopener noreferrer" className="g-inline inline-flex items-center gap-1" dir="ltr">
               {websiteLabel}
-              <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+              <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </p>
         </Reveal>

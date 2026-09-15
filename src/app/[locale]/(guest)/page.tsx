@@ -175,7 +175,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
           </div>
         </div>
         <div className="g-container relative z-10 -mt-[7.5rem] sm:-mt-28 lg:-mt-24">
-          <Reveal delay={700}>
+          <Reveal delay={600}>
             <AvailabilityWidget
               today={today}
               maxNights={settings.booking.max_nights}
@@ -234,7 +234,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
           </div>
           <Link href="/rooms" className="g-link">
             {t("viewAllRooms")}
-            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+            <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </Reveal>
         {rooms ? (
@@ -277,7 +277,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
                     <p className="g-body mt-3 text-[15px]">{t(`experiences.${x.key}.body`)}</p>
                     <span className="g-link mt-5">
                       {t(`experiences.${x.key}.cta`)}
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-400 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden="true" />
+                      <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
                     </span>
                   </Link>
                 </Reveal>
@@ -300,7 +300,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
           </Reveal>
           <ul className="g-container mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 scrollbar-none lg:grid lg:grid-cols-6 lg:overflow-visible">
             {FACILITIES.map(({ key, slot }, i) => (
-              <Reveal as="li" key={key} delay={i * 80} className="w-[68vw] shrink-0 snap-start sm:w-[40vw] lg:w-auto">
+              <Reveal as="li" key={key} delay={i * 80} className="w-[68vw] shrink-0 snap-start sm:w-[40vw] lg:w-auto" style={{ "--g-rise": "12px" } as React.CSSProperties}>
                 <figure>
                   <div className="g-frame g-zoom aspect-[4/3]">
                     {/* The figcaption carries the name — an identical alt would be read twice. */}
@@ -341,7 +341,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
                 <p className="g-body mt-3 text-[15px]">{card.body}</p>
                 <Link href={card.href} className="g-link mt-5">
                   {card.cta}
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-400 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden="true" />
+                  <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
                 </Link>
               </Reveal>
             ))}
@@ -377,7 +377,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
               <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
                 <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-outline g-btn-sm">
                   {t("openMaps")}
-                  <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+                  <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
                 </a>
                 <a href={telLink(contact.phone)} className="g-link" dir="ltr">
                   {prettyPhone(contact.phone)}

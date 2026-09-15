@@ -68,7 +68,7 @@ export default async function RoomPage({ params }: Props) {
     <div className="g-page">
       <div className="g-container">
         <Link href="/rooms" className="g-link">
-          <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+          <ArrowLeft className="g-arrow-back h-3.5 w-3.5" aria-hidden="true" />
           {t("backToRooms")}
         </Link>
 

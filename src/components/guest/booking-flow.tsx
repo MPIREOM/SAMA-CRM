@@ -219,7 +219,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
       </ol>
 
       {state.error && state.error !== "validation" && (
-        <div role="alert" className="g-note-red mt-8">
+        <div role="alert" className="g-note-red g-enter mt-8">
           <p className="font-semibold">{t(`errors.${state.error}`, { n: n(maxAdvanceDays) })}</p>
           {(state.error === "sold_out" || state.error === "min_stay" || state.error === "past_date" || state.error === "invalid_dates") && (
             <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-link mt-3 text-crimson-900">
@@ -236,369 +236,372 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:gap-14">
         <div className="min-w-0">
-          {step === 1 && (
-            <form onSubmit={toReview} noValidate className="g-card p-6 sm:p-10">
-              <h2 className="g-h3">{t("guestDetails")}</h2>
-              <p className="g-body mt-3 max-w-xl text-[15px]">{t("guestDetailsHint")}</p>
+          {/* Re-keyed per step so the panel rises in softly on every change (.g-enter); the forms inside are unchanged. */}
+          <div key={step} className="g-enter">
+            {step === 1 && (
+              <form onSubmit={toReview} noValidate className="g-card p-6 sm:p-10">
+                <h2 className="g-h3">{t("guestDetails")}</h2>
+                <p className="g-body mt-3 max-w-xl text-[15px]">{t("guestDetailsHint")}</p>
 
-              <div className="mt-8 space-y-7">
-                <Field id={`${uid}-fullName`} label={t("fullName")} error={errors.fullName && t(`validation.${errors.fullName}`)}>
-                  <input
-                    id={`${uid}-fullName`}
-                    name="fullName"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={details.fullName}
-                    onChange={(e) => update("fullName", e.target.value)}
-                    placeholder={t("fullNamePlaceholder")}
-                    aria-invalid={!!errors.fullName}
-                    className="g-input"
-                  />
-                </Field>
+                <div className="mt-8 space-y-7">
+                  <Field id={`${uid}-fullName`} label={t("fullName")} error={errors.fullName && t(`validation.${errors.fullName}`)}>
+                    <input
+                      id={`${uid}-fullName`}
+                      name="fullName"
+                      type="text"
+                      autoComplete="name"
+                      required
+                      value={details.fullName}
+                      onChange={(e) => update("fullName", e.target.value)}
+                      placeholder={t("fullNamePlaceholder")}
+                      aria-invalid={!!errors.fullName}
+                      className="g-input"
+                    />
+                  </Field>
 
-                <div>
-                  <span className="g-label">{t("phone")}</span>
-                  <div className="grid grid-cols-[minmax(8.75rem,2fr)_3fr] gap-3" dir="ltr">
-                    <div>
-                      <label htmlFor={`${uid}-countryCode`} className="sr-only">
-                        {t("countryCode")}
-                      </label>
+                  <div>
+                    <span className="g-label">{t("phone")}</span>
+                    <div className="grid grid-cols-[minmax(8.75rem,2fr)_3fr] gap-3" dir="ltr">
+                      <div>
+                        <label htmlFor={`${uid}-countryCode`} className="sr-only">
+                          {t("countryCode")}
+                        </label>
+                        <select
+                          id={`${uid}-countryCode`}
+                          name="countryCode"
+                          value={details.countryCode}
+                          onChange={(e) => update("countryCode", e.target.value)}
+                          className="g-select text-[15px] tabular-nums"
+                        >
+                          {COUNTRY_CODES.map((c) => (
+                            <option key={c.iso} value={c.code}>
+                              {c.code} {locale === "ar" ? c.ar : c.en}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor={`${uid}-phone`} className="sr-only">
+                          {t("phoneNumber")}
+                        </label>
+                        <input
+                          id={`${uid}-phone`}
+                          name="phone"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel-national"
+                          required
+                          value={details.phone}
+                          onChange={(e) => update("phone", e.target.value)}
+                          placeholder={t("phonePlaceholder")}
+                          aria-invalid={!!errors.phone}
+                          aria-describedby={`${uid}-phone-hint`}
+                          className="g-input tabular-nums"
+                        />
+                      </div>
+                    </div>
+                    {errors.phone ? (
+                      <p className="g-error" role="alert">
+                        {t(`validation.${errors.phone}`)}
+                      </p>
+                    ) : (
+                      <p id={`${uid}-phone-hint`} className="g-hint">
+                        {t("phoneHint")}
+                      </p>
+                    )}
+                  </div>
+
+                  <Field id={`${uid}-email`} label={t("email")} optional hint={t("emailHint")} error={errors.email && t(`validation.${errors.email}`)}>
+                    <input
+                      id={`${uid}-email`}
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      dir="ltr"
+                      value={details.email}
+                      onChange={(e) => update("email", e.target.value)}
+                      aria-invalid={!!errors.email}
+                      className="g-input text-start"
+                    />
+                  </Field>
+
+                  <div className="grid gap-7 sm:grid-cols-2 sm:gap-5">
+                    <Field id={`${uid}-nationality`} label={t("nationality")} error={errors.nationality && t(`validation.${errors.nationality}`)}>
                       <select
-                        id={`${uid}-countryCode`}
-                        name="countryCode"
-                        value={details.countryCode}
-                        onChange={(e) => update("countryCode", e.target.value)}
-                        className="g-select text-[15px] tabular-nums"
+                        id={`${uid}-nationality`}
+                        name="nationality"
+                        required
+                        value={details.nationality}
+                        onChange={(e) => update("nationality", e.target.value as NationalityCode | "")}
+                        aria-invalid={!!errors.nationality}
+                        className="g-select"
                       >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={c.iso} value={c.code}>
-                            {c.code} {locale === "ar" ? c.ar : c.en}
+                        <option value="" disabled>
+                          {t("nationalityPlaceholder")}
+                        </option>
+                        {NATIONALITY_CODES.map((code) => (
+                          <option key={code} value={code}>
+                            {t(`nationalities.${code}`)}
                           </option>
                         ))}
                       </select>
-                    </div>
-                    <div>
-                      <label htmlFor={`${uid}-phone`} className="sr-only">
-                        {t("phoneNumber")}
-                      </label>
-                      <input
-                        id={`${uid}-phone`}
-                        name="phone"
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel-national"
-                        required
-                        value={details.phone}
-                        onChange={(e) => update("phone", e.target.value)}
-                        placeholder={t("phonePlaceholder")}
-                        aria-invalid={!!errors.phone}
-                        aria-describedby={`${uid}-phone-hint`}
-                        className="g-input tabular-nums"
-                      />
-                    </div>
-                  </div>
-                  {errors.phone ? (
-                    <p className="g-error" role="alert">
-                      {t(`validation.${errors.phone}`)}
-                    </p>
-                  ) : (
-                    <p id={`${uid}-phone-hint`} className="g-hint">
-                      {t("phoneHint")}
-                    </p>
-                  )}
-                </div>
-
-                <Field id={`${uid}-email`} label={t("email")} optional hint={t("emailHint")} error={errors.email && t(`validation.${errors.email}`)}>
-                  <input
-                    id={`${uid}-email`}
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    dir="ltr"
-                    value={details.email}
-                    onChange={(e) => update("email", e.target.value)}
-                    aria-invalid={!!errors.email}
-                    className="g-input text-start"
-                  />
-                </Field>
-
-                <div className="grid gap-7 sm:grid-cols-2 sm:gap-5">
-                  <Field id={`${uid}-nationality`} label={t("nationality")} error={errors.nationality && t(`validation.${errors.nationality}`)}>
-                    <select
-                      id={`${uid}-nationality`}
-                      name="nationality"
-                      required
-                      value={details.nationality}
-                      onChange={(e) => update("nationality", e.target.value as NationalityCode | "")}
-                      aria-invalid={!!errors.nationality}
-                      className="g-select"
-                    >
-                      <option value="" disabled>
-                        {t("nationalityPlaceholder")}
-                      </option>
-                      {NATIONALITY_CODES.map((code) => (
-                        <option key={code} value={code}>
-                          {t(`nationalities.${code}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  {details.nationality === "OTHER" && (
-                    <Field id={`${uid}-otherNationality`} label={t("otherNationality")} error={errors.otherNationality && t(`validation.${errors.otherNationality}`)}>
-                      <input
-                        id={`${uid}-otherNationality`}
-                        name="otherNationality"
-                        type="text"
-                        autoComplete="country-name"
-                        value={details.otherNationality}
-                        onChange={(e) => update("otherNationality", e.target.value)}
-                        aria-invalid={!!errors.otherNationality}
-                        className="g-input"
-                      />
                     </Field>
-                  )}
-                </div>
-
-                <fieldset>
-                  <legend className="g-label">{t("preferredLang")}</legend>
-                  <div className="flex gap-3">
-                    {(["en", "ar"] as const).map((lang) => (
-                      <label key={lang} className={cn("g-choice", details.preferredLang === lang && "g-choice-on")}>
+                    {details.nationality === "OTHER" && (
+                      <Field id={`${uid}-otherNationality`} label={t("otherNationality")} error={errors.otherNationality && t(`validation.${errors.otherNationality}`)}>
                         <input
-                          type="radio"
-                          name="preferredLang"
-                          value={lang}
-                          checked={details.preferredLang === lang}
-                          onChange={() => update("preferredLang", lang)}
-                          className="sr-only"
+                          id={`${uid}-otherNationality`}
+                          name="otherNationality"
+                          type="text"
+                          autoComplete="country-name"
+                          value={details.otherNationality}
+                          onChange={(e) => update("otherNationality", e.target.value)}
+                          aria-invalid={!!errors.otherNationality}
+                          className="g-input"
                         />
-                        {lang === "en" ? t("langEn") : t("langAr")}
-                      </label>
-                    ))}
+                      </Field>
+                    )}
                   </div>
-                </fieldset>
 
-                {offersBeds && (
                   <fieldset>
-                    <legend className="g-label">{t("bedPreference")}</legend>
-                    <div className="flex gap-3" id={`${uid}-bedPreference`}>
-                      {room.bedOptions.map((bed) => (
-                        <label
-                          key={bed}
-                          className={cn("g-choice", details.bedPreference === bed && "g-choice-on", errors.bedPreference && "border-crimson-600")}
-                        >
+                    <legend className="g-label">{t("preferredLang")}</legend>
+                    <div className="flex gap-3">
+                      {(["en", "ar"] as const).map((lang) => (
+                        <label key={lang} className={cn("g-choice", details.preferredLang === lang && "g-choice-on")}>
                           <input
                             type="radio"
-                            name="bedPreference"
-                            value={bed}
-                            required
-                            checked={details.bedPreference === bed}
-                            onChange={() => update("bedPreference", bed)}
+                            name="preferredLang"
+                            value={lang}
+                            checked={details.preferredLang === lang}
+                            onChange={() => update("preferredLang", lang)}
                             className="sr-only"
                           />
-                          {bed === "twin" ? t("bedTwin") : t("bedKing")}
+                          {lang === "en" ? t("langEn") : t("langAr")}
                         </label>
                       ))}
                     </div>
-                    {errors.bedPreference ? (
-                      <p className="g-error" role="alert">
-                        {t(`validation.${errors.bedPreference}`)}
-                      </p>
-                    ) : (
-                      <p className="g-hint">{t("bedHint")}</p>
-                    )}
                   </fieldset>
-                )}
 
-                <Field id={`${uid}-specialRequests`} label={t("specialRequests")} optional hint={t("specialRequestsHint")} error={errors.specialRequests && t(`validation.${errors.specialRequests}`)}>
-                  <textarea
-                    id={`${uid}-specialRequests`}
-                    name="specialRequests"
-                    rows={3}
-                    maxLength={500}
-                    value={details.specialRequests}
-                    onChange={(e) => update("specialRequests", e.target.value)}
-                    aria-invalid={!!errors.specialRequests}
-                    className="g-textarea"
-                  />
-                </Field>
-
-                <Field id={`${uid}-promoCode`} label={t("promoCode")} optional hint={t("promoHint")}>
-                  <input
-                    id={`${uid}-promoCode`}
-                    name="promoCode"
-                    type="text"
-                    autoComplete="off"
-                    autoCapitalize="characters"
-                    dir="ltr"
-                    maxLength={30}
-                    value={details.promoCode}
-                    onChange={(e) => update("promoCode", e.target.value.toUpperCase())}
-                    className="g-input max-w-xs uppercase tracking-wider"
-                  />
-                </Field>
-              </div>
-
-              <div className="mt-10 flex flex-col-reverse gap-3 border-t border-ink-line pt-8 sm:flex-row sm:items-center sm:justify-between">
-                <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-btn-ghost">
-                  <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
-                  {t("back")}
-                </Link>
-                <button type="submit" className="g-btn-primary">
-                  {t("continue")}
-                  <ArrowRight className="g-btn-arrow" aria-hidden="true" />
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === 2 && (
-            <form
-              action={formAction}
-              className="g-card p-6 sm:p-10"
-              onSubmit={(e) => {
-                if (!consent) {
-                  e.preventDefault();
-                  setConsentError(true);
-                  document.getElementById(`${uid}-consent`)?.focus();
-                }
-              }}
-            >
-              <h2 className="g-h3">{t("reviewTitle")}</h2>
-              <p className="g-body mt-3 text-[15px]">{t("reviewHint")}</p>
-
-              {/* Everything the action needs travels as hidden fields. */}
-              <input type="hidden" name="fullName" value={details.fullName} />
-              <input type="hidden" name="email" value={details.email} />
-              <input type="hidden" name="countryCode" value={details.countryCode} />
-              <input type="hidden" name="phone" value={details.phone} />
-              <input type="hidden" name="nationality" value={details.nationality} />
-              <input type="hidden" name="otherNationality" value={details.otherNationality} />
-              <input type="hidden" name="preferredLang" value={details.preferredLang} />
-              <input type="hidden" name="bedPreference" value={details.bedPreference} />
-              <input type="hidden" name="specialRequests" value={details.specialRequests} />
-              <input type="hidden" name="promoCode" value={cleanPromo} />
-              <input type="hidden" name="slug" value={room.slug} />
-              <input type="hidden" name="checkin" value={query.checkin} />
-              <input type="hidden" name="checkout" value={query.checkout} />
-              <input type="hidden" name="adults" value={query.adults} />
-              <input type="hidden" name="children" value={query.children} />
-              <input type="hidden" name="locale" value={locale} />
-
-              <dl className="mt-8 border-b border-ink-line">
-                <ReviewRow label={t("guestSummary")}>
-                  <span className="font-semibold text-ink">{details.fullName}</span>
-                  <span dir="ltr" className="block text-ink-soft rtl:text-end">
-                    {details.countryCode} {details.phone}
-                  </span>
-                  {details.email && (
-                    <span dir="ltr" className="block text-ink-soft rtl:text-end">
-                      {details.email}
-                    </span>
+                  {offersBeds && (
+                    <fieldset>
+                      <legend className="g-label">{t("bedPreference")}</legend>
+                      <div className="flex gap-3" id={`${uid}-bedPreference`}>
+                        {room.bedOptions.map((bed) => (
+                          <label
+                            key={bed}
+                            className={cn("g-choice", details.bedPreference === bed && "g-choice-on", errors.bedPreference && "border-crimson-600")}
+                          >
+                            <input
+                              type="radio"
+                              name="bedPreference"
+                              value={bed}
+                              required
+                              checked={details.bedPreference === bed}
+                              onChange={() => update("bedPreference", bed)}
+                              className="sr-only"
+                            />
+                            {bed === "twin" ? t("bedTwin") : t("bedKing")}
+                          </label>
+                        ))}
+                      </div>
+                      {errors.bedPreference ? (
+                        <p className="g-error" role="alert">
+                          {t(`validation.${errors.bedPreference}`)}
+                        </p>
+                      ) : (
+                        <p className="g-hint">{t("bedHint")}</p>
+                      )}
+                    </fieldset>
                   )}
-                </ReviewRow>
-                <ReviewRow label={t("nationality")}>
-                  {details.nationality === "OTHER" ? details.otherNationality : details.nationality ? t(`nationalities.${details.nationality}`) : ""}
-                </ReviewRow>
-                <ReviewRow label={t("preferredLang")}>{details.preferredLang === "ar" ? t("langAr") : t("langEn")}</ReviewRow>
-                {offersBeds && details.bedPreference && <ReviewRow label={t("bedPreference")}>{bedLabel(details.bedPreference, locale)}</ReviewRow>}
-                {details.specialRequests && <ReviewRow label={t("specialRequests")}>{details.specialRequests}</ReviewRow>}
-              </dl>
-              <button type="button" onClick={() => setStep(1)} className="g-link mt-5">
-                {t("editDetails")}
-              </button>
 
-              {addons.length > 0 && (
-                <div className="mt-12">
-                  <AddonPicker addons={addons} selection={addonSel} onChange={updateAddon} errors={addonErrors} />
+                  <Field id={`${uid}-specialRequests`} label={t("specialRequests")} optional hint={t("specialRequestsHint")} error={errors.specialRequests && t(`validation.${errors.specialRequests}`)}>
+                    <textarea
+                      id={`${uid}-specialRequests`}
+                      name="specialRequests"
+                      rows={3}
+                      maxLength={500}
+                      value={details.specialRequests}
+                      onChange={(e) => update("specialRequests", e.target.value)}
+                      aria-invalid={!!errors.specialRequests}
+                      className="g-textarea"
+                    />
+                  </Field>
+
+                  <Field id={`${uid}-promoCode`} label={t("promoCode")} optional hint={t("promoHint")}>
+                    <input
+                      id={`${uid}-promoCode`}
+                      name="promoCode"
+                      type="text"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      dir="ltr"
+                      maxLength={30}
+                      value={details.promoCode}
+                      onChange={(e) => update("promoCode", e.target.value.toUpperCase())}
+                      className="g-input max-w-xs uppercase tracking-wider"
+                    />
+                  </Field>
                 </div>
-              )}
 
-              <section className="mt-12" aria-labelledby={`${uid}-price`}>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                  <h3 id={`${uid}-price`} className="g-h4">
-                    {t("priceDetails")}
-                  </h3>
-                  <p className="g-small flex min-h-5 items-center gap-2" aria-live="polite">
-                    {quoteStale && (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                        {t("loadingQuote")}
-                      </>
+                <div className="mt-10 flex flex-col-reverse gap-3 border-t border-ink-line pt-8 sm:flex-row sm:items-center sm:justify-between">
+                  <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-btn-ghost">
+                    <ArrowLeft className="g-arrow-back h-3.5 w-3.5" aria-hidden="true" />
+                    {t("back")}
+                  </Link>
+                  <button type="submit" className="g-btn-primary">
+                    {t("continue")}
+                    <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {step === 2 && (
+              <form
+                action={formAction}
+                className="g-card p-6 sm:p-10"
+                onSubmit={(e) => {
+                  if (!consent) {
+                    e.preventDefault();
+                    setConsentError(true);
+                    document.getElementById(`${uid}-consent`)?.focus();
+                  }
+                }}
+              >
+                <h2 className="g-h3">{t("reviewTitle")}</h2>
+                <p className="g-body mt-3 text-[15px]">{t("reviewHint")}</p>
+
+                {/* Everything the action needs travels as hidden fields. */}
+                <input type="hidden" name="fullName" value={details.fullName} />
+                <input type="hidden" name="email" value={details.email} />
+                <input type="hidden" name="countryCode" value={details.countryCode} />
+                <input type="hidden" name="phone" value={details.phone} />
+                <input type="hidden" name="nationality" value={details.nationality} />
+                <input type="hidden" name="otherNationality" value={details.otherNationality} />
+                <input type="hidden" name="preferredLang" value={details.preferredLang} />
+                <input type="hidden" name="bedPreference" value={details.bedPreference} />
+                <input type="hidden" name="specialRequests" value={details.specialRequests} />
+                <input type="hidden" name="promoCode" value={cleanPromo} />
+                <input type="hidden" name="slug" value={room.slug} />
+                <input type="hidden" name="checkin" value={query.checkin} />
+                <input type="hidden" name="checkout" value={query.checkout} />
+                <input type="hidden" name="adults" value={query.adults} />
+                <input type="hidden" name="children" value={query.children} />
+                <input type="hidden" name="locale" value={locale} />
+
+                <dl className="mt-8 border-b border-ink-line">
+                  <ReviewRow label={t("guestSummary")}>
+                    <span className="font-semibold text-ink">{details.fullName}</span>
+                    <span dir="ltr" className="block text-ink-soft rtl:text-end">
+                      {details.countryCode} {details.phone}
+                    </span>
+                    {details.email && (
+                      <span dir="ltr" className="block text-ink-soft rtl:text-end">
+                        {details.email}
+                      </span>
                     )}
-                  </p>
-                </div>
-                <div className="mt-5 min-h-[12rem]" aria-busy={quoteStale}>
-                  {/* While a re-quote is pending the last figures stay visible but dimmed, so a stepper click never blanks the table. */}
-                  <div className={cn("transition-opacity duration-400", quoteStale && "opacity-40")}>
-                    {quoteError && !quoteStale && (
-                      <p role="alert" className="g-error mb-4 mt-0">
-                        {t(`errors.${quoteError === "unknown" ? "unknown" : "quote_failed"}`)}
-                      </p>
-                    )}
-                    {cleanPromo && quote.promo_valid && <p className="g-note-green mb-4">{t("promoApplied", { code: cleanPromo, pct: n(quote.discount_pct) })}</p>}
-                    {cleanPromo && !quote.promo_valid && !quoteError && !quoteStale && <p className="g-note mb-4">{t("promoInvalid", { code: cleanPromo })}</p>}
-                    <PriceSummary quote={priceLines} taxes={taxes} locale={locale} breakdownOpen />
-                  </div>
-                </div>
-              </section>
-
-              <section className="mt-12" aria-labelledby={`${uid}-policy`}>
-                <h3 id={`${uid}-policy`} className="g-h4">
-                  {t("cancellationPolicy")}
-                </h3>
-                <p className="g-body mt-3 text-[15px]">{cancellationPolicy}</p>
-              </section>
-
-              <div className="g-note-green mt-10">
-                <p className="flex items-center gap-2.5 font-semibold">
-                  <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {t("payAtHotelTitle")}
-                </p>
-                <p className="mt-1.5 ps-[1.625rem]">{t("payAtHotelBody")}</p>
-              </div>
-
-              <div className="mt-8">
-                <label htmlFor={`${uid}-consent`} className="flex cursor-pointer items-start gap-3.5 text-[15px] leading-relaxed text-ink-soft">
-                  <input
-                    id={`${uid}-consent`}
-                    name="consent"
-                    type="checkbox"
-                    checked={consent}
-                    onChange={(e) => {
-                      setConsent(e.target.checked);
-                      if (e.target.checked) setConsentError(false);
-                    }}
-                    aria-invalid={consentError}
-                    aria-describedby={consentError ? `${uid}-consent-error` : undefined}
-                    className="g-check mt-0.5"
-                  />
-                  <span>
-                    {t("consent")}{" "}
-                    <Link href="/policies" target="_blank" className="g-inline">
-                      {t("policiesLink")}
-                    </Link>
-                  </span>
-                </label>
-                {consentError && (
-                  <p id={`${uid}-consent-error`} role="alert" className="g-error ms-[2.125rem]">
-                    {t("validation.consent")}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-10 flex flex-col-reverse gap-3 border-t border-ink-line pt-8 sm:flex-row sm:items-center sm:justify-between">
-                <button type="button" onClick={() => setStep(1)} className="g-btn-ghost">
-                  <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
-                  {t("back")}
+                  </ReviewRow>
+                  <ReviewRow label={t("nationality")}>
+                    {details.nationality === "OTHER" ? details.otherNationality : details.nationality ? t(`nationalities.${details.nationality}`) : ""}
+                  </ReviewRow>
+                  <ReviewRow label={t("preferredLang")}>{details.preferredLang === "ar" ? t("langAr") : t("langEn")}</ReviewRow>
+                  {offersBeds && details.bedPreference && <ReviewRow label={t("bedPreference")}>{bedLabel(details.bedPreference, locale)}</ReviewRow>}
+                  {details.specialRequests && <ReviewRow label={t("specialRequests")}>{details.specialRequests}</ReviewRow>}
+                </dl>
+                <button type="button" onClick={() => setStep(1)} className="g-link mt-5">
+                  {t("editDetails")}
                 </button>
-                <ConfirmButton disabled={quoteStale} label={t("confirm")} pendingLabel={t("confirming")} />
-              </div>
-              <PendingHint text={t("confirmingHint")} onPendingChange={setSubmitting} />
-            </form>
-          )}
+
+                {addons.length > 0 && (
+                  <div className="mt-12">
+                    <AddonPicker addons={addons} selection={addonSel} onChange={updateAddon} errors={addonErrors} />
+                  </div>
+                )}
+
+                <section className="mt-12" aria-labelledby={`${uid}-price`}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <h3 id={`${uid}-price`} className="g-h4">
+                      {t("priceDetails")}
+                    </h3>
+                    <p className="g-small flex min-h-5 items-center gap-2" aria-live="polite">
+                      {quoteStale && (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                          {t("loadingQuote")}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="mt-5 min-h-[12rem]" aria-busy={quoteStale}>
+                    {/* While a re-quote is pending the last figures stay visible but dimmed, so a stepper click never blanks the table. */}
+                    <div className={cn("transition-opacity duration-400", quoteStale && "opacity-40")}>
+                      {quoteError && !quoteStale && (
+                        <p role="alert" className="g-error mb-4 mt-0">
+                          {t(`errors.${quoteError === "unknown" ? "unknown" : "quote_failed"}`)}
+                        </p>
+                      )}
+                      {cleanPromo && quote.promo_valid && <p className="g-note-green mb-4">{t("promoApplied", { code: cleanPromo, pct: n(quote.discount_pct) })}</p>}
+                      {cleanPromo && !quote.promo_valid && !quoteError && !quoteStale && <p className="g-note mb-4">{t("promoInvalid", { code: cleanPromo })}</p>}
+                      <PriceSummary quote={priceLines} taxes={taxes} locale={locale} breakdownOpen />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="mt-12" aria-labelledby={`${uid}-policy`}>
+                  <h3 id={`${uid}-policy`} className="g-h4">
+                    {t("cancellationPolicy")}
+                  </h3>
+                  <p className="g-body mt-3 text-[15px]">{cancellationPolicy}</p>
+                </section>
+
+                <div className="g-note-green mt-10">
+                  <p className="flex items-center gap-2.5 font-semibold">
+                    <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t("payAtHotelTitle")}
+                  </p>
+                  <p className="mt-1.5 ps-[1.625rem]">{t("payAtHotelBody")}</p>
+                </div>
+
+                <div className="mt-8">
+                  <label htmlFor={`${uid}-consent`} className="flex cursor-pointer items-start gap-3.5 text-[15px] leading-relaxed text-ink-soft">
+                    <input
+                      id={`${uid}-consent`}
+                      name="consent"
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => {
+                        setConsent(e.target.checked);
+                        if (e.target.checked) setConsentError(false);
+                      }}
+                      aria-invalid={consentError}
+                      aria-describedby={consentError ? `${uid}-consent-error` : undefined}
+                      className="g-check mt-0.5"
+                    />
+                    <span>
+                      {t("consent")}{" "}
+                      <Link href="/policies" target="_blank" className="g-inline">
+                        {t("policiesLink")}
+                      </Link>
+                    </span>
+                  </label>
+                  {consentError && (
+                    <p id={`${uid}-consent-error`} role="alert" className="g-error ms-[2.125rem]">
+                      {t("validation.consent")}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-10 flex flex-col-reverse gap-3 border-t border-ink-line pt-8 sm:flex-row sm:items-center sm:justify-between">
+                  <button type="button" onClick={() => setStep(1)} className="g-btn-ghost">
+                    <ArrowLeft className="g-arrow-back h-3.5 w-3.5" aria-hidden="true" />
+                    {t("back")}
+                  </button>
+                  <ConfirmButton disabled={quoteStale} label={t("confirm")} pendingLabel={t("confirming")} />
+                </div>
+                <PendingHint text={t("confirmingHint")} onPendingChange={setSubmitting} />
+              </form>
+            )}
+          </div>
         </div>
 
         {/* Your stay ------------------------------------------------------ */}
@@ -695,7 +698,11 @@ function ConfirmButton({ disabled, label, pendingLabel }: { disabled: boolean; l
   return (
     <button type="submit" disabled={disabled || pending} className="g-btn-gold min-w-56" aria-live="polite">
       {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
-      {pending ? pendingLabel : label}
+      {/* Both labels share one grid cell, so the button keeps its width while pending. */}
+      <span className="grid">
+        <span className={cn("col-start-1 row-start-1", pending && "invisible")}>{label}</span>
+        <span className={cn("col-start-1 row-start-1", !pending && "invisible")}>{pendingLabel}</span>
+      </span>
     </button>
   );
 }

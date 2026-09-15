@@ -65,7 +65,7 @@ export default async function ContactPage({ params }: { params: { locale: string
               <span className="block">{locale === "ar" ? contact.address_ar : contact.address_en}</span>
               <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-link mt-3">
                 {t("maps")}
-                <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+                <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
               </a>
             </Row>
             <Row label={t("hoursLabel")}>

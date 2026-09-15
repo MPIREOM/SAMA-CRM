@@ -51,7 +51,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
     <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
       <a href={waLink(contact.whatsapp, waText)} target="_blank" rel="noopener noreferrer" className="g-link">
         {t("whatsapp")}
-        <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+        <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
       </a>
       <a href={telLink(contact.phone)} className="g-link">
         <span>{t("call")}</span>
@@ -150,7 +150,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
               </a>
               <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-outline">
                 {t("directions")}
-                <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+                <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
               </a>
               <Link href={{ pathname: `/booking/${booking.ref}/manage`, query: { token: token ?? "" } }} className="g-btn-outline">
                 {t("manage")}
@@ -162,7 +162,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
         <Reveal className="mt-12 border-t border-ink-line pt-8">{contactLinks}</Reveal>
         <p className="mt-14">
           <Link href="/" className="g-link">
-            <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+            <ArrowLeft className="g-arrow-back h-3.5 w-3.5" aria-hidden="true" />
             {t("backHome")}
           </Link>
         </p>

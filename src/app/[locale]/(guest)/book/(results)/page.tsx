@@ -157,7 +157,7 @@ export default async function BookPage({ params, searchParams }: Props) {
                         <h3 className="g-h3">
                           <Link
                             href={`/rooms/${room.slug}`}
-                            className="rounded-sm transition-colors hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
+                            className="rounded-sm transition-colors duration-300 hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
                           >
                             {room.name}
                           </Link>

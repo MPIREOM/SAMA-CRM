@@ -54,7 +54,7 @@ export default async function ManagePage({ params, searchParams }: Props) {
       <div className="g-container max-w-4xl">
         <Reveal>
           <Link href={{ pathname: `/booking/${booking.ref}`, query: { token } }} className="g-link">
-            <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+            <ArrowLeft className="g-arrow-back h-3.5 w-3.5" aria-hidden="true" />
             {t("backToBooking")}
           </Link>
           <p className="g-eyebrow-gold mt-10">{t("eyebrow")}</p>
