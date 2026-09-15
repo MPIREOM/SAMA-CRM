@@ -45,30 +45,6 @@
     "heroTitle": "Where the mountain slows the day down",
     "heroSubtitle": "Rooms, suites and chalets on the edge of the canyon in Oman’s Green Mountain. Book directly with us and pay when you arrive.",
     "heroImageAlt": "The canyon below Sama Hotel in Jabal Al Akhdar at golden hour",
-    "highlightsEyebrow": "Why guests come back",
-    "highlightsTitle": "The mountain does the rest",
-    "highlights": {
-      "altitude": {
-        "title": "Views from 2,000 m",
-        "body": "Every room faces either the canyon and the sunset or Sayq village and the sunrise."
-      },
-      "peak": {
-        "title": "The Peak coffee shop",
-        "body": "Speciality coffee on the terrace above the canyon, open 07:00–22:00 every day."
-      },
-      "season": {
-        "title": "Pomegranate & rose season",
-        "body": "Rose water in April, pomegranates from September — the terraces are a short walk away."
-      },
-      "cool": {
-        "title": "10–15 °C cooler than Muscat",
-        "body": "Clear skies for stargazing at night and a jumper in the evening, even in summer."
-      },
-      "pool": {
-        "title": "Pool & jacuzzi on the cliff",
-        "body": "An outdoor pool and jacuzzi right on the edge, with a children's pool beside it."
-      }
-    },
     "roomsEyebrow": "Stay",
     "roomsTitle": "Rooms, suites & chalets",
     "roomsIntro": "Every room faces either the canyon and the sunset, or Sayq village and the sunrise. The chalets sit in their own garden beside the pool.",
@@ -94,7 +70,6 @@
     "stickyCta": "Check availability",
     "payAtHotelTitle": "Book direct, pay when you arrive",
     "payAtHotelBody": "No deposit and no card details online. Your booking is confirmed by email and WhatsApp, and you settle by cash or card at check-in.",
-    "heroScroll": "Scroll",
     "welcomeEyebrow": "Welcome",
     "welcomeTitle": "Two thousand metres up, the air changes and so does the pace",
     "welcomeBody": "Sama sits in Sayq, above the terraces where roses bloom in April and pomegranates ripen in September. Mornings begin with coffee on the cliff; evenings end under a sky full of stars, ten degrees cooler than the coast.",
@@ -142,13 +117,10 @@
     "eyebrow": "Stay",
     "title": "Rooms, suites & chalets",
     "intro": "Every room has a private balcony or garden, a tray for tea and coffee, and both air-conditioning and heating for the cool mountain evenings. The chalets sit in their own garden beside the pool.",
-    "fromPrice": "from OMR {price} / night",
     "from": "from",
     "perNight": "night",
-    "sleeps": "{adults, plural, one {1 adult} other {{a} adults}} + {children, plural, =0 {no children} one {1 child} other {{c} children}}",
     "sleepsShort": "{adults, plural, one {1 adult} other {{a} adults}}{children, plural, =0 {} one { + 1 child} other { + {c} children}}",
     "viewRoom": "View room",
-    "bookThisRoom": "Book this room",
     "checkDates": "Check dates for this room",
     "view": "View",
     "bed": "Beds",
@@ -163,8 +135,6 @@
     "otherRooms": "Other rooms",
     "extraBedNote": "Extra bed on request: OMR {price} per night. Children under {age} stay free.",
     "taxesNote": "Prices per night before taxes. Service charge, tourism fee and VAT are shown as separate lines when you book.",
-    "chaletsNote": "Our chalets are set in a private garden by the pool.",
-    "checkDatesShort": "Check dates",
     "detailsTitle": "At a glance",
     "otherRoomsEyebrow": "Also consider",
     "openPhoto": "Open photo {n} of {total} full screen",
@@ -179,7 +149,6 @@
     "title": "Your stay",
     "summary": "{checkIn} → {checkOut}",
     "edit": "Edit",
-    "editDates": "Change dates or guests",
     "close": "Close",
     "resultsTitle": "Available for your dates",
     "resultsIntro": "Prices for {nights} · {guests}. Taxes are shown as separate lines.",
@@ -200,7 +169,6 @@
     "leftOnly": "{count, plural, one {Only 1 left} other {Only {n} left}}",
     "available": "Available",
     "nightlyBreakdown": "Nightly rates",
-    "nightlyLabel": "{date}",
     "roomSubtotal": "Room subtotal",
     "discount": "Discount ({pct}%)",
     "serviceCharge": "Service charge ({pct}%)",
@@ -208,7 +176,6 @@
     "vat": "VAT ({pct}%)",
     "total": "Total for your stay",
     "totalHint": "OMR, including all taxes",
-    "perNightAvg": "avg. OMR {price} / night",
     "invalidParams": "We could not read those dates, so we are showing tonight instead. Use Edit to change them.",
     "errors": {
       "past_date": "Check-in cannot be in the past. Please pick a new date.",
@@ -242,7 +209,6 @@
     "fullName": "Full name",
     "fullNamePlaceholder": "As on your ID",
     "email": "Email",
-    "emailHint": "We recommend it: your confirmation is sent here as well as by WhatsApp.",
     "phone": "Mobile number",
     "phoneHint": "We will send your confirmation on WhatsApp to this number.",
     "countryCode": "Country code",
@@ -271,17 +237,14 @@
     "langEn": "English",
     "langAr": "Arabic",
     "bedPreference": "Bed layout",
-    "bedHint": "This room comes with twin beds or a king bed — we will prepare it the way you choose.",
     "bedTwin": "Twin beds",
     "bedKing": "King bed",
     "specialRequests": "Special requests",
     "specialRequestsHint": "Late arrival, a cot, a quiet room, dietary needs — we will do our best.",
     "promoCode": "Promo code",
-    "promoHint": "Have a returning-guest code? Add it here.",
     "continue": "Continue to review",
     "back": "Back",
     "reviewTitle": "Review your booking",
-    "reviewHint": "Please check everything before confirming.",
     "guestSummary": "Guest",
     "editDetails": "Edit details",
     "priceDetails": "Price details",
@@ -341,9 +304,7 @@
     "cancelledEyebrow": "Booking cancelled",
     "cancelledTitle": "This booking has been cancelled",
     "cancelledBody": "Reference {ref} is no longer active. If this was a mistake, message us on WhatsApp and we will help.",
-    "pendingEyebrow": "Booking received",
     "statusCancelled": "Cancelled",
-    "statusConfirmed": "Confirmed",
     "checkIn": "Check-in",
     "checkOut": "Check-out",
     "fromTime": "from {time}",
@@ -357,7 +318,6 @@
     "priceDetails": "Price details",
     "whatNext": "What happens next",
     "next1": "You will receive a confirmation by email and WhatsApp within a few minutes.",
-    "nextTransfer": "Your 4WD pickup at the Birkat Al Mouz checkpoint is booked — we will confirm the time on WhatsApp.",
     "next2": "Three days before arrival we will send a short pre-arrival guide with directions and tips.",
     "next3": "Pay at the hotel by cash or card when you check in. Nothing has been charged.",
     "fourWdTitle": "A reminder: 4WD only past the checkpoint",
@@ -390,7 +350,6 @@
     "keepBooking": "Keep my booking",
     "cancelledTitle": "Your booking has been cancelled",
     "cancelledBody": "Reference {ref} is cancelled and nothing is owed. We hope to welcome you another time.",
-    "alreadyCancelled": "This booking is already cancelled.",
     "freeUntil": "Free cancellation until {date}",
     "tooLateTitle": "Past the free-cancellation window",
     "tooLateBody": "Free cancellation ended {hours} hours before check-in. Please contact us directly and we will see what we can do.",
@@ -500,7 +459,6 @@
     },
     "transferUpInstruction": "Park at the Birkat Al Mouz checkpoint car park — 2WD cars are not allowed past the checkpoint. Our 4WD collects you there and drives you up to the hotel (about 45 minutes).",
     "transferDownInstruction": "On your check-out day our 4WD takes you and your luggage back down to your car at the checkpoint car park.",
-    "paidAtHotel": "Add-ons are paid at the hotel together with your room. Nothing has been charged.",
     "homeEyebrow": "Add to your stay",
     "homeTitle": "Two things worth booking with your room",
     "homeIntro": "Pick them on the review step when you book. Both are confirmed by the hotel and paid with your room when you arrive.",
@@ -523,8 +481,7 @@
       "apexPriced": "APEX Zipline rides are {price} per rider when booked with your room — a special rate for hotel guests. Maximum rider weight is {kg} kg; children ride with a guardian's consent; closed-toe shoes are required and rides depend on the weather.",
       "confirmation": "Add-ons are requested with your booking and confirmed by the hotel, usually on WhatsApp within a few hours. They are paid at the hotel together with your room — nothing is charged online.",
       "cancellation": "Cancelling a booking cancels its add-ons too, under the same cancellation policy as the room. To change only an add-on, message us on WhatsApp.",
-      "apexLink": "About APEX Zipline",
-      "bookLink": "Check availability"
+      "apexLink": "About APEX Zipline"
     }
   },
   "apex": {
@@ -562,7 +519,6 @@
     "priceEyebrow": "Hotel-guest rate",
     "perRider": "per rider",
     "priceUnavailable": "Special rate for hotel guests — ask us for today's price.",
-    "priceNote": "A special rate for Sama Hotel guests, added to your room bill and paid at the hotel.",
     "howStep1": "Choose your dates and room, then add riders on the review step.",
     "howStep2": "Tell us your preferred day and any riders under 16 — we book the slot with APEX.",
     "howStep3": "We confirm by WhatsApp; you pay with your room at the hotel.",
@@ -624,7 +580,6 @@
     "loading": "Loading…",
     "close": "Close",
     "optional": "optional",
-    "required": "required",
     "whatsapp": "WhatsApp",
     "call": "Call"
   }

@@ -91,8 +91,9 @@ export default async function ApexZiplinePage({ params }: { params: { locale: st
       </section>
 
       {/* Facts strip: one hairline row ------------------------------------- */}
-      <Reveal className="g-container pt-6 sm:pt-10">
-        <dl role="region" aria-label={t("stats.label")} className="grid grid-cols-2 gap-px border-y border-ink-line bg-ink-line md:grid-cols-4">
+      {/* The region role sits on the section, not the <dl>: a <dl> with an ARIA role stops being a description list. */}
+      <Reveal as="section" aria-label={t("stats.label")} className="g-container pt-6 sm:pt-10">
+        <dl className="grid grid-cols-2 gap-px border-y border-ink-line bg-ink-line md:grid-cols-4">
           {stats.map((s) => (
             <div key={s.key} className="flex flex-col-reverse justify-end bg-paper px-4 py-7 sm:px-8 md:py-9">
               <dt className="g-eyebrow mt-2">{s.label}</dt>

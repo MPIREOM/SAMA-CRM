@@ -131,7 +131,7 @@
     @apply text-[11px] font-semibold uppercase tracking-caps text-ink-mute;
   }
   .g-eyebrow-gold {
-    @apply g-eyebrow text-gold-700;
+    @apply g-eyebrow text-gold-800;
   }
   [dir="rtl"] .g-eyebrow,
   [dir="rtl"] .g-eyebrow-gold {

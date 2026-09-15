@@ -163,6 +163,12 @@ update public.bk_addons set tagline_ar = replace(tagline_ar, '310 متراً', '
 
 Or simply edit the tagline on `/addons`.
 
+## 11c. Redesign audit (15 Sept) — what was verified
+
+Against the production build with the local Supabase emulator: `npm run build` clean (one pre-existing supabase-js Edge-runtime warning), the full Playwright suite 23/23 (desktop + mobile), typecheck/lint clean, 205 unit tests. A scripted crawl visited every guest page in EN and AR at 1440 px and 390 px (120 page visits, 55 internal links, 58 interactions: menu, language switch, gallery + lightbox, search editor, add-on stepper, booking steps, confirmation, .ics, cancellation dialog) with zero console or page errors, no untranslated keys and no Arabic-Indic digits. axe: one h1 and correct landmarks on every page; body text contrast ≥ 5:1 on every ground after the final token change. Performance: the home HTML is ~40 KB gzipped, first view loads 8 images, the largest 131 KB (hero as WebP). Back-office: photo upload / library / reset on `/website`, `/rooms` and `/addons` exercised; the front-desk role is denied `/website`.
+
+Known, not blocking: `next/font/local` preloads every declared weight of all four families (~500 KB on a cold first view); if that matters on 3G, split rarely used weights into non-preloaded declarations in `src/fonts/index.ts`. The 404 page keeps the site's default `<title>`.
+
 ## 12. Files worth knowing
 
 `docs/BOOKING-ARCHITECTURE.md` (how it fits together) · `docs/hotel-facts.md` (facts used) · `docs/message-content.md` (exact message texts) · `docs/existing-schema.md` · `docs/qa-report.md` · `DECISIONS.md` · `scripts/mock-supabase/README.md` (local emulator).

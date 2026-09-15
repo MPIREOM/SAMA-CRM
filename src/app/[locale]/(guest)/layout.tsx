@@ -1,4 +1,4 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
 import { isLocale } from "@/i18n/routing";
 import { siteCopy, siteImage } from "@/lib/bk/site-content";
 import { SiteHeader } from "@/components/guest/site-header";
@@ -11,7 +11,7 @@ import { getSiteContent } from "@/components/guest/data";
 export default async function GuestLayout({ children, params }: { children: React.ReactNode; params: { locale: string } }) {
   const locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [site, t] = await Promise.all([getSiteContent(), getTranslations("nav")]);
+  const site = await getSiteContent();
   const announcement = siteCopy(site, "announcement", locale);
 
   return (
@@ -21,7 +21,6 @@ export default async function GuestLayout({ children, params }: { children: Reac
         {children}
       </main>
       <SiteFooter />
-      <p className="sr-only">{t("brandWordmark")}</p>
     </div>
   );
 }

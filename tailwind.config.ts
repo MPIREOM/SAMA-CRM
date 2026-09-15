@@ -98,7 +98,7 @@ const config: Config = {
         ink: {
           DEFAULT: "#221416",
           soft: "#5a474a",
-          mute: "#8a7a7c",
+          mute: "#716163",
           line: "rgba(34, 20, 22, 0.14)",
         },
       },

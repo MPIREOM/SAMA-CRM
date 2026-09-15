@@ -213,7 +213,13 @@ export function PropertyOverview({ name, data, error, isAdmin = false }: { name:
                   {data.chart.map((d) => {
                     const pct = data.activeRooms === 0 ? 0 : Math.round((d.occupied / data.activeRooms) * 100);
                     return (
-                      <div key={d.date} className="group flex flex-1 flex-col items-center justify-end gap-1" title={`${fmtDateShort(d.date, lang)} · ${d.occupied}/${data.activeRooms} (${pct}%)`}>
+                      <div
+                        key={d.date}
+                        className="group flex flex-1 flex-col items-center justify-end gap-1"
+                        title={`${fmtDateShort(d.date, lang)} · ${d.occupied}/${data.activeRooms} (${pct}%)`}
+                        // Node and Chromium format "Tue 15 Sept" with different ICU rules; the tooltip only.
+                        suppressHydrationWarning
+                      >
                         <span className="text-[9px] font-semibold text-maroon-400 opacity-0 transition-opacity group-hover:opacity-100">{pct}%</span>
                         <div
                           className={cn("w-full rounded-t-sm transition-colors", d.date === data.today ? "bg-gold-500" : isWeekend(d.date) ? "bg-maroon-600" : "bg-maroon-800", "group-hover:bg-gold-400")}

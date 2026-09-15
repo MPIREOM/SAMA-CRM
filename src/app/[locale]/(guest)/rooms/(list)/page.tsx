@@ -70,7 +70,8 @@ export default async function RoomsPage({ params }: { params: { locale: string }
 
       {/* The rooms, one per row: name, one line of facts, the tagline, the
           price and a single link. The full description waits on the room page. */}
-      <section className="g-container pb-24 pt-10 sm:pb-32 sm:pt-14" aria-label={t("title")}>
+      {/* No landmark name here: the intro section above already carries the page title, and two regions with the same name confuse screen readers. */}
+      <section className="g-container pb-24 pt-10 sm:pb-32 sm:pt-14">
         <ul className="border-b border-ink-line">
           {rooms.map((room, i) => {
             const flip = i % 2 === 1;

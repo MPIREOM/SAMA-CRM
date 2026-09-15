@@ -298,7 +298,12 @@ export default async function HomePage({ params }: { params: { locale: string } 
               </h2>
             </div>
           </Reveal>
-          <ul className="g-container mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 scrollbar-none lg:grid lg:grid-cols-6 lg:overflow-visible">
+          {/* Scrolls sideways below lg, so the list itself takes focus (arrow keys scroll it) and is named by the heading. */}
+          <ul
+            tabIndex={0}
+            aria-labelledby="home-facilities"
+            className="g-focus g-container mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 scrollbar-none lg:grid lg:grid-cols-6 lg:overflow-visible"
+          >
             {FACILITIES.map(({ key, slot }, i) => (
               <Reveal as="li" key={key} delay={i * 80} className="w-[68vw] shrink-0 snap-start sm:w-[40vw] lg:w-auto" style={{ "--g-rise": "12px" } as React.CSSProperties}>
                 <figure>
