@@ -62,7 +62,7 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
   { key: "contact_3", page: "contact", label: { en: "Photo 3", ar: "الصورة 3" }, default: "/images/hotel/sign-sunset.jpg", ratio: "1:1" },
 
   // Policies
-  { key: "policies_hero", page: "policies", label: { en: "Header photo", ar: "صورة الترويسة" }, default: "/images/hotel/entrance.jpg", ratio: "wide" },
+  { key: "policies_hero", page: "policies", label: { en: "Header photo", ar: "صورة الترويسة" }, default: "/images/hotel/grasses-sign.jpg", ratio: "wide" },
 
   // Sharing
   { key: "og_image", page: "share", label: { en: "Social sharing image", ar: "صورة المشاركة الاجتماعية" }, hint: { en: "Shown when a link is shared on WhatsApp or social media. 1200 × 630.", ar: "تظهر عند مشاركة رابط على واتساب أو وسائل التواصل. 1200 × 630." }, default: "/images/og.jpg", ratio: "wide" },
