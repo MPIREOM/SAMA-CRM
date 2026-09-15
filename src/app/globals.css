@@ -241,7 +241,7 @@
     background-position: 0 100%;
     background-size: 100% 1px;
     padding-bottom: 3px;
-    transition: background-size 500ms var(--g-ease), color 300ms;
+    transition: background-size 600ms var(--g-ease), color 300ms;
   }
   [dir="rtl"] .g-link {
     letter-spacing: 0;
@@ -261,7 +261,7 @@
   }
   /* Plain inline link in running text. */
   .g-inline {
-    @apply text-ink underline decoration-gold-500 decoration-1 underline-offset-[5px] transition-colors hover:decoration-ink;
+    @apply text-ink underline decoration-gold-500 decoration-1 underline-offset-[5px] transition-colors duration-300 hover:decoration-ink;
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 rounded-sm;
   }
 
