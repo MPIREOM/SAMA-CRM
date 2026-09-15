@@ -5,10 +5,13 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing, isLocale } from "@/i18n/routing";
+import { SplashScreen } from "@/components/guest/splash-screen";
 import "../globals.css";
 
 // Guest-site root layout (one of two root layouts — the CRM has its own under
 // src/app/(crm)). <html lang dir> come from the URL locale.
+// suppressHydrationWarning: the splash script adds a class to <html> before
+// React hydrates (see components/guest/splash-screen.tsx).
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -66,8 +69,9 @@ export default async function LocaleLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir} className={`${nunito.variable} ${tajawal.variable} guest`}>
+    <html lang={locale} dir={dir} className={`${nunito.variable} ${tajawal.variable} guest`} suppressHydrationWarning>
       <body className="guest-body">
+        <SplashScreen />
         {GTM_ID_SAFE && (
           <>
             <Script id="gtm" strategy="afterInteractive">

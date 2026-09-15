@@ -162,3 +162,68 @@
     @apply mt-4;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Brand splash (components/guest/splash-screen.tsx): shown once per browser
+   session when a guest first enters the site. Hidden unless the component's
+   pre-hydration script opens it, so it never lingers without JavaScript.
+   Timings mirror the constants in the component.
+--------------------------------------------------------------------------- */
+@layer components {
+  #g-splash {
+    display: none;
+  }
+  html.splash-open #g-splash {
+    @apply fixed inset-0 z-[100] flex flex-col items-center justify-center gap-8 bg-stone-50;
+    transition: opacity 600ms ease;
+  }
+  #g-splash[data-leaving] {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .g-splash-logo {
+    animation: g-splash-in 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .g-splash-line {
+    @apply h-px w-16 bg-gold-500/80;
+    transform-origin: left center;
+    animation: g-splash-line 1600ms ease-in-out both;
+  }
+  [dir="rtl"] .g-splash-line {
+    transform-origin: right center;
+  }
+  @keyframes g-splash-in {
+    from {
+      opacity: 0;
+      transform: scale(0.94) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes g-splash-line {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .g-splash-logo {
+      animation: g-splash-fade 400ms ease both;
+    }
+    .g-splash-line {
+      animation: none;
+    }
+    @keyframes g-splash-fade {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  }
+}
