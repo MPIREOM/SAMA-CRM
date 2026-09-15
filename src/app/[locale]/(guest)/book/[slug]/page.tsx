@@ -8,6 +8,7 @@ import { getPublicSettings } from "@/lib/bk/settings";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { logger } from "@/lib/logger";
 import { BookingFlow } from "@/components/guest/booking-flow";
+import { Reveal } from "@/components/guest/reveal";
 import { pageMetadata } from "@/components/guest/metadata";
 import { localizeAddon, localizeRoom, n } from "@/components/guest/lib";
 import { parseSearchQuery, searchParamsFor } from "@/components/guest/schemas";
@@ -65,42 +66,46 @@ export default async function BookRoomPage({ params, searchParams }: Props) {
   const capacityFail = !quote.fits_capacity;
 
   return (
-    <div className="g-container pt-8 sm:pt-12">
-      <p className="g-eyebrow">{t("eyebrow")}</p>
-      <h1 className="g-h1 mt-3 text-3xl sm:text-4xl">{t("title")}</h1>
+    <div className="g-page pb-24 sm:pb-32">
+      <div className="g-container">
+        <Reveal>
+          <p className="g-eyebrow-gold">{t("eyebrow")}</p>
+          <h1 className="g-h1 mt-4">{t("title")}</h1>
+        </Reveal>
 
-      {soldOut || minStayFail || capacityFail ? (
-        <div className="g-card mt-8 max-w-2xl p-6 sm:p-8">
-          <h2 className="g-h3">{soldOut ? t("soldOutTitle") : t("notAvailableTitle")}</h2>
-          <p className="mt-3 text-maroon-800">
-            {soldOut
-              ? t("soldOutBody", { name: room.name })
-              : minStayFail
-                ? t("unavailableReason.min_stay", { count: quote.min_stay, n: n(quote.min_stay) })
-                : t("unavailableReason.capacity", { a: n(room.maxAdults), c: n(room.maxChildren) })}
-          </p>
-          <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-btn-primary mt-6">
-            {t("searchAgain")}
-            <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-8">
-          <BookingFlow
-            locale={locale}
-            room={room}
-            query={query}
-            initialQuote={quote}
-            taxes={settings.taxes}
-            times={settings.times}
-            cancellationPolicy={locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}
-            maxAdvanceDays={settings.booking.max_advance_days}
-            whatsapp={settings.contact.whatsapp}
-            addons={addons}
-            actions={{ getQuote: getQuoteAction, createBooking: createBookingAction }}
-          />
-        </div>
-      )}
+        {soldOut || minStayFail || capacityFail ? (
+          <Reveal delay={120} className="g-card mt-10 max-w-2xl p-6 sm:p-10">
+            <h2 className="g-h3">{soldOut ? t("soldOutTitle") : t("notAvailableTitle")}</h2>
+            <p className="g-body mt-4">
+              {soldOut
+                ? t("soldOutBody", { name: room.name })
+                : minStayFail
+                  ? t("unavailableReason.min_stay", { count: quote.min_stay, n: n(quote.min_stay) })
+                  : t("unavailableReason.capacity", { adults: room.maxAdults, a: n(room.maxAdults), children: room.maxChildren, c: n(room.maxChildren) })}
+            </p>
+            <Link href={{ pathname: "/book", query: searchParamsFor(query) }} className="g-btn-primary mt-8">
+              {t("searchAgain")}
+              <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+            </Link>
+          </Reveal>
+        ) : (
+          <div className="mt-10 sm:mt-12">
+            <BookingFlow
+              locale={locale}
+              room={room}
+              query={query}
+              initialQuote={quote}
+              taxes={settings.taxes}
+              times={settings.times}
+              cancellationPolicy={locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}
+              maxAdvanceDays={settings.booking.max_advance_days}
+              whatsapp={settings.contact.whatsapp}
+              addons={addons}
+              actions={{ getQuote: getQuoteAction, createBooking: createBookingAction }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

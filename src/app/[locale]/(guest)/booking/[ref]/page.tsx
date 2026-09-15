@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { CalendarPlus, Car, Check, MapPin, MessageCircle, Phone, Settings2, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CalendarPlus } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getBookingByRef, type BookingWithRelations } from "@/lib/bk/bookings";
 import { verifyBookingToken } from "@/lib/booking-engine/tokens";
 import { logger } from "@/lib/logger";
 import { BookingAddons } from "@/components/guest/booking-addons";
 import { BookingDetails } from "@/components/guest/booking-details";
+import { Reveal } from "@/components/guest/reveal";
 import { safePublicSettings } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
 import { TRANSFER_UP_SLUG, hasAddon, prettyPhone, telLink, waLink } from "@/components/guest/lib";
@@ -47,15 +48,14 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { contact } = settings;
   const waText = t("waText", { ref });
   const contactLinks = (
-    <div className="flex flex-wrap gap-3">
-      <a href={waLink(contact.whatsapp, waText)} target="_blank" rel="noopener noreferrer" className="g-btn-outline g-btn-sm">
-        <MessageCircle className="h-4 w-4" aria-hidden="true" />
+    <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+      <a href={waLink(contact.whatsapp, waText)} target="_blank" rel="noopener noreferrer" className="g-link">
         {t("whatsapp")}
+        <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
       </a>
-      <a href={telLink(contact.phone)} className="g-btn-outline g-btn-sm">
-        <Phone className="h-4 w-4" aria-hidden="true" />
+      <a href={telLink(contact.phone)} className="g-link">
         <span>{t("call")}</span>
-        <span dir="ltr" className="text-maroon-600">
+        <span dir="ltr" className="font-normal normal-case tracking-normal text-ink-soft">
           {prettyPhone(contact.phone)}
         </span>
       </a>
@@ -64,14 +64,18 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   if (loadFailed || !booking) {
     return (
-      <div className="g-container max-w-3xl pt-12 sm:pt-16">
-        <p className="g-eyebrow">{t("refLabel")}</p>
-        <p dir="ltr" className="mt-2 font-mono text-2xl font-extrabold tracking-wider text-maroon-900 rtl:text-start">
-          {ref}
-        </p>
-        <h1 className="g-h2 mt-6">{t("unavailableTitle")}</h1>
-        <p className="g-lead mt-3">{t("unavailableBody")}</p>
-        <div className="mt-8">{contactLinks}</div>
+      <div className="g-page pb-24 sm:pb-32">
+        <div className="g-container max-w-4xl">
+          <Reveal>
+            <p className="g-eyebrow-gold">{t("refLabel")}</p>
+            <p dir="ltr" className="mt-3 font-display text-3xl tracking-wider text-ink lining-nums rtl:text-start">
+              {ref}
+            </p>
+            <h1 className="g-h2 mt-8">{t("unavailableTitle")}</h1>
+            <p className="g-lead mt-5 max-w-2xl">{t("unavailableBody")}</p>
+            <div className="mt-10">{contactLinks}</div>
+          </Reveal>
+        </div>
       </div>
     );
   }
@@ -83,93 +87,86 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const nextSteps = [t("next1"), ...(transferUp ? [t("nextTransfer")] : []), t("next2"), t("next3")];
 
   return (
-    <div className="g-container max-w-4xl pt-12 sm:pt-16">
-      <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-        <span
-          className={
-            cancelled
-              ? "flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-stone-200 text-maroon-700"
-              : "flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-jabal-600 text-white"
-          }
-        >
-          {cancelled ? <XCircle className="h-8 w-8" aria-hidden="true" /> : <Check className="h-9 w-9" strokeWidth={3} aria-hidden="true" />}
-        </span>
-        <div>
-          <p className="g-eyebrow">{cancelled ? t("cancelledEyebrow") : t("eyebrow")}</p>
-          <h1 className="g-h1 mt-2 text-3xl sm:text-4xl lg:text-5xl">{cancelled ? t("cancelledTitle") : t("title")}</h1>
-          <p className="g-lead mt-3">{cancelled ? t("cancelledBody", { ref: booking.ref }) : t("subtitle")}</p>
-        </div>
-      </div>
+    <div className="g-page pb-24 sm:pb-32">
+      <div className="g-container max-w-4xl">
+        <Reveal>
+          <p className={cancelled ? "g-eyebrow" : "g-eyebrow-gold"}>{cancelled ? t("cancelledEyebrow") : t("eyebrow")}</p>
+          <h1 className="g-h1 mt-4 max-w-3xl [text-wrap:balance]">{cancelled ? t("cancelledTitle") : t("title")}</h1>
+          <p className="g-lead mt-5 max-w-2xl">{cancelled ? t("cancelledBody", { ref: booking.ref }) : t("subtitle")}</p>
+        </Reveal>
 
-      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-gold-300 bg-gold-50 px-5 py-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("refLabel")}</p>
-          <p dir="ltr" className="mt-1 font-mono text-2xl font-extrabold tracking-wider text-maroon-900 rtl:text-start">
-            {booking.ref}
-          </p>
-        </div>
-        <p className="text-sm text-maroon-700">{t("keepRef")}</p>
-        {cancelled && <span className="ms-auto rounded-full bg-maroon-900 px-3 py-1 text-xs font-bold text-gold-100">{t("statusCancelled")}</span>}
-      </div>
+        <Reveal delay={120} className="mt-10 flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-y border-ink-line py-6 sm:mt-12">
+          <dl>
+            <dt className="g-eyebrow">{t("refLabel")}</dt>
+            <dd dir="ltr" className="mt-2 font-display text-3xl tracking-wider text-ink lining-nums rtl:text-start sm:text-4xl">
+              {booking.ref}
+            </dd>
+          </dl>
+          {cancelled ? <span className="g-tag-dark">{t("statusCancelled")}</span> : <p className="g-small max-w-xs">{t("keepRef")}</p>}
+        </Reveal>
 
-      <div className="mt-8">
-        <BookingDetails booking={booking} settings={settings} locale={locale} />
-      </div>
+        <Reveal delay={200} className="mt-8">
+          <BookingDetails booking={booking} settings={settings} locale={locale} />
+        </Reveal>
 
-      {addons.length > 0 && <BookingAddons addons={addons} locale={locale} className="mt-6" />}
+        {addons.length > 0 && (
+          <Reveal delay={100}>
+            <BookingAddons addons={addons} locale={locale} className="mt-6" />
+          </Reveal>
+        )}
 
-      {!cancelled && (
-        <>
-          <section className="mt-10" aria-labelledby="what-next">
-            <h2 id="what-next" className="g-h2 text-2xl">
-              {t("whatNext")}
-            </h2>
-            <ol className="mt-5 space-y-4">
-              {nextSteps.map((text, i) => (
-                <li key={i} className="flex gap-4">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-extrabold text-gold-100 tabular-nums">{i + 1}</span>
-                  <p className="pt-1 text-maroon-800">{text}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
+        {!cancelled && (
+          <>
+            <Reveal as="section" className="mt-16" aria-labelledby="what-next">
+              <h2 id="what-next" className="g-h2">
+                {t("whatNext")}
+              </h2>
+              <ol className="mt-8 border-b border-ink-line">
+                {nextSteps.map((text, i) => (
+                  <li key={i} className="flex gap-5 border-t border-ink-line py-5">
+                    <span className="w-8 shrink-0 font-display text-2xl leading-none text-gold-700 lining-nums tabular-nums" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <p className="g-body -mt-1">{text}</p>
+                  </li>
+                ))}
+              </ol>
+            </Reveal>
 
-          <div className={transferUp ? "mt-8 flex items-start gap-4 rounded-2xl border-2 border-jabal-600 bg-jabal-50 p-5" : "mt-8 flex items-start gap-4 rounded-2xl border border-gold-300 bg-gold-50 p-5"}>
-            <Car className={transferUp ? "mt-0.5 h-6 w-6 shrink-0 text-jabal-700" : "mt-0.5 h-6 w-6 shrink-0 text-gold-700"} aria-hidden="true" />
-            <div>
-              <h2 className="font-extrabold text-maroon-900">{transferUp ? t("transferBookedTitle") : t("fourWdTitle")}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-maroon-800">{transferUp ? t("transferBookedBody") : t("fourWdBody")}</p>
+            <Reveal className={transferUp ? "g-note-green mt-8" : "g-note-gold mt-8"}>
+              <h2 className="font-semibold text-inherit">{transferUp ? t("transferBookedTitle") : t("fourWdTitle")}</h2>
+              <p className="mt-1.5">{transferUp ? t("transferBookedBody") : t("fourWdBody")}</p>
               {!transferUp && (
-                <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-link mt-2 inline-block text-sm">
+                <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-inline mt-2 inline-block">
                   {t("transferLink")}
                 </Link>
               )}
-            </div>
-          </div>
+            </Reveal>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a href={icsHref} className="g-btn-primary">
-              <CalendarPlus className="h-5 w-5" aria-hidden="true" />
-              {t("addToCalendar")}
-            </a>
-            <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-outline">
-              <MapPin className="h-5 w-5" aria-hidden="true" />
-              {t("directions")}
-            </a>
-            <Link href={{ pathname: `/booking/${booking.ref}/manage`, query: { token: token ?? "" } }} className="g-btn-outline">
-              <Settings2 className="h-5 w-5" aria-hidden="true" />
-              {t("manage")}
-            </Link>
-          </div>
-        </>
-      )}
+            <Reveal className="mt-10 flex flex-wrap gap-3">
+              <a href={icsHref} className="g-btn-primary">
+                <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                {t("addToCalendar")}
+              </a>
+              <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-outline">
+                {t("directions")}
+                <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+              </a>
+              <Link href={{ pathname: `/booking/${booking.ref}/manage`, query: { token: token ?? "" } }} className="g-btn-outline">
+                {t("manage")}
+              </Link>
+            </Reveal>
+          </>
+        )}
 
-      <div className="mt-8">{contactLinks}</div>
-      <p className="mt-10">
-        <Link href="/" className="g-link text-sm">
-          {t("backHome")}
-        </Link>
-      </p>
+        <Reveal className="mt-12 border-t border-ink-line pt-8">{contactLinks}</Reveal>
+        <p className="mt-14">
+          <Link href="/" className="g-link">
+            <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+            {t("backHome")}
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

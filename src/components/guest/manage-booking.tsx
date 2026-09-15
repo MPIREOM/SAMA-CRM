@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Check, Loader2, MessageCircle, Phone, XCircle } from "lucide-react";
+import { ArrowUpRight, Check, Loader2 } from "lucide-react";
 import type { CancelState } from "@/app/[locale]/(guest)/booking/[ref]/manage/actions";
 import { prettyPhone, telLink, waLink } from "./lib";
 
@@ -63,13 +63,12 @@ export function ManageBooking({
   }, [open]);
 
   const contactRow = (
-    <div className="mt-4 flex flex-wrap gap-3">
-      <a href={waLink(whatsapp, t("subtitle", { ref: bookingRef }))} target="_blank" rel="noopener noreferrer" className="g-btn-outline g-btn-sm">
-        <MessageCircle className="h-4 w-4" aria-hidden="true" />
+    <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-4">
+      <a href={waLink(whatsapp, t("subtitle", { ref: bookingRef }))} target="_blank" rel="noopener noreferrer" className="g-link">
         {t("contactUs")}
+        <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
       </a>
-      <a href={telLink(phone)} className="g-btn-outline g-btn-sm" dir="ltr">
-        <Phone className="h-4 w-4" aria-hidden="true" />
+      <a href={telLink(phone)} className="g-link" dir="ltr">
         {prettyPhone(phone)}
       </a>
     </div>
@@ -77,44 +76,38 @@ export function ManageBooking({
 
   if (cancelled) {
     return (
-      <div className="g-card flex items-start gap-4 p-5 sm:p-6" role="status">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-stone-200 text-maroon-700">
-          <XCircle className="h-6 w-6" aria-hidden="true" />
-        </span>
-        <div>
-          <h2 className="g-h3">{t("cancelledTitle")}</h2>
-          <p className="mt-1.5 text-sm text-maroon-800">{t("cancelledBody", { ref: bookingRef })}</p>
-        </div>
+      <div className="g-card p-6 sm:p-8" role="status">
+        <h2 className="g-h3">{t("cancelledTitle")}</h2>
+        <p className="g-body mt-3 text-[15px]">{t("cancelledBody", { ref: bookingRef })}</p>
       </div>
     );
   }
 
   if (!canCancel) {
     return (
-      <div className="g-card p-5 sm:p-6">
+      <div className="g-card p-6 sm:p-8">
         <h2 className="g-h3">{deadlineLabel ? t("tooLateTitle") : t("notCancellableTitle")}</h2>
-        <p className="mt-1.5 text-sm text-maroon-800">{deadlineLabel ? t("tooLateBody", { hours: String(hoursBefore) }) : t("notCancellableBody")}</p>
+        <p className="g-body mt-3 max-w-2xl text-[15px]">{deadlineLabel ? t("tooLateBody", { hours: String(hoursBefore) }) : t("notCancellableBody")}</p>
         {contactRow}
       </div>
     );
   }
 
   return (
-    <div className="g-card p-5 sm:p-6">
+    <div className="g-card p-6 sm:p-8">
       {state.status === "error" && (
-        <p role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm font-semibold text-crimson-800">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <p role="alert" className="g-note-red mb-6">
           {t(`errors.${state.error}`)}
         </p>
       )}
       {deadlineLabel && (
-        <p className="inline-flex items-center gap-2 rounded-full bg-jabal-50 px-3.5 py-1.5 text-xs font-bold text-jabal-800">
-          <Check className="h-4 w-4" aria-hidden="true" />
-          {t("freeUntil", { date: deadlineLabel })}
+        <p className="g-note-green flex items-center gap-2.5">
+          <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{t("freeUntil", { date: deadlineLabel })}</span>
         </p>
       )}
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" onClick={() => setOpen(true)} className="g-btn-outline border-crimson-300 text-crimson-800 hover:border-crimson-600 hover:bg-crimson-50">
+      <div className="mt-6">
+        <button type="button" onClick={() => setOpen(true)} className="g-btn-outline border-crimson-300 text-crimson-800 hover:border-crimson-700 hover:bg-crimson-700 hover:text-white">
           {t("requestCancel")}
         </button>
       </div>
@@ -122,30 +115,30 @@ export function ManageBooking({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-          <button type="button" aria-label={t("keepBooking")} onClick={() => setOpen(false)} className="absolute inset-0 bg-maroon-950/60 backdrop-blur-sm" />
+          <button type="button" aria-label={t("keepBooking")} onClick={() => setOpen(false)} className="absolute inset-0 bg-ink/70 backdrop-blur-[2px]" />
           <div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={`${uid}-title`}
             aria-describedby={`${uid}-body`}
-            className="relative z-10 w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
+            className="g-card g-fade-up relative z-10 w-full max-w-md p-6 shadow-float sm:p-8"
           >
             <h2 id={`${uid}-title`} className="g-h3">
               {t("cancelTitle")}
             </h2>
-            <p id={`${uid}-body`} className="mt-2 text-sm leading-relaxed text-maroon-800">
+            <p id={`${uid}-body`} className="g-body mt-3 text-[15px]">
               {t("cancelBody", { dates: datesLabel })}
-              {hasAddons && <span className="mt-1.5 block">{t("cancelAddonsNote")}</span>}
+              {hasAddons && <span className="mt-2 block">{t("cancelAddonsNote")}</span>}
             </p>
-            <form action={formAction} className="mt-5">
+            <form action={formAction} className="mt-6">
               <input type="hidden" name="ref" value={bookingRef} />
               <input type="hidden" name="token" value={token} />
               <label htmlFor={`${uid}-reason`} className="g-label">
                 {t("reason")}
               </label>
               <textarea id={`${uid}-reason`} name="reason" rows={2} maxLength={300} placeholder={t("reasonPlaceholder")} className="g-textarea min-h-20" />
-              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setOpen(false)} className="g-btn-ghost">
                   {t("keepBooking")}
                 </button>
@@ -163,7 +156,7 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className="g-btn bg-crimson-700 text-white hover:bg-crimson-600">
-      {pending ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <XCircle className="h-5 w-5" aria-hidden="true" />}
+      {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
       {pending ? pendingLabel : label}
     </button>
   );

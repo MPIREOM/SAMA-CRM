@@ -8,7 +8,8 @@ import { formatLongDate } from "@/lib/booking-engine/dates";
 import { PriceSummary } from "./price-summary";
 import { bookingAddonLines, localizeRoom, n } from "./lib";
 
-// Booking summary card shared by the confirmation and manage pages.
+// Booking summary card shared by the confirmation and manage pages: a wide
+// photo band, then the stay as a hairline list beside the price details.
 
 export async function BookingDetails({ booking, settings, locale }: { booking: BookingWithRelations; settings: PublicSettings; locale: Locale }) {
   const [t, tc] = await Promise.all([getTranslations("confirmation"), getTranslations("common")]);
@@ -23,65 +24,44 @@ export async function BookingDetails({ booking, settings, locale }: { booking: B
       })
     : [];
   const nights = booking.nights ?? nightly.length;
+  const bed = asBedType(booking.bed_preference);
 
   return (
     <div className="g-card overflow-hidden">
       {room && (
-        <div className="relative aspect-[16/7] bg-stone-100">
-          <Image src={room.images[0]} alt={room.name} fill sizes="(min-width: 1024px) 640px, 100vw" className="object-cover" />
+        <div className="g-frame aspect-[16/9] rounded-none sm:aspect-[21/9]">
+          <Image src={room.images[0]} alt={room.name} fill sizes="(min-width: 1024px) 896px, 100vw" className="object-cover" />
         </div>
       )}
-      <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-2">
-        <dl className="space-y-4 text-sm">
-          <div>
-            <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("room")}</dt>
-            <dd className="mt-1 text-base font-bold text-maroon-900">{room?.name ?? booking.room_type_id}</dd>
-          </div>
-          {asBedType(booking.bed_preference) && (
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("beds")}</dt>
-              <dd className="mt-1 font-bold text-maroon-900">{bedLabel(asBedType(booking.bed_preference)!, locale)}</dd>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("checkIn")}</dt>
-              <dd className="mt-1 font-bold text-maroon-900">{formatLongDate(booking.check_in, locale)}</dd>
-              <dd className="text-xs text-maroon-600">{t("fromTime", { time: settings.times.check_in })}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("checkOut")}</dt>
-              <dd className="mt-1 font-bold text-maroon-900">{formatLongDate(booking.check_out, locale)}</dd>
-              <dd className="text-xs text-maroon-600">{t("byTime", { time: settings.times.check_out })}</dd>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("nights")}</dt>
-              <dd className="mt-1 font-bold text-maroon-900">{tc("nights", { count: nights, n: n(nights) })}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("guests")}</dt>
-              <dd className="mt-1 font-bold text-maroon-900">
-                {tc("adults", { count: booking.adults, n: n(booking.adults) })}
-                {booking.children > 0 && <span className="block">{tc("children", { count: booking.children, n: n(booking.children) })}</span>}
-              </dd>
-            </div>
-          </div>
-          <div>
-            <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("guest")}</dt>
-            <dd className="mt-1 font-bold text-maroon-900">{booking.guest_name}</dd>
-          </div>
+      <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+        <dl className="p-6 sm:p-8">
+          <Row label={t("room")} first>
+            <span className="g-h4">{room?.name ?? booking.room_type_id}</span>
+          </Row>
+          {bed && <Row label={t("beds")}>{bedLabel(bed, locale)}</Row>}
+          <Row label={t("checkIn")}>
+            {formatLongDate(booking.check_in, locale)}
+            <span className="g-small block text-xs">{t("fromTime", { time: settings.times.check_in })}</span>
+          </Row>
+          <Row label={t("checkOut")}>
+            {formatLongDate(booking.check_out, locale)}
+            <span className="g-small block text-xs">{t("byTime", { time: settings.times.check_out })}</span>
+          </Row>
+          <Row label={t("nights")}>{tc("nights", { count: nights, n: n(nights) })}</Row>
+          <Row label={t("guests")}>
+            {tc("adults", { count: booking.adults, n: n(booking.adults) })}
+            {booking.children > 0 && <span className="block">{tc("children", { count: booking.children, n: n(booking.children) })}</span>}
+          </Row>
+          <Row label={t("guest")}>{booking.guest_name}</Row>
           {booking.special_requests && (
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("specialRequests")}</dt>
-              <dd className="mt-1 whitespace-pre-line text-maroon-800">{booking.special_requests}</dd>
-            </div>
+            <Row label={t("specialRequests")}>
+              <span className="whitespace-pre-line text-ink-soft">{booking.special_requests}</span>
+            </Row>
           )}
         </dl>
-        <div className="rounded-2xl bg-stone-50 p-4 sm:p-5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("priceDetails")}</h2>
-          <div className="mt-3">
+        <div className="border-t border-ink-line bg-paper-100 p-6 md:border-s md:border-t-0 sm:p-8 md:p-6">
+          <h2 className="g-eyebrow">{t("priceDetails")}</h2>
+          <div className="mt-5">
             <PriceSummary
               quote={{
                 nightly,
@@ -101,6 +81,15 @@ export async function BookingDetails({ booking, settings, locale }: { booking: B
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, first, children }: { label: string; first?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={first ? "grid gap-1.5 pb-4 sm:grid-cols-[8.5rem_1fr] sm:gap-6" : "grid gap-1.5 border-t border-ink-line py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-6"}>
+      <dt className="g-eyebrow pt-0.5">{label}</dt>
+      <dd className="text-[15px] leading-relaxed text-ink">{children}</dd>
     </div>
   );
 }

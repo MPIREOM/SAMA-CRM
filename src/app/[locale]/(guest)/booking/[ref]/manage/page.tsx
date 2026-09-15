@@ -10,6 +10,7 @@ import { formatLongDate } from "@/lib/booking-engine/dates";
 import { BookingAddons } from "@/components/guest/booking-addons";
 import { BookingDetails } from "@/components/guest/booking-details";
 import { ManageBooking } from "@/components/guest/manage-booking";
+import { Reveal } from "@/components/guest/reveal";
 import { pageMetadata } from "@/components/guest/metadata";
 import { canCancelOnline, cancellationDeadline, formatMuscatDateTime, liveBookingAddons } from "@/components/guest/lib";
 import { requestCancellationAction } from "./actions";
@@ -49,43 +50,53 @@ export default async function ManagePage({ params, searchParams }: Props) {
   const datesLabel = tSearch("summary", { checkIn: formatLongDate(booking.check_in, locale), checkOut: formatLongDate(booking.check_out, locale) });
 
   return (
-    <div className="g-container max-w-4xl pt-12 sm:pt-16">
-      <Link href={{ pathname: `/booking/${booking.ref}`, query: { token } }} className="g-link inline-flex items-center gap-1.5 text-sm no-underline hover:underline">
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-        {t("backToBooking")}
-      </Link>
-      <p className="g-eyebrow mt-6">{t("eyebrow")}</p>
-      <h1 className="g-h1 mt-2 text-3xl sm:text-4xl">{t("title")}</h1>
-      <p dir="ltr" className="mt-2 font-mono text-lg font-bold tracking-wider text-maroon-700 rtl:text-start">
-        {booking.ref}
-      </p>
+    <div className="g-page pb-24 sm:pb-32">
+      <div className="g-container max-w-4xl">
+        <Reveal>
+          <Link href={{ pathname: `/booking/${booking.ref}`, query: { token } }} className="g-link">
+            <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden="true" />
+            {t("backToBooking")}
+          </Link>
+          <p className="g-eyebrow-gold mt-10">{t("eyebrow")}</p>
+          <h1 className="g-h1 mt-4">{t("title")}</h1>
+          <p dir="ltr" className="mt-4 font-display text-2xl tracking-wider text-ink-soft lining-nums rtl:text-start">
+            {booking.ref}
+          </p>
+        </Reveal>
 
-      <div className="mt-8">
-        <BookingDetails booking={booking} settings={settings} locale={locale} />
+        <Reveal delay={120} className="mt-10 sm:mt-12">
+          <BookingDetails booking={booking} settings={settings} locale={locale} />
+        </Reveal>
+
+        {(booking.addons?.length ?? 0) > 0 && (
+          <Reveal delay={100}>
+            <BookingAddons addons={booking.addons ?? []} locale={locale} className="mt-6" />
+          </Reveal>
+        )}
+
+        <Reveal as="section" className="mt-6" aria-label={t("requestCancel")}>
+          <ManageBooking
+            bookingRef={booking.ref}
+            token={token}
+            datesLabel={datesLabel}
+            canCancel={canCancel}
+            alreadyCancelled={booking.status === "cancelled"}
+            deadlineLabel={deadlineLabel}
+            hoursBefore={settings.cancellation.hours_before}
+            whatsapp={settings.contact.whatsapp}
+            phone={settings.contact.phone}
+            hasAddons={liveBookingAddons(booking.addons).length > 0}
+            action={requestCancellationAction}
+          />
+        </Reveal>
+
+        <Reveal as="section" className="mt-12 border-t border-ink-line pt-8" aria-labelledby="manage-policy">
+          <h2 id="manage-policy" className="g-h4">
+            {t("policyTitle")}
+          </h2>
+          <p className="g-body mt-3 max-w-2xl text-[15px]">{locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}</p>
+        </Reveal>
       </div>
-
-      {(booking.addons?.length ?? 0) > 0 && <BookingAddons addons={booking.addons ?? []} locale={locale} className="mt-6" />}
-
-      <section className="mt-8" aria-label={t("requestCancel")}>
-        <ManageBooking
-          bookingRef={booking.ref}
-          token={token}
-          datesLabel={datesLabel}
-          canCancel={canCancel}
-          alreadyCancelled={booking.status === "cancelled"}
-          deadlineLabel={deadlineLabel}
-          hoursBefore={settings.cancellation.hours_before}
-          whatsapp={settings.contact.whatsapp}
-          phone={settings.contact.phone}
-          hasAddons={liveBookingAddons(booking.addons).length > 0}
-          action={requestCancellationAction}
-        />
-      </section>
-
-      <section className="mt-8 rounded-2xl border border-stone-200 bg-white p-5 text-sm leading-relaxed text-maroon-800">
-        <h2 className="font-extrabold text-maroon-900">{t("policyTitle")}</h2>
-        <p className="mt-1.5">{locale === "ar" ? settings.cancellation.policy_ar : settings.cancellation.policy_en}</p>
-      </section>
     </div>
   );
 }
