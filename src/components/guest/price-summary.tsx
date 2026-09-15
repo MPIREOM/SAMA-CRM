@@ -52,20 +52,25 @@ export function PriceSummary({
     <div className={cn("text-sm text-ink-soft", className)}>
       {quote.nightly.length > 0 && (
         <details open={breakdownOpen} className="group mb-4 border-b border-ink-line pb-3">
-          <summary className="g-eyebrow flex cursor-pointer items-center justify-between gap-3 rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+          <summary className="g-eyebrow flex cursor-pointer items-center justify-between gap-3 rounded-sm py-1 transition-colors duration-300 hover:text-ink active:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
             <span>{t("nightlyBreakdown")}</span>
             <ChevronDown className="h-3.5 w-3.5 transition-transform duration-400 ease-out group-open:rotate-180" aria-hidden="true" />
           </summary>
-          <ul className="mt-2">
-            {quote.nightly.map((night) => (
-              <li key={night.date} className="flex items-center justify-between gap-3 py-1 tabular-nums">
-                <span className="text-ink-mute">{formatLongDate(night.date, locale)}</span>
-                <span dir="ltr" className="text-ink">
-                  {tc("omrAmount", { amount: formatOmr(night.rate) })}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {/* .g-details-body eases the list open (grid rows 0fr → 1fr); the summary stays native. */}
+          <div className="g-details-body">
+            <div>
+              <ul className="mt-2">
+                {quote.nightly.map((night) => (
+                  <li key={night.date} className="flex items-center justify-between gap-3 py-1 tabular-nums">
+                    <span className="text-ink-mute">{formatLongDate(night.date, locale)}</span>
+                    <span dir="ltr" className="text-ink">
+                      {tc("omrAmount", { amount: formatOmr(night.rate) })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </details>
       )}
 

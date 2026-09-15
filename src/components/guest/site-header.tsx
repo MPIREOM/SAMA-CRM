@@ -59,9 +59,14 @@ export function SiteHeader({ logo, announcement }: { logo: string; announcement?
         {t("skipToContent")}
       </a>
 
-      {announcement && !open && (
-        <div className="g-announce border-b border-paper/10 text-center text-[11px] font-semibold uppercase tracking-wide2 rtl:text-[13px] rtl:tracking-normal">
-          <p className="g-container truncate py-2">{announcement}</p>
+      {/* The announcement folds away while the menu is open instead of vanishing. */}
+      {announcement && (
+        <div className={cn("g-collapse", !open && "is-open")}>
+          <div>
+            <div className="g-announce border-b border-paper/10 text-center text-[11px] font-semibold uppercase tracking-wide2 rtl:text-[13px] rtl:tracking-normal">
+              <p className="g-container truncate py-2">{announcement}</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -69,9 +74,9 @@ export function SiteHeader({ logo, announcement }: { logo: string; announcement?
         <Link
           href="/"
           aria-label={t("brandWordmark")}
-          className="flex shrink-0 items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2"
+          className="g-focus flex shrink-0 items-center gap-3 rounded-sm transition-opacity duration-300 hover:opacity-80 active:opacity-60"
         >
-          <Image src={logo} alt="" width={40} height={39} priority className="g-header-mark h-8 w-auto transition-[filter] duration-500 sm:h-9" />
+          <Image src={logo} alt="" width={40} height={39} priority className="g-header-mark h-8 w-auto transition-[filter] duration-600 sm:h-9" />
           <span className="font-display text-[1.45rem] leading-none tracking-wide rtl:font-display-ar rtl:text-[1.55rem]">{t("brandWordmark")}</span>
         </Link>
 
@@ -92,7 +97,7 @@ export function SiteHeader({ logo, announcement }: { logo: string; announcement?
           </Link>
           <button
             type="button"
-            className="g-burger relative -me-2 inline-flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 md:hidden"
+            className="g-burger g-focus relative -me-2 inline-flex h-11 w-11 items-center justify-center rounded-full md:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? t("closeMenu") : t("openMenu")}
@@ -109,7 +114,7 @@ export function SiteHeader({ logo, announcement }: { logo: string; announcement?
         id="mobile-nav"
         aria-hidden={!open}
         className={cn(
-          "fixed inset-0 top-[4.5rem] z-40 flex flex-col bg-ink text-paper transition-opacity duration-500 ease-out md:hidden",
+          "fixed inset-0 top-[4.5rem] z-40 flex flex-col bg-ink text-paper transition-opacity duration-600 ease-out motion-reduce:transition-none md:hidden",
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         )}
       >
@@ -122,9 +127,9 @@ export function SiteHeader({ logo, announcement }: { logo: string; announcement?
               aria-current={isActive(item.href) ? "page" : undefined}
               style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
               className={cn(
-                "g-display block py-3 text-[2.4rem] leading-tight text-paper transition-[opacity,transform] duration-600 ease-out rtl:text-[2.6rem]",
+                "g-display block py-3 text-[2.4rem] leading-tight text-paper transition-[opacity,transform] duration-600 ease-out motion-reduce:transition-none rtl:text-[2.6rem]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm",
-                isActive(item.href) ? "text-gold-300" : "hover:text-gold-200",
+                isActive(item.href) ? "text-gold-300" : "hover:text-gold-200 active:text-gold-300",
                 open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
               )}
             >
@@ -134,7 +139,7 @@ export function SiteHeader({ logo, announcement }: { logo: string; announcement?
         </nav>
         <div
           className={cn(
-            "g-container flex items-center justify-between gap-4 border-t border-paper/15 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] transition-opacity duration-600",
+            "g-container flex items-center justify-between gap-4 border-t border-paper/15 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] transition-opacity duration-600 motion-reduce:transition-none",
             open ? "opacity-100" : "opacity-0"
           )}
           style={{ transitionDelay: open ? "420ms" : "0ms" }}

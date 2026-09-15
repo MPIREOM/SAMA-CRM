@@ -39,8 +39,7 @@ export function LanguageSwitcher({ tone = "auto", className, tabIndex }: { tone?
       dir={target === "ar" ? "rtl" : "ltr"}
       aria-label={`${t("language")}: ${label}`}
       className={cn(
-        "g-nav-link inline-flex min-h-9 items-center rounded-sm px-1 transition-opacity",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2",
+        "g-nav-link inline-flex min-h-9 items-center rounded-sm px-1 transition-[color,opacity] duration-300 active:opacity-70",
         tone === "light" && "text-paper/85 hover:text-paper",
         tone === "dark" && "text-ink-soft hover:text-ink",
         pending && "opacity-50",

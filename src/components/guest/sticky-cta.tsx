@@ -31,7 +31,7 @@ export function StickyCta({ targetId = "availability", label }: { targetId?: str
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 transition-transform duration-500 ease-out md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 transition-transform duration-600 ease-out motion-reduce:transition-none md:hidden ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}
       aria-hidden={!visible}

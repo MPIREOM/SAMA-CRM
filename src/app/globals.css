@@ -377,14 +377,19 @@
   }
 
   /* ---- Motion primitives ------------------------------------------- */
+  /* Timing tokens: 300 (press, colour) · 400 (arrows, dims) · 600 (panels,
+     header, collapse) · 800 (crossfades, hero type) · 1200 (reveal, photo
+     zoom). Easing is --g-ease (= Tailwind `ease-out`) unless noted. The
+     keyframes live just below this layer so Tailwind never drops them. */
   /* Reveal on scroll: the client <Reveal> component adds .is-in. Elements
-     render visible without JavaScript and for reduced-motion users. */
+     render visible without JavaScript and for reduced-motion users.
+     --g-rise shrinks the travel inside overflow-hidden scrollers. */
   .g-reveal {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translateY(var(--g-rise, 22px));
     transition:
-      opacity 1000ms var(--g-ease),
-      transform 1000ms var(--g-ease);
+      opacity 1200ms var(--g-ease),
+      transform 1200ms var(--g-ease);
     transition-delay: var(--g-delay, 0ms);
     will-change: opacity, transform;
   }
@@ -400,10 +405,10 @@
     opacity: 1;
     transform: none;
   }
-  /* Photo hover: slow, small zoom. Put on the frame; the <img> inside scales. */
+  /* Photo hover: slow, small zoom. Put on the frame; the <img> inside scales.
+     No will-change: the browser promotes the layer while it transitions. */
   .g-zoom img {
-    transition: transform 1400ms var(--g-ease);
-    will-change: transform;
+    transition: transform 1200ms var(--g-ease);
   }
   .g-zoom:hover img,
   .g-zoom:focus-within img {
@@ -413,16 +418,131 @@
     animation: g-kenburns 16s cubic-bezier(0.2, 0.6, 0.2, 1) both;
   }
   .g-fade-up {
-    animation: g-fade-up 900ms var(--g-ease) both;
+    animation: g-fade-up 800ms var(--g-ease) both;
     animation-delay: var(--g-delay, 0ms);
   }
   .g-fade {
-    animation: g-fade 700ms ease both;
+    animation: g-fade 600ms ease both;
     animation-delay: var(--g-delay, 0ms);
+  }
+  /* A panel arriving after a state change (booking step, an alert, the
+     cancelled card). Fill-mode backwards: nothing lingers once settled, so
+     a fixed child is never trapped. Re-mount (React key) to replay. */
+  .g-enter {
+    animation: g-enter 600ms var(--g-ease) backwards;
+    animation-delay: var(--g-delay, 0ms);
+  }
+  /* Dialog backdrop fade; the panel inside uses .g-fade-up. */
+  .g-backdrop {
+    animation: g-fade 400ms ease both;
+  }
+  /* Overlay on its way out: the component unmounts it after 300ms. */
+  .g-leaving {
+    animation: g-fade-out 300ms ease both;
+    pointer-events: none;
+  }
+  /* Height reveal without a hard cut: grid rows 0fr → 1fr plus a fade. Wrap
+     the content in ONE child; the closed state leaves the tab order. */
+  .g-collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      grid-template-rows 600ms var(--g-ease),
+      opacity 400ms var(--g-ease),
+      visibility 0s linear 600ms;
+  }
+  .g-collapse > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .g-collapse.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+    transition:
+      grid-template-rows 600ms var(--g-ease),
+      opacity 400ms var(--g-ease) 150ms,
+      visibility 0s;
+  }
+  /* <details> body: the native summary keeps its semantics; the body rises
+     open through @starting-style (defined below the layer). ONE child. */
+  .g-details-body {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 600ms var(--g-ease),
+      opacity 400ms var(--g-ease) 100ms;
+  }
+  .g-details-body > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Arrows in links, buttons and .group cards nudge on hover. Forward
+     (.g-arrow) and back (.g-arrow-back) mirror in RTL; .g-arrow-ext is the
+     external-link arrow. Size stays with the icon (h-3.5 w-3.5 …). */
+  .g-arrow,
+  .g-arrow-back,
+  .g-arrow-ext {
+    @apply transition-transform duration-400 ease-out;
+  }
+  .g-arrow,
+  .g-arrow-back {
+    @apply rtl:rotate-180;
+  }
+  .g-arrow-ext {
+    @apply rtl:-scale-x-100;
+  }
+  :is(.g-link, .g-btn, .group):hover .g-arrow {
+    transform: translateX(3px);
+  }
+  [dir="rtl"] :is(.g-link, .g-btn, .group):hover .g-arrow {
+    transform: translateX(-3px) rotate(180deg);
+  }
+  :is(.g-link, .g-btn, .group):hover .g-arrow-back {
+    transform: translateX(-3px);
+  }
+  [dir="rtl"] :is(.g-link, .g-btn, .group):hover .g-arrow-back {
+    transform: translateX(3px) rotate(180deg);
+  }
+  :is(.g-link, .g-btn, .group):hover .g-arrow-ext {
+    transform: translate(2px, -2px);
+  }
+  [dir="rtl"] :is(.g-link, .g-btn, .group):hover .g-arrow-ext {
+    transform: translate(-2px, -2px) scaleX(-1);
+  }
+  /* Custom-styled controls (thumbnails, steppers, overlay buttons): eased
+     colour / opacity changes and a quiet press. */
+  .g-press {
+    @apply transition-[transform,opacity,color,background-color,border-color] duration-300 ease-out active:scale-[0.96];
+  }
+  /* The one focus ring: gold, offset 2 (inset variant for edge-to-edge
+     controls such as the stepper or a photo overlay). */
+  .g-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-paper;
+  }
+  .g-focus-inset {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-500;
+  }
+  /* Gold bar drawn in the margin beside a selected list row (transform only,
+     so the row itself never reflows). Parent is position: relative. */
+  .g-select-bar {
+    @apply pointer-events-none absolute w-0.5 bg-gold-500;
+    inset-block: 1.5rem;
+    inset-inline-start: -0.75rem;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 600ms var(--g-ease);
+  }
+  .g-select-bar.is-on {
+    transform: scaleY(1);
   }
   /* Header nav item: hairline grows from the start edge. */
   .g-nav-link {
-    @apply relative py-1 text-[11px] font-semibold uppercase tracking-caps transition-colors duration-300;
+    @apply relative rounded-sm py-1 text-[11px] font-semibold uppercase tracking-caps transition-colors duration-300;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-paper;
   }
   [dir="rtl"] .g-nav-link {
     letter-spacing: 0;
@@ -431,7 +551,7 @@
   }
   .g-nav-link::after {
     content: "";
-    @apply absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-500 ease-out;
+    @apply absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-600 ease-out;
   }
   [dir="rtl"] .g-nav-link::after {
     transform-origin: right;
@@ -445,7 +565,7 @@
   .g-header {
     @apply bg-paper/90 text-ink backdrop-blur-md;
     box-shadow: 0 1px 0 0 rgba(34, 20, 22, 0.1);
-    transition: background-color 500ms var(--g-ease), color 500ms var(--g-ease), box-shadow 500ms var(--g-ease);
+    transition: background-color 600ms var(--g-ease), color 600ms var(--g-ease), box-shadow 600ms var(--g-ease);
   }
   .g-header .g-header-cta {
     @apply bg-ink text-paper hover:bg-maroon-800;
@@ -483,6 +603,10 @@
   .g-header.is-open .g-header-mark {
     filter: brightness(0) invert(1);
   }
+  /* Burger: the two lines part slightly on hover, press scales the button. */
+  .g-burger {
+    @apply transition-transform duration-300 ease-out active:scale-90;
+  }
   .g-burger-line {
     @apply absolute block h-px w-6 bg-current transition-transform duration-400 ease-out;
   }
@@ -491,6 +615,12 @@
   }
   .g-burger-line:last-child {
     transform: translateY(3.5px);
+  }
+  .g-burger:hover .g-burger-line:first-child {
+    transform: translateY(-5px);
+  }
+  .g-burger:hover .g-burger-line:last-child {
+    transform: translateY(5px);
   }
   .g-burger[aria-expanded="true"] .g-burger-line:first-child {
     transform: rotate(45deg);
@@ -508,16 +638,85 @@
     .g-zoom img,
     .g-kenburns,
     .g-fade-up,
-    .g-fade {
+    .g-fade,
+    .g-enter,
+    .g-backdrop,
+    .g-leaving {
       animation: none;
       transition: none;
       transform: none;
     }
     .g-btn,
     .g-link,
-    .g-nav-link::after {
+    .g-nav-link,
+    .g-nav-link::after,
+    .g-collapse,
+    .g-collapse.is-open,
+    .g-details-body,
+    .g-arrow,
+    .g-arrow-back,
+    .g-arrow-ext,
+    .g-press,
+    .g-select-bar,
+    .g-header,
+    .g-burger,
+    .g-burger-line {
       transition: none;
     }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Motion primitives — keyframes and @starting-style. Kept outside the
+   Tailwind layers so they are always emitted (the theme keyframes in
+   tailwind.config.ts only ship for `animate-*` utilities).
+--------------------------------------------------------------------------- */
+@keyframes g-kenburns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes g-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes g-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes g-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes g-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* A <details> body rises open from 0fr the moment [open] is set. */
+@starting-style {
+  details[open] > .g-details-body {
+    grid-template-rows: 0fr;
+    opacity: 0;
   }
 }
 

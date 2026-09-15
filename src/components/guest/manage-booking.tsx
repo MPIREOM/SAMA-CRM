@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
 import { ArrowUpRight, Check, Loader2 } from "lucide-react";
 import type { CancelState } from "@/app/[locale]/(guest)/booking/[ref]/manage/actions";
+import { cn } from "@/lib/utils";
 import { prettyPhone, telLink, waLink } from "./lib";
 
 // "Request cancellation" with a confirmation dialog. The server action
 // re-verifies the token and the deadline before cancelling.
 
 const INITIAL: CancelState = { status: "idle" };
+/** Fade-out before the dialog unmounts; keep in sync with .g-leaving in globals.css. */
+const LEAVE_MS = 300;
 
 export function ManageBooking({
   bookingRef,
@@ -41,9 +44,27 @@ export function ManageBooking({
   const t = useTranslations("manage");
   const uid = useId();
   const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<number | undefined>(undefined);
   const [state, formAction] = useFormState(action, INITIAL);
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelled = alreadyCancelled || state.status === "cancelled";
+
+  // Dismissing fades the dialog out first (reduced motion: straight away).
+  const close = useCallback(() => {
+    if (leaveTimer.current !== undefined) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setOpen(false);
+      return;
+    }
+    setLeaving(true);
+    leaveTimer.current = window.setTimeout(() => {
+      leaveTimer.current = undefined;
+      setLeaving(false);
+      setOpen(false);
+    }, LEAVE_MS);
+  }, []);
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
 
   useEffect(() => {
     if (state.status === "cancelled") setOpen(false);
@@ -53,20 +74,20 @@ export function ManageBooking({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     document.addEventListener("keydown", onKey);
     dialogRef.current?.querySelector<HTMLElement>("textarea, button")?.focus();
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, close]);
 
   const contactRow = (
     <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-4">
       <a href={waLink(whatsapp, t("subtitle", { ref: bookingRef }))} target="_blank" rel="noopener noreferrer" className="g-link">
         {t("contactUs")}
-        <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+        <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
       </a>
       <a href={telLink(phone)} className="g-link" dir="ltr">
         {prettyPhone(phone)}
@@ -76,7 +97,7 @@ export function ManageBooking({
 
   if (cancelled) {
     return (
-      <div className="g-card p-6 sm:p-8" role="status">
+      <div className="g-card g-enter p-6 sm:p-8" role="status">
         <h2 className="g-h3">{t("cancelledTitle")}</h2>
         <p className="g-body mt-3 text-[15px]">{t("cancelledBody", { ref: bookingRef })}</p>
       </div>
@@ -114,8 +135,13 @@ export function ManageBooking({
       {contactRow}
 
       {open && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
-          <button type="button" aria-label={t("keepBooking")} onClick={() => setOpen(false)} className="absolute inset-0 bg-ink/70 backdrop-blur-[2px]" />
+        <div className={cn("fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center", leaving && "g-leaving")}>
+          <button
+            type="button"
+            aria-label={t("keepBooking")}
+            onClick={close}
+            className="g-backdrop absolute inset-0 bg-ink/70 backdrop-blur-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-500"
+          />
           <div
             ref={dialogRef}
             role="dialog"
@@ -139,7 +165,7 @@ export function ManageBooking({
               </label>
               <textarea id={`${uid}-reason`} name="reason" rows={2} maxLength={300} placeholder={t("reasonPlaceholder")} className="g-textarea min-h-20" />
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={() => setOpen(false)} className="g-btn-ghost">
+                <button type="button" onClick={close} className="g-btn-ghost">
                   {t("keepBooking")}
                 </button>
                 <SubmitButton label={t("confirmCancel")} pendingLabel={t("cancelling")} />
@@ -155,9 +181,15 @@ export function ManageBooking({
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="g-btn bg-crimson-700 text-white hover:bg-crimson-600">
-      {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-      {pending ? pendingLabel : label}
+    <button type="submit" disabled={pending} aria-live="polite" className="g-btn-danger">
+      {/* Both labels share one grid cell, so the button keeps its width while pending. */}
+      <span className="grid">
+        <span className={cn("col-start-1 row-start-1", pending && "invisible")}>{label}</span>
+        <span className={cn("col-start-1 row-start-1 inline-flex items-center justify-center gap-2.5", !pending && "invisible")}>
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          {pendingLabel}
+        </span>
+      </span>
     </button>
   );
 }

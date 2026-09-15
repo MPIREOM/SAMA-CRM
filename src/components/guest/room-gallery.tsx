@@ -30,18 +30,18 @@ export function RoomGallery({ images, name }: { images: string[]; name: string }
             fill
             priority={i === 0}
             sizes="(min-width: 1024px) 840px, 100vw"
-            className={cn("object-cover transition-opacity duration-700 ease-out motion-reduce:transition-none", i === current ? "opacity-100" : "opacity-0")}
+            className={cn("object-cover transition-opacity duration-800 ease-out motion-reduce:transition-none", i === current ? "opacity-100" : "opacity-0")}
             aria-hidden={i !== current}
           />
         ))}
-        {/* The whole photo opens the viewer; the tag is only a hint. */}
+        {/* The whole photo opens the viewer; the tag is only a hint (it firms up on hover). */}
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label={t("openPhoto", { n: n(current + 1), total: n(total) })}
-          className="absolute inset-0 z-10 flex cursor-zoom-in items-end justify-end p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-500 sm:p-5"
+          className="g-focus-inset group absolute inset-0 z-10 flex cursor-zoom-in items-end justify-end p-4 sm:p-5"
         >
-          <span className="g-tag-dark gap-2" aria-hidden="true">
+          <span className="g-tag-dark gap-2 transition-colors duration-300 group-hover:bg-ink group-active:bg-ink" aria-hidden="true">
             <Maximize2 className="h-3 w-3" strokeWidth={1.75} />
             <span dir="ltr" className="tabular-nums">
               {n(current + 1)} / {n(total)}
@@ -60,7 +60,7 @@ export function RoomGallery({ images, name }: { images: string[]; name: string }
                 aria-label={t("showPhoto", { n: n(i + 1) })}
                 aria-pressed={i === current}
                 className={cn(
-                  "g-frame block aspect-[4/3] w-[4.75rem] transition-opacity duration-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:w-24",
+                  "g-frame g-press g-focus block aspect-[4/3] w-[4.75rem] sm:w-24",
                   i === current ? "opacity-100 ring-1 ring-ink ring-offset-2 ring-offset-paper" : "opacity-55 hover:opacity-100"
                 )}
               >

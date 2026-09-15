@@ -26,6 +26,8 @@ export interface LightboxProps {
 
 const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 const SWIPE_PX = 48;
+/** Fade-out before the viewer unmounts; keep in sync with .g-leaving in globals.css. */
+const LEAVE_MS = 300;
 
 export function Lightbox({ images, name, index, onClose, onChange }: LightboxProps) {
   const t = useTranslations("rooms");
@@ -54,6 +56,27 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  // Closing fades the viewer out first (reduced motion: straight away), then
+  // hands over to the parent, which unmounts it.
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<number | undefined>(undefined);
+  const requestClose = useCallback(() => {
+    if (leaveTimer.current !== undefined) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onCloseRef.current();
+      return;
+    }
+    setLeaving(true);
+    leaveTimer.current = window.setTimeout(() => onCloseRef.current(), LEAVE_MS);
+  }, []);
+  useEffect(() => {
+    if (open) return;
+    window.clearTimeout(leaveTimer.current);
+    leaveTimer.current = undefined;
+    setLeaving(false);
+  }, [open]);
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
+
   // Scroll lock + focus management for the lifetime of one opening.
   useEffect(() => {
     if (!open) return;
@@ -75,7 +98,7 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        onCloseRef.current();
+        requestClose();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         stepRef.current(rtl ? -1 : 1);
@@ -99,7 +122,7 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, requestClose]);
 
   function onTouchStart(e: React.TouchEvent) {
     touchX.current = e.touches[0]?.clientX ?? null;
@@ -118,8 +141,9 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
 
   if (!mounted || !open) return null;
 
+  // .g-press eases colour and adds the press; .group lets the arrow inside nudge.
   const navBtn =
-    "inline-flex h-11 w-11 items-center justify-center rounded-[3px] border border-paper/40 text-paper transition-colors duration-300 hover:border-paper hover:bg-paper hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500";
+    "g-press group inline-flex h-11 w-11 items-center justify-center rounded-[3px] border border-paper/40 text-paper hover:border-paper hover:bg-paper hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500";
 
   return createPortal(
     <div
@@ -127,7 +151,7 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
       role="dialog"
       aria-modal="true"
       aria-label={t("lightboxTitle", { name })}
-      className="g-fade fixed inset-0 z-[95] flex flex-col bg-ink text-paper"
+      className={cn("g-fade fixed inset-0 z-[95] flex flex-col bg-ink text-paper", leaving && "g-leaving")}
     >
       <div className="flex items-center justify-between px-5 py-4 sm:px-8">
         <p className="g-eyebrow text-paper/70">
@@ -138,7 +162,7 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
             {n(current + 1)} / {n(total)}
           </span>
         </p>
-        <button ref={closeRef} type="button" onClick={onClose} aria-label={t("closePhotos")} className={navBtn}>
+        <button ref={closeRef} type="button" onClick={requestClose} aria-label={t("closePhotos")} className={navBtn}>
           <X className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
         </button>
       </div>
@@ -149,10 +173,10 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
+          if (e.target === e.currentTarget) requestClose();
         }}
       >
-        <div className="pointer-events-none absolute inset-x-5 inset-y-0 sm:inset-x-20">
+        <div className="g-fade-up pointer-events-none absolute inset-x-5 inset-y-0 sm:inset-x-20">
           {images.map((src, i) => (
             <Image
               key={src}
@@ -161,7 +185,7 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
               fill
               sizes="100vw"
               priority={i === current}
-              className={cn("object-contain transition-opacity duration-500 ease-out motion-reduce:transition-none", i === current ? "opacity-100" : "opacity-0")}
+              className={cn("object-contain transition-opacity duration-600 ease-out motion-reduce:transition-none", i === current ? "opacity-100" : "opacity-0")}
               aria-hidden={i !== current}
             />
           ))}
@@ -169,10 +193,10 @@ export function Lightbox({ images, name, index, onClose, onChange }: LightboxPro
         {total > 1 && (
           <>
             <button type="button" onClick={() => step(-1)} aria-label={t("prevPhoto")} className={cn(navBtn, "absolute start-4 top-1/2 -translate-y-1/2 bg-ink/50 backdrop-blur-sm sm:start-6")}>
-              <ArrowLeft className="h-5 w-5 rtl:rotate-180" strokeWidth={1.5} aria-hidden="true" />
+              <ArrowLeft className="g-arrow-back h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
             </button>
             <button type="button" onClick={() => step(1)} aria-label={t("nextPhoto")} className={cn(navBtn, "absolute end-4 top-1/2 -translate-y-1/2 bg-ink/50 backdrop-blur-sm sm:end-6")}>
-              <ArrowRight className="h-5 w-5 rtl:rotate-180" strokeWidth={1.5} aria-hidden="true" />
+              <ArrowRight className="g-arrow h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
             </button>
           </>
         )}

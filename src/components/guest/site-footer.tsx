@@ -23,14 +23,14 @@ export async function SiteFooter() {
   const instagramHref = instagram ? (instagram.startsWith("http") ? instagram : `https://instagram.com/${instagram.replace(/^@/, "")}`) : null;
 
   const columnTitle = "g-eyebrow text-paper/50";
-  const link = "text-paper/80 transition-colors duration-300 hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm";
+  const link = "text-paper/80 transition-colors duration-300 hover:text-paper active:text-gold-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm";
 
   return (
     <footer className="bg-ink text-paper">
       <div className="g-container">
         <div className="grid gap-12 py-16 sm:py-20 lg:grid-cols-[1.3fr_1fr_1fr_1fr] lg:gap-10">
           <div>
-            <Link href="/" className="inline-flex items-center gap-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+            <Link href="/" className="inline-flex items-center gap-4 rounded-sm transition-opacity duration-300 hover:opacity-80 active:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
               <Image src={siteImage(site, "brand_mark")} alt="" width={44} height={43} className="h-10 w-auto brightness-0 invert opacity-90" />
               <span className="font-display text-3xl leading-none rtl:font-display-ar">{tNav("brandWordmark")}</span>
             </Link>
@@ -42,7 +42,7 @@ export async function SiteFooter() {
             <p className="mt-5 text-sm leading-relaxed text-paper/80">{ar ? contact.address_ar : contact.address_en}</p>
             <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-link-light mt-4">
               {t("directions")}
-              <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden="true" />
+              <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </div>
 
@@ -102,7 +102,7 @@ export async function SiteFooter() {
           </p>
           <p className="flex items-center gap-5">
             <span>{t("payAtHotel")}</span>
-            <a href="/login" className="transition-colors hover:text-paper">
+            <a href="/login" className="rounded-sm transition-colors duration-300 hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
               {t("staffLogin")}
             </a>
           </p>

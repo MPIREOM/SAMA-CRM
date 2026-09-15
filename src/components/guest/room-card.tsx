@@ -26,7 +26,7 @@ export function RoomCard({ room, priority = false, className }: { room: Localize
       <div className="flex flex-1 flex-col pt-5">
         <div className="flex items-baseline justify-between gap-4">
           <h3 className="g-h4">
-            <Link href={`/rooms/${room.slug}`} className="rounded-sm transition-colors hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+            <Link href={`/rooms/${room.slug}`} className="rounded-sm transition-colors duration-300 hover:text-maroon-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
               {room.name}
             </Link>
           </h3>
@@ -42,7 +42,7 @@ export function RoomCard({ room, priority = false, className }: { room: Localize
         <div className="mt-auto pt-5">
           <Link href={`/rooms/${room.slug}`} className="g-link">
             {t("viewRoom")}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-400 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden="true" />
+            <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </div>
       </div>

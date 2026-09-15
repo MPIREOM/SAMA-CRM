@@ -22,7 +22,7 @@ export interface AddonChoice {
 export type AddonSelectionMap = Record<string, AddonChoice>;
 
 const stepBtn =
-  "flex h-11 w-11 items-center justify-center text-ink transition-colors hover:bg-paper-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-500 disabled:opacity-30 disabled:hover:bg-transparent";
+  "g-press g-focus-inset flex h-11 w-11 items-center justify-center text-ink hover:bg-paper-200 active:bg-paper-300 disabled:pointer-events-none disabled:opacity-30";
 
 export function AddonPicker({
   addons,
@@ -54,13 +54,9 @@ export function AddonPicker({
           const qtyId = `${uid}-${addon.slug}-qty`;
           const noteError = errors?.[addon.slug];
           return (
-            <li
-              key={addon.slug}
-              className={cn(
-                "border-t border-ink-line py-6 transition-[padding,border-color] duration-400 ease-out",
-                selected ? "border-s-2 border-s-gold-500 ps-5" : "border-s-2 border-s-transparent"
-              )}
-            >
+            <li key={addon.slug} className="relative border-t border-ink-line py-6">
+              {/* A gold bar draws in the margin once something is picked; the row itself never reflows. */}
+              <span aria-hidden="true" className={cn("g-select-bar", selected && "is-on")} />
               <div className="flex gap-5">
                 <div className="g-frame hidden h-20 w-24 shrink-0 sm:block">
                   <Image src={addon.image} alt="" fill sizes="96px" className={cn("object-cover transition-[filter] duration-600", !selected && "saturate-[0.85]")} />
@@ -117,31 +113,37 @@ export function AddonPicker({
                     </div>
                   </div>
 
-                  {selected && addon.requiresNote && (
-                    <div className="mt-5">
-                      <label htmlFor={noteId} className="g-label">
-                        {t("noteLabel")}
-                      </label>
-                      <input
-                        id={noteId}
-                        type="text"
-                        maxLength={ADDON_NOTE_MAX}
-                        value={choice.note}
-                        onChange={(e) => onChange(addon.slug, { ...choice, note: e.target.value })}
-                        autoComplete="off"
-                        aria-describedby={`${noteId}-hint`}
-                        aria-invalid={!!noteError}
-                        className="g-input"
-                      />
-                      {noteError ? (
-                        <p className="g-error" role="alert">
-                          {noteError}
-                        </p>
-                      ) : (
-                        <p id={`${noteId}-hint`} className="g-hint">
-                          {addon.noteHint || t("noteHint")}
-                        </p>
-                      )}
+                  {/* The note field unfolds (.g-collapse) once something is picked; closed, it is out of the tab order.
+                      The 4px inset keeps the input's focus ring clear of the clipping wrapper. */}
+                  {addon.requiresNote && (
+                    <div className={cn("g-collapse -mx-1", selected && "is-open")}>
+                      <div className="px-1">
+                        <div className="mt-5">
+                          <label htmlFor={noteId} className="g-label">
+                            {t("noteLabel")}
+                          </label>
+                          <input
+                            id={noteId}
+                            type="text"
+                            maxLength={ADDON_NOTE_MAX}
+                            value={choice.note}
+                            onChange={(e) => onChange(addon.slug, { ...choice, note: e.target.value })}
+                            autoComplete="off"
+                            aria-describedby={`${noteId}-hint`}
+                            aria-invalid={!!noteError}
+                            className="g-input"
+                          />
+                          {noteError ? (
+                            <p className="g-error" role="alert">
+                              {noteError}
+                            </p>
+                          ) : (
+                            <p id={`${noteId}-hint`} className="g-hint">
+                              {addon.noteHint || t("noteHint")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

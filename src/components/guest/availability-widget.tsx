@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, useTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/routing";
 import { addDays, nightsBetween } from "@/lib/booking-engine/pricing";
 import { muscatToday } from "@/lib/booking-engine/dates";
@@ -183,7 +183,8 @@ export function AvailabilityWidget({
         <div className={cn("col-span-2 flex items-stretch border-t border-ink-line p-2", !stack && "md:col-span-1 md:border-t-0")}>
           <button type="submit" disabled={pending} className={cn("g-btn-primary h-full min-h-12 w-full", !stack && "md:min-w-[11rem]")}>
             <span>{pending ? t("searching") : t("search")}</span>
-            <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+            {/* The spinner takes the arrow's slot, so the button keeps its width while pending. */}
+            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <ArrowRight className="g-btn-arrow" aria-hidden="true" />}
           </button>
         </div>
       </div>
