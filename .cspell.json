@@ -1,0 +1,56 @@
+{
+  // Sama Hotel — project spelling config (cspell 8). House style is British English.
+  // Run:  npx --yes cspell@8 --no-progress --locale en-GB "messages/en.json" "src/**/*.{ts,tsx}" "docs/*.md" README.md HANDOFF.md DECISIONS.md
+  "version": "0.2",
+  "language": "en-GB",
+  "ignorePaths": ["node_modules", ".next", "package-lock.json", "tsconfig.tsbuildinfo", "test-results", "e2e/report", "public"],
+  "ignoreRegExpList": [
+    // Arabic script (no useful Arabic dictionary exists; messages/ar.json is reviewed by hand)
+    "/[\\u0600-\\u06FF][\\u0600-\\u06FF\\u0020\\u060C\\u061B\\u061F\\u066A-\\u066D]*/g",
+    // JWTs / anon keys, the Supabase project ref, the production branch name
+    "/\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/g",
+    "/\\bvsxesrhoovabgsmvodvh\\b/g",
+    "/hotel-crm-nextjs-obex8g/g",
+    // percent-encoded path segments (%2Freservations) and HTML entities (&quot;)
+    "/%2F[A-Za-z]+/g",
+    "/&[a-z]+;/g"
+  ],
+  // Real words and proper nouns (never misspellings).
+  "words": [
+    // Places, people, brands
+    "Sama", "Sayq", "Jabal", "Akhdar", "Nizwa", "Birkat", "Mouz", "Muscat", "Oman", "Omani", "Bahraini",
+    "Layali", "Aqar", "Shraija", "Ain", "Dakhiliyah", "Riyadha", "samahotel", "Nabhani", "Balushi", "Busaidi", "Habsi", "Fatma", "Türkiye",
+    "APEX", "Zipline", "Mpire",
+    // Hospitality / Omani vocabulary
+    "majlis", "shisha", "jacuzzi", "qahwa", "baisa", "OMR",
+    // Services, tools and fonts
+    "Resend", "Supabase", "Vercel", "PostgREST", "postgrest", "GoTrue", "WhatsApp", "webhook", "webhooks", "WABA", "wamid",
+    "Tajawal", "Nunito", "Cormorant", "Garamond", "Amiri", "Hacen", "Naskh", "Segoe", "Tahoma",
+    // Ordinary English the en-GB list lacks
+    "tagline", "taglines", "wordmark", "lightbox", "preheader", "sunroom", "timezone", "wifi", "dialog", "dialogs",
+    "cutoff", "kickoff", "takeoff", "handoff", "incl", "repro", "vars",
+    "resumable", "sellable", "sendable", "submittable", "resubmittable", "toggleable", "crawlable", "unconfigured", "unparseable",
+    "upserts", "dedup", "fallbacks", "reflows", "crossfades", "introspected", "demonyms", "reengage",
+    "alef", "hamza", "HMAC", "TTFB"
+  ],
+  // Code identifiers and protocol tokens: ignored, but never offered as suggestions.
+  "ignoreWords": [
+    "checkin", "dropoff", "conv", "prio", "throttl", "unstub", "apikey", "fkey", "defval", "optin", "laststay", "roomtype", "fourwd", "topbar",
+    "ilike", "xact", "hashtext", "timestamptz", "PGRST", "MPIREOM",
+    "cellpadding", "cellspacing", "extrabold", "kenburns",
+    "CALSCALE", "DTEND", "DTSTAMP", "DTSTART", "PRODID", "VALARM", "VCALENDAR", "VEVENT"
+  ],
+  "overrides": [
+    {
+      // Guest copy must be British: flag the American spellings a hotel site is likely to slip into.
+      "filename": "messages/en.json",
+      "flagWords": [
+        "color", "colors", "colored", "center", "centers", "centered", "organize", "organized", "organizing", "organization",
+        "traveling", "traveler", "travelers", "meters", "meter", "kilometers", "liters", "favorite", "favorites",
+        "canceled", "canceling", "cancelation", "gray", "catalog", "specialty", "customize", "customized",
+        "jewelry", "theater", "neighbor", "neighbors", "flavor", "flavors", "honor", "labor", "behavior", "humor",
+        "analyze", "realize", "recognize", "apologize", "itemized", "airplane", "cozy", "mustache", "aluminum"
+      ]
+    }
+  ]
+}

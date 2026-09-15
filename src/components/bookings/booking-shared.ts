@@ -41,7 +41,7 @@ export const STATUSES: BookingStatus[] = ["Confirmed", "Cancelled", "Completed"]
 
 const STATUS_LABELS: Record<BookingStatus, Localized> = {
   Confirmed: { en: "Confirmed", ar: "مؤكد" },
-  Cancelled: { en: "Cancelled", ar: "ملغي" },
+  Cancelled: { en: "Cancelled", ar: "ملغى" },
   Completed: { en: "Completed", ar: "مكتمل" },
 };
 

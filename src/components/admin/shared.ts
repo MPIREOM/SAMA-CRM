@@ -130,7 +130,7 @@ export const STATUS_LABELS: Record<BkBookingStatus, Localized> = {
   confirmed: { en: "Confirmed", ar: "مؤكد" },
   checked_in: { en: "Checked in", ar: "مقيم" },
   checked_out: { en: "Checked out", ar: "غادر" },
-  cancelled: { en: "Cancelled", ar: "ملغي" },
+  cancelled: { en: "Cancelled", ar: "ملغى" },
   no_show: { en: "No-show", ar: "لم يحضر" },
 };
 
@@ -297,7 +297,7 @@ export const ADDON_STATUS_LABELS: Record<BkBookingAddonStatus, Localized> = {
   requested: { en: "Requested", ar: "مطلوب" },
   confirmed: { en: "Confirmed", ar: "مؤكد" },
   done: { en: "Done", ar: "تم" },
-  cancelled: { en: "Cancelled", ar: "ملغي" },
+  cancelled: { en: "Cancelled", ar: "ملغى" },
 };
 
 export function addonStatusLabel(status: string | null | undefined, lang: Lang): string {

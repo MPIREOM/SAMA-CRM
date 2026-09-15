@@ -1,4 +1,4 @@
-# DECISIONS.md — judgment calls made while building the booking platform
+# DECISIONS.md — judgement calls made while building the booking platform
 
 Format: date · decision · why · how to reverse.
 

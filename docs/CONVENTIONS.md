@@ -7,7 +7,7 @@ Next.js 14 App Router + TypeScript + Tailwind, `src/` structure. Supabase
 (Postgres + Auth + Realtime + Edge Functions). WhatsApp Cloud API + Resend.
 
 ## Brand
-- Tailwind colors: `maroon` (primary, 800 = #3B171B), `gold` (accent, 500 = #C5A04F),
+- Tailwind colours: `maroon` (primary, 800 = #3B171B), `gold` (accent, 500 = #C5A04F),
   `crimson` (secondary, 700 = #841424), `jabal` (success green, 600 = #098E4B).
 - Primary buttons: maroon bg / gold text. Accents & active nav: gold. Success: jabal.
 - Cards: white, `border-maroon-100`, `shadow-card`, `rounded-xl`.
@@ -38,7 +38,7 @@ Next.js 14 App Router + TypeScript + Tailwind, `src/` structure. Supabase
   state. RLS is the final backstop.
 
 ## Phones & markets
-- Always store E.164 (`+96891234567`). Normalize any input with
+- Always store E.164 (`+96891234567`). Normalise any input with
   `normalizePhone()` from `@/lib/phone`. Market is a GENERATED column in the DB
   (`+968`→Oman, +966/971/965/974/973→GCC, other `+`→International) — never
   write `market`, preview it client-side with `marketFromPhone()`.
