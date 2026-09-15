@@ -153,7 +153,15 @@ Storage: one jsonb row `bk_settings.key = 'site'` (`{ images, copy, sections }`,
 
 Adding a new photo slot = one entry in `SITE_IMAGE_SLOTS` (`src/lib/bk/site-content.ts`) + `siteImage(site, "key")` where the page renders it. Adding a built-in library photo = drop the file under `public/images/…` and append it to `src/lib/bk/site-library.ts`.
 
-Strings: `messages/en.json` + `messages/ar.json`. Edit them with `node scripts/i18n-set.mjs '{"home.heroTitle":{"en":"…","ar":"…"}}'` (atomic, keeps both files in sync) rather than by hand.
+Strings: `messages/en.json` + `messages/ar.json`. Edit them with `node scripts/i18n-set.mjs '{"home.heroTitle":{"en":"…","ar":"…"}}'` (atomic, keeps both files in sync) rather than by hand. Spell-check with `npx --yes cspell@8 --no-progress --locale en-GB "messages/en.json" "src/**/*.{ts,tsx}" "docs/*.md" README.md HANDOFF.md DECISIONS.md` (word list in `.cspell.json`, British English).
+
+One data fix to run once in the Supabase SQL editor (the seeded Arabic APEX tagline has a grammar slip; the live row, not the migration, is what guests read):
+
+```sql
+update public.bk_addons set tagline_ar = replace(tagline_ar, '310 متراً', '310 أمتار') where slug = 'apex-zipline';
+```
+
+Or simply edit the tagline on `/addons`.
 
 ## 12. Files worth knowing
 
