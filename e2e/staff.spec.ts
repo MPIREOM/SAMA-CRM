@@ -299,6 +299,65 @@ test.describe("staff back-office", () => {
     expect(statuses.every((s) => s.status === "cancelled")).toBe(true);
   });
 
+  test("admin: /website controls the guest site — library photo, copy override, announcement, section toggle, reset", async ({ page }) => {
+    // Start from the shipped defaults whatever an earlier run left behind.
+    await db.delete("bk_settings", "key=eq.site");
+    await loginAs(page, "admin");
+    await page.goto("/website");
+    await expect(page.getByRole("heading", { name: "Website" }).first()).toBeVisible();
+    await expect(page.locator("nav").getByRole("link", { name: "Website" })).toBeVisible();
+
+    // Photos: every slot starts on its built-in default; picking from the library marks it custom.
+    await expect(page.getByText("Custom", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Library" }).first().click();
+    const picker = page.getByRole("dialog");
+    await expect(picker.getByRole("heading", { name: /Choose from the hotel photos/ })).toBeVisible();
+    await picker.locator('button[title="/images/hotel/viewpoint.jpg"]').click();
+    await expect(page.getByText("Custom", { exact: true })).toHaveCount(1);
+    const [siteRow] = await db.rows<{ value: { images: Record<string, string> } }>("bk_settings", "select=value&key=eq.site");
+    expect(siteRow.value.images.brand_logo).toBe("/images/hotel/viewpoint.jpg");
+
+    // Words: an override replaces the built-in hero title on the guest home; the announcement bar appears.
+    await page.getByRole("tab", { name: "Words" }).click();
+    await page.locator("#copy-hero_title-en").fill("E2E: a quiet house on the Green Mountain");
+    await page.locator("#copy-announcement-en").fill("E2E announcement");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved")).toBeVisible();
+
+    // Sections: switching the closing band off removes it from the home page.
+    await page.getByRole("tab", { name: "Sections" }).click();
+    await page.getByRole("switch", { name: "Closing photo band" }).click();
+    await expect(page.getByRole("switch", { name: "Closing photo band" })).toHaveAttribute("aria-checked", "false");
+    await expect.poll(async () => (await db.rows<{ value: { sections: Record<string, boolean> } }>("bk_settings", "select=value&key=eq.site"))[0]?.value.sections.closing).toBe(false);
+
+    // The rendered guest home (not the raw HTML: the flight payload carries every translation string).
+    const guest = await page.context().newPage();
+    await guest.goto("/en");
+    await expect(guest.locator("h1").first()).toHaveText("E2E: a quiet house on the Green Mountain");
+    await expect(guest.locator(".g-announce")).toContainText("E2E announcement");
+    await expect(guest.locator("#home-closing")).toHaveCount(0);
+
+    // Reset everything: default photo, empty words, section back on.
+    await page.getByRole("switch", { name: "Closing photo band" }).click();
+    await expect.poll(async () => (await db.rows<{ value: { sections: Record<string, boolean> } }>("bk_settings", "select=value&key=eq.site"))[0]?.value.sections.closing).toBe(true);
+    await page.getByRole("tab", { name: "Words" }).click();
+    await page.locator("#copy-hero_title-en").fill("");
+    await page.locator("#copy-announcement-en").fill("");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved")).toBeVisible();
+    await page.getByRole("tab", { name: "Photos" }).click();
+    await page.getByRole("button", { name: "Default" }).first().click();
+    await expect(page.getByText("Custom", { exact: true })).toHaveCount(0);
+    const [after] = await db.rows<{ value: { images: Record<string, string>; copy: Record<string, string>; sections: Record<string, boolean> } }>("bk_settings", "select=value&key=eq.site");
+    expect(after.value.images).toEqual({});
+    expect(after.value.copy).toEqual({});
+    expect(after.value.sections.closing).toBe(true);
+    await guest.goto("/en");
+    await expect(guest.locator("#home-closing")).toHaveText("The mountain is waiting");
+    await expect(guest.locator(".g-announce")).toHaveCount(0);
+    await guest.close();
+  });
+
   test("reservation_desk cannot open /settings and sees no Settings in the sidebar", async ({ page }) => {
     await loginAs(page, "desk");
     await expect(page).toHaveURL(/\/dashboard/);
@@ -315,6 +374,9 @@ test.describe("staff back-office", () => {
     await expect(page.getByText("You don't have access to this page")).toBeVisible();
     await page.goto("/addons");
     await expect(page.getByText("You don't have access to this page")).toBeVisible();
+    await page.goto("/website");
+    await expect(page.getByText("You don't have access to this page")).toBeVisible();
+    await expect(page.locator("nav").getByRole("link", { name: "Website" })).toHaveCount(0);
 
     // Front-desk pages still work.
     await page.goto("/reservations");
