@@ -120,6 +120,7 @@
     @apply font-display font-normal text-ink;
     letter-spacing: -0.01em;
     line-height: 1.02;
+    font-variant-numeric: lining-nums;
   }
   [dir="rtl"] .g-display {
     @apply font-display-ar;
@@ -212,6 +213,9 @@
   .g-btn-light {
     @apply g-btn border border-paper/60 bg-transparent text-paper hover:border-paper hover:bg-paper hover:text-ink;
   }
+  .g-btn-danger {
+    @apply g-btn bg-crimson-700 text-white hover:bg-crimson-600;
+  }
   .g-btn-sm {
     @apply min-h-10 px-5 text-[11px];
   }
@@ -295,6 +299,10 @@
   }
   .g-note-red {
     @apply g-note border-crimson-200 bg-crimson-50 text-crimson-900;
+  }
+  /* One-line notice with an icon, e.g. "Pay at the hotel — nothing is charged now". */
+  .g-note-inline {
+    @apply inline-flex items-center gap-2.5 px-4 py-2.5;
   }
 
   /* ---- Lists --------------------------------------------------------- */
@@ -383,6 +391,9 @@
   .g-reveal.is-in {
     opacity: 1;
     transform: none;
+    /* Released after the reveal so a fixed child (dialog, sticky bar) is not
+       trapped inside this element's containing block. */
+    will-change: auto;
   }
   html.no-js .g-reveal,
   html.guest:not(.js) .g-reveal {

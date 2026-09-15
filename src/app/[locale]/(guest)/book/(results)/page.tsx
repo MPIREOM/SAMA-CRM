@@ -98,10 +98,12 @@ export default async function BookPage({ params, searchParams }: Props) {
                       })}
                 </p>
               </div>
-              <p className="g-note-green inline-flex items-center gap-2.5 px-4 py-2.5">
-                <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>{t("payAtHotel")}</span>
-              </p>
+              {!nothing && (
+                <p className="g-note-green inline-flex items-center gap-2.5 px-4 py-2.5">
+                  <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{t("payAtHotel")}</span>
+                </p>
+              )}
             </Reveal>
 
             {nothing && (
