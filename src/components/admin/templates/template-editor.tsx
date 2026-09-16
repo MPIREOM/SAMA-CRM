@@ -80,7 +80,7 @@ const STR = {
   submitEdit: { en: "Save & resubmit", ar: "حفظ وإعادة الإرسال" },
   created: { en: "Submitted. Meta's review usually takes minutes.", ar: "تم الإرسال. تستغرق مراجعة Meta دقائق عادةً." },
   notEditable: { en: "Only approved, rejected or paused templates can be edited. Wait for Meta's review to finish.", ar: "يمكن تعديل القوالب المعتمدة أو المرفوضة أو الموقوفة فقط. انتظروا انتهاء مراجعة Meta." },
-  editLimits: { en: "Approved templates can be edited 10 times per 30 days; each edit is reviewed again. Name and language cannot change.", ar: "يمكن تعديل القوالب المعتمدة 10 مرات كل 30 يوماً؛ تُراجع كل تعديل مجدداً. لا يمكن تغيير الاسم أو اللغة." },
+  editLimits: { en: "Approved templates can be edited 10 times per 30 days; each edit is reviewed again. Name and language cannot change.", ar: "يمكن تعديل القوالب المعتمدة 10 مرات كل 30 يوماً؛ يُراجع كل تعديل مجدداً. لا يمكن تغيير الاسم أو اللغة." },
   rejectedReason: { en: "Meta's rejection reason", ar: "سبب الرفض من Meta" },
 } satisfies Strings;
 

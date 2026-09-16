@@ -86,19 +86,64 @@ const config: Config = {
           900: "#10432d",
           DEFAULT: "#098e4b",
         },
+        // Guest-site neutrals: a warm paper ground and an inky maroon text tone.
+        paper: {
+          DEFAULT: "#f7f3ec",
+          50: "#fbf9f5",
+          100: "#f7f3ec",
+          200: "#efe9de",
+          300: "#e3dbcc",
+          400: "#cfc4b0",
+        },
+        ink: {
+          DEFAULT: "#221416",
+          soft: "#5a474a",
+          mute: "#716163",
+          line: "rgba(34, 20, 22, 0.14)",
+        },
       },
       fontFamily: {
-        sans: [
-          "var(--font-nunito)",
-          "var(--font-tajawal)",
-          "ui-sans-serif",
-          "system-ui",
-          "sans-serif",
-        ],
+        sans: ["var(--font-nunito)", "var(--font-tajawal)", "ui-sans-serif", "system-ui", "sans-serif"],
         arabic: ["var(--font-tajawal)", "var(--font-nunito)", "sans-serif"],
+        display: ["var(--font-cormorant)", "var(--font-amiri)", "Georgia", "serif"],
+        "display-ar": ["var(--font-amiri)", "var(--font-cormorant)", "serif"],
+      },
+      letterSpacing: {
+        caps: "0.22em",
+        wide2: "0.14em",
+      },
+      transitionTimingFunction: {
+        out: "cubic-bezier(0.2, 0.7, 0.2, 1)",
+        soft: "cubic-bezier(0.45, 0, 0.15, 1)",
+      },
+      transitionDuration: {
+        400: "400ms",
+        600: "600ms",
+        800: "800ms",
+        1200: "1200ms",
       },
       boxShadow: {
         card: "0 1px 3px 0 rgb(59 23 27 / 0.08), 0 1px 2px -1px rgb(59 23 27 / 0.08)",
+        float: "0 24px 60px -30px rgb(34 20 22 / 0.35)",
+      },
+      keyframes: {
+        "g-kenburns": {
+          "0%": { transform: "scale(1.08)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "g-fade-up": {
+          "0%": { opacity: "0", transform: "translateY(18px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "g-fade": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+      },
+      animation: {
+        "g-kenburns": "g-kenburns 14s cubic-bezier(0.2, 0.6, 0.2, 1) both",
+        "g-fade-up": "g-fade-up 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        "g-fade": "g-fade 700ms ease both",
       },
     },
   },

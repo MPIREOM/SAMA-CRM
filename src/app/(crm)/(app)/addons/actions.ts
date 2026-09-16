@@ -127,6 +127,35 @@ export async function updateAddon(input: unknown): Promise<ActionResult> {
   });
 }
 
+const BUCKET = "bk-room-images";
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+
+/**
+ * Upload an add-on photo (FormData: file, slug) to Storage. Returns the public
+ * URL; the dialog puts it in the image field and the normal save persists it,
+ * so a new add-on can get a photo before its row exists.
+ */
+export async function uploadAddonImage(formData: FormData): Promise<ActionResult<{ url: string }>> {
+  return runAction("addon.upload_image", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const slug = z.string().trim().max(60).regex(/^[a-z0-9-]*$/).parse(formData.get("slug") ?? "");
+    const file = formData.get("file");
+    if (!(file instanceof File)) return { ok: false, error: "No file received." };
+    if (!IMAGE_TYPES.includes(file.type)) return { ok: false, error: "Only JPEG, PNG, WebP or AVIF images are allowed." };
+    if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image is larger than 8 MB." };
+    const admin = createAdminClient();
+    const ext = file.type === "image/jpeg" ? "jpg" : file.type.slice(6);
+    const safeBase = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9-]+/gi, "-").slice(0, 40) || "image";
+    const path = `addons/${slug || "addon"}-${Date.now()}-${safeBase}.${ext}`;
+    const { error: upErr } = await admin.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) return { ok: false, error: upErr.message };
+    const url = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    await audit(actor, "addon.upload_image", "bk_addons", slug || "new", { path, url, size: file.size });
+    return { ok: true, data: { url } };
+  });
+}
+
 const ActiveSchema = z.object({ id: uuid, is_active: z.boolean() });
 
 /** Quick on/off from the table. Inactive add-ons disappear from the guest site and the staff form. */

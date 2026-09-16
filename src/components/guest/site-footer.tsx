@@ -1,113 +1,117 @@
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Link } from "@/i18n/routing";
-import { safePublicSettings } from "./data";
+import { siteImage } from "@/lib/bk/site-content";
+import { getSiteContent, safePublicSettings } from "./data";
 import { prettyPhone, telLink, waLink } from "./lib";
 
+// Ink-dark footer: the wordmark, three quiet columns, one hairline row.
+
 export async function SiteFooter() {
-  const [t, tNav, locale, settings] = await Promise.all([
+  const [t, tNav, locale, settings, site] = await Promise.all([
     getTranslations("footer"),
     getTranslations("nav"),
     getLocale(),
     safePublicSettings(),
+    getSiteContent(),
   ]);
   const ar = locale === "ar";
   const { contact } = settings;
   const year = new Date().getFullYear();
+  const instagram = contact.instagram?.trim();
+  const instagramHref = instagram ? (instagram.startsWith("http") ? instagram : `https://instagram.com/${instagram.replace(/^@/, "")}`) : null;
+
+  const columnTitle = "g-eyebrow text-paper/50";
+  const link = "text-paper/80 transition-colors duration-300 hover:text-paper active:text-gold-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm";
 
   return (
-    <footer className="mt-24 bg-maroon-900 text-gold-100">
-      <div className="g-container grid gap-12 py-14 md:grid-cols-[1.4fr_1fr_1fr] md:gap-8">
-        <div>
-          <div className="flex items-center gap-3">
-            <Image src="/images/brand/logo-mark.png" alt="" width={44} height={43} className="h-11 w-auto" />
-            <div className="leading-none">
-              <p className="text-xl font-extrabold text-gold-200">{tNav("brandWordmark")}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-gold-400/90 rtl:text-sm rtl:tracking-normal">
-                {tNav("brandSub")}
-              </p>
-            </div>
+    <footer className="bg-ink text-paper">
+      <div className="g-container">
+        <div className="grid gap-12 py-16 sm:py-20 lg:grid-cols-[1.3fr_1fr_1fr_1fr] lg:gap-10">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-4 rounded-sm transition-opacity duration-300 hover:opacity-80 active:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+              <Image src={siteImage(site, "brand_mark")} alt="" width={44} height={43} className="h-10 w-auto brightness-0 invert opacity-90" />
+              <span className="font-display text-3xl leading-none rtl:font-display-ar">{tNav("brandWordmark")}</span>
+            </Link>
+            <p className="mt-6 max-w-xs text-sm leading-relaxed text-paper/65">{t("tagline")}</p>
           </div>
-          <p className="mt-5 max-w-sm text-base leading-relaxed text-gold-100/80">{t("tagline")}</p>
-          <div className="mt-6 rounded-2xl border border-gold-500/30 bg-maroon-800/60 p-4">
-            <p className="text-sm font-bold text-gold-300">{t("payAtHotel")}</p>
-            <p className="mt-1 text-sm leading-relaxed text-gold-100/75">{t("payAtHotelBody")}</p>
+
+          <div>
+            <h2 className={columnTitle}>{t("visit")}</h2>
+            <p className="mt-5 text-sm leading-relaxed text-paper/80">{ar ? contact.address_ar : contact.address_en}</p>
+            <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-link-light mt-4">
+              {t("directions")}
+              <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </div>
+
+          <div>
+            <h2 className={columnTitle}>{t("talk")}</h2>
+            <ul className="mt-5 space-y-2.5 text-sm">
+              <li>
+                <a href={telLink(contact.phone)} dir="ltr" className={link}>
+                  {prettyPhone(contact.phone)}
+                </a>
+              </li>
+              <li>
+                <a href={waLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer" className={link}>
+                  {t("whatsapp")} <span dir="ltr">{prettyPhone(contact.whatsapp)}</span>
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${contact.email}`} className={cn(link, "break-all")}>
+                  {contact.email}
+                </a>
+              </li>
+              {instagramHref && (
+                <li>
+                  <a href={instagramHref} target="_blank" rel="noopener noreferrer" className={link}>
+                    Instagram
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+
+          <div>
+            <h2 className={columnTitle}>{t("explore")}</h2>
+            <ul className="mt-5 space-y-2.5 text-sm">
+              {(
+                [
+                  ["/rooms", tNav("rooms")],
+                  ["/the-peak", tNav("peak")],
+                  ["/apex-zipline", tNav("apex")],
+                  ["/contact", tNav("contact")],
+                  ["/policies", t("policies")],
+                ] as const
+              ).map(([href, label]) => (
+                <li key={href}>
+                  <Link href={href} className={link}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-gold-400 rtl:tracking-normal">{t("contact")}</h2>
-          <ul className="mt-4 space-y-3 text-base">
-            <li className="flex items-start gap-3">
-              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-gold-400" aria-hidden="true" />
-              <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {ar ? contact.address_ar : contact.address_en}
-              </a>
-            </li>
-            <li className="flex items-center gap-3">
-              <Phone className="h-5 w-5 shrink-0 text-gold-400" aria-hidden="true" />
-              <a href={telLink(contact.phone)} dir="ltr" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {prettyPhone(contact.phone)}
-              </a>
-            </li>
-            <li className="flex items-center gap-3">
-              <MessageCircle className="h-5 w-5 shrink-0 text-gold-400" aria-hidden="true" />
-              <a href={waLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {t("whatsapp")} <span dir="ltr">{prettyPhone(contact.whatsapp)}</span>
-              </a>
-            </li>
-            <li className="flex items-center gap-3">
-              <Mail className="h-5 w-5 shrink-0 text-gold-400" aria-hidden="true" />
-              <a href={`mailto:${contact.email}`} className="break-all text-gold-100/85 hover:text-gold-100 hover:underline">
-                {contact.email}
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-gold-400 rtl:tracking-normal">{t("explore")}</h2>
-          <ul className="mt-4 space-y-2.5 text-base">
-            <li>
-              <Link href="/rooms" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {tNav("rooms")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/the-peak" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {tNav("peak")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/apex-zipline" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {tNav("apex")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {tNav("contact")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/policies" className="text-gold-100/85 hover:text-gold-100 hover:underline">
-                {t("policies")}
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="border-t border-gold-500/20">
-        <div className="g-container flex flex-col gap-2 py-5 text-xs text-gold-100/60 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-paper/15 py-6 text-xs text-paper/50 sm:flex-row sm:items-center sm:justify-between">
           <p>
             {t("rights", { year: String(year) })} <span className="hidden sm:inline">· {t("legal")}</span>
           </p>
-          <a href="/login" className="hover:text-gold-100 hover:underline">
-            {t("staffLogin")}
-          </a>
+          <p className="flex items-center gap-5">
+            <span>{t("payAtHotel")}</span>
+            <a href="/login" className="rounded-sm transition-colors duration-300 hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
+              {t("staffLogin")}
+            </a>
+          </p>
         </div>
       </div>
     </footer>
   );
+}
+
+function cn(...parts: (string | false | null | undefined)[]): string {
+  return parts.filter(Boolean).join(" ");
 }

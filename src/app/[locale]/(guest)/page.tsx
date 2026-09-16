@@ -1,57 +1,51 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, Car, Coffee, Flower2, MapPin, Mountain, Sparkles, Waves, Wallet } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getAddons, getRoomTypes } from "@/lib/bk/catalogue";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { logger } from "@/lib/logger";
+import { siteCopy, siteImage, siteSectionShown } from "@/lib/bk/site-content";
 import { AvailabilityWidget } from "@/components/guest/availability-widget";
+import { Reveal } from "@/components/guest/reveal";
 import { RoomCard } from "@/components/guest/room-card";
 import { StickyCta } from "@/components/guest/sticky-cta";
 import { JsonLd } from "@/components/guest/json-ld";
-import { safePublicSettings, siteUrl } from "@/components/guest/data";
+import { getSiteContent, safePublicSettings, siteUrl } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
 import { APEX_SLUG, TRANSFER_UP_SLUG, addonUnitKey, formatRate, localizeAddon, localizeRoom, prettyPhone, telLink, waLink, type LocalizedAddon } from "@/components/guest/lib";
 import type { BkRoomType } from "@/lib/database.types";
 
-// Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
 // Rendered per request: room data lives in Supabase and must never make a build fail.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
-  const t = await getTranslations({ locale, namespace: "meta" });
-  return pageMetadata({ locale, path: "/", title: t("homeTitle"), description: t("siteDescription") });
+  const [t, site] = await Promise.all([getTranslations({ locale, namespace: "meta" }), getSiteContent()]);
+  return pageMetadata({ locale, path: "/", title: t("homeTitle"), description: t("siteDescription"), image: siteImage(site, "og_image") });
 }
 
 const FACILITIES = [
-  { key: "pool", src: "/images/hotel/pool-wide.jpg" },
-  { key: "restaurant", src: "/images/hotel/restaurant-new.jpg" },
-  { key: "kids", src: "/images/hotel/kids-park-new.jpg" },
-  { key: "gym", src: "/images/hotel/gym.jpg" },
-  { key: "peak", src: "/images/hotel/peak-4.jpg" },
-  { key: "majlis", src: "/images/hotel/majlis.jpg" },
-] as const;
-
-const HIGHLIGHTS = [
-  { key: "altitude", Icon: Mountain },
-  { key: "peak", Icon: Coffee },
-  { key: "season", Icon: Flower2 },
-  { key: "cool", Icon: Sparkles },
-  { key: "pool", Icon: Waves },
+  { key: "pool", slot: "home_facility_pool" },
+  { key: "restaurant", slot: "home_facility_restaurant" },
+  { key: "kids", slot: "home_facility_kids" },
+  { key: "gym", slot: "home_facility_gym" },
+  { key: "peak", slot: "home_facility_peak" },
+  { key: "majlis", slot: "home_facility_majlis" },
 ] as const;
 
 export default async function HomePage({ params }: { params: { locale: string } }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [t, tRooms, tMeta, tc, ta, settings] = await Promise.all([
+  const [t, tRooms, tMeta, tc, ta, settings, site] = await Promise.all([
     getTranslations("home"),
     getTranslations("rooms"),
     getTranslations("meta"),
     getTranslations("common"),
     getTranslations("addons"),
     safePublicSettings(),
+    getSiteContent(),
   ]);
 
   // Room teasers degrade gracefully: the phone number is on the page anyway.
@@ -95,10 +89,21 @@ export default async function HomePage({ params }: { params: { locale: string } 
       cta: ta("transferCardCta"),
     },
   ];
+
   const today = muscatToday();
   const { contact, hotel, times } = settings;
   const rates = rooms?.map((r) => r.baseRate) ?? [];
   const priceRange = rates.length ? `OMR ${Math.min(...rates)}–${Math.max(...rates)}` : "OMR 50–115";
+
+  // Owner overrides from /website, else the built-in translation.
+  const copy = (key: Parameters<typeof siteCopy>[1], fallback: string) => siteCopy(site, key, locale) ?? fallback;
+  const show = (key: Parameters<typeof siteSectionShown>[1]) => siteSectionShown(site, key);
+
+  const experiences = [
+    { key: "peak", slot: "home_experience_peak", href: { pathname: "/the-peak" } as const, tall: false },
+    { key: "pool", slot: "home_experience_pool", href: { pathname: "/rooms" } as const, tall: true },
+    { key: "terraces", slot: "home_experience_terraces", href: { pathname: "/contact" } as const, tall: false },
+  ] as const;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -106,7 +111,7 @@ export default async function HomePage({ params }: { params: { locale: string } 
     name: locale === "ar" ? hotel.name_ar : hotel.name_en,
     description: tMeta("siteDescription"),
     url: `${siteUrl()}/${locale}`,
-    image: `${siteUrl()}/images/og.jpg`,
+    image: `${siteUrl()}${siteImage(site, "og_image")}`,
     telephone: contact.phone,
     email: contact.email,
     priceRange,
@@ -143,195 +148,280 @@ export default async function HomePage({ params }: { params: { locale: string } 
       <JsonLd data={jsonLd} />
 
       {/* Hero ------------------------------------------------------------- */}
-      <section className="relative isolate">
-        <div className="relative h-[68svh] min-h-[520px] w-full sm:h-[72svh] lg:h-[78svh] lg:max-h-[860px]">
+      <section className="relative isolate" data-hero>
+        <div className="relative h-[100svh] min-h-[600px] w-full overflow-hidden lg:max-h-[960px]">
           <Image
-            src="/images/hotel/canyon-view.jpg"
+            src={siteImage(site, "home_hero")}
             alt={t("heroImageAlt")}
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_60%]"
+            className="g-kenburns object-cover object-[center_65%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-maroon-950/80 via-maroon-950/30 to-maroon-950/20" aria-hidden="true" />
-          <div className="g-container relative flex h-full flex-col justify-end pb-40 sm:pb-36 lg:pb-32">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-gold-300 rtl:text-base rtl:tracking-normal">{t("heroEyebrow")}</p>
-            <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl rtl:tracking-normal rtl:leading-[1.25]">
-              {t("heroTitle")}
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-ink/25" aria-hidden="true" />
+          <div className="g-container relative flex h-full flex-col justify-end pb-44 sm:pb-40 lg:pb-36">
+            <p className="g-eyebrow g-fade-up text-gold-300" style={{ "--g-delay": "200ms" } as React.CSSProperties}>
+              {copy("hero_eyebrow", t("heroEyebrow"))}
+            </p>
+            <h1
+              className="g-h1 g-fade-up mt-5 max-w-4xl text-paper [text-wrap:balance]"
+              style={{ "--g-delay": "350ms" } as React.CSSProperties}
+            >
+              {copy("hero_title", t("heroTitle"))}
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-stone-100/90 sm:text-lg">{t("heroSubtitle")}</p>
+            <p className="g-fade-up mt-6 max-w-xl text-base leading-relaxed text-paper/80 sm:text-lg" style={{ "--g-delay": "550ms" } as React.CSSProperties}>
+              {copy("hero_subtitle", t("heroSubtitle"))}
+            </p>
           </div>
         </div>
-        <div className="g-container relative z-10 -mt-32 sm:-mt-28 lg:-mt-24">
-          <AvailabilityWidget
-            today={today}
-            maxNights={settings.booking.max_nights}
-            maxAdvanceDays={settings.booking.max_advance_days}
-            checkInTime={times.check_in}
-            checkOutTime={times.check_out}
-          />
+        <div className="g-container relative z-10 -mt-[7.5rem] sm:-mt-28 lg:-mt-24">
+          <Reveal delay={600}>
+            <AvailabilityWidget
+              today={today}
+              maxNights={settings.booking.max_nights}
+              maxAdvanceDays={settings.booking.max_advance_days}
+              checkInTime={times.check_in}
+              checkOutTime={times.check_out}
+            />
+          </Reveal>
         </div>
       </section>
 
-      {/* Highlights -------------------------------------------------------- */}
-      <section className="g-container pt-20 sm:pt-24">
-        <p className="g-eyebrow">{t("highlightsEyebrow")}</p>
-        <h2 className="g-h2 mt-3 max-w-2xl">{t("highlightsTitle")}</h2>
-        <ul className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-x-6">
-          {HIGHLIGHTS.map(({ key, Icon }) => (
-            <li key={key} className="flex gap-4 lg:flex-col lg:gap-4">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
-                <Icon className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div>
-                <h3 className="text-base font-extrabold text-maroon-900">{t(`highlights.${key}.title`)}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-maroon-700">{t(`highlights.${key}.body`)}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* Welcome ----------------------------------------------------------- */}
+      {show("welcome") && (
+        <section className="g-container g-section grid items-center gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-20" aria-labelledby="home-welcome">
+          <Reveal>
+            <p className="g-eyebrow-gold">{copy("welcome_eyebrow", t("welcomeEyebrow"))}</p>
+            <h2 id="home-welcome" className="g-h2 mt-5 max-w-xl [text-wrap:balance]">
+              {copy("welcome_title", t("welcomeTitle"))}
+            </h2>
+            <p className="g-body mt-7 max-w-lg">{copy("welcome_body", t("welcomeBody"))}</p>
+            <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-ink-line pt-6">
+              {[
+                { value: `${hotel.altitude_m.toLocaleString("en-GB")} m`, label: t("welcomeFacts.altitude") },
+                { value: `${hotel.drive_from_muscat_h} h`, label: t("welcomeFacts.drive") },
+                { value: "10–15 °C", label: t("welcomeFacts.cooler") },
+              ].map((f) => (
+                <div key={f.label}>
+                  <dt className="g-price text-2xl sm:text-3xl" dir="ltr">
+                    {f.value}
+                  </dt>
+                  <dd className="g-small mt-1">{f.label}</dd>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
+          <div className="relative">
+            <Reveal className="g-frame g-zoom aspect-[3/4] w-[82%] ms-auto">
+              <Image src={siteImage(site, "home_welcome_1")} alt="" fill sizes="(min-width: 1024px) 520px, 82vw" className="object-cover" />
+            </Reveal>
+            <Reveal delay={200} className="g-frame g-zoom absolute -bottom-8 start-0 aspect-square w-[44%] shadow-float sm:-bottom-12">
+              <Image src={siteImage(site, "home_welcome_2")} alt="" fill sizes="(min-width: 1024px) 280px, 44vw" className="object-cover" />
+            </Reveal>
+          </div>
+        </section>
+      )}
 
       {/* Rooms ------------------------------------------------------------- */}
-      <section className="g-container pt-20 sm:pt-24" aria-labelledby="home-rooms">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="g-eyebrow">{t("roomsEyebrow")}</p>
-            <h2 id="home-rooms" className="g-h2 mt-3">
-              {t("roomsTitle")}
+      <section className={show("welcome") ? "g-container pb-24 pt-8 sm:pb-32 sm:pt-12" : "g-container g-section"} aria-labelledby="home-rooms">
+        <Reveal className="flex flex-wrap items-end justify-between gap-6 border-t border-ink-line pt-10">
+          <div className="max-w-2xl">
+            <p className="g-eyebrow-gold">{t("roomsEyebrow")}</p>
+            <h2 id="home-rooms" className="g-h2 mt-4">
+              {copy("rooms_title", t("roomsTitle"))}
             </h2>
-            <p className="g-lead mt-3 max-w-2xl">{t("roomsIntro")}</p>
+            <p className="g-body mt-5">{copy("rooms_intro", t("roomsIntro"))}</p>
           </div>
-          <Link href="/rooms" className="g-btn-outline g-btn-sm">
+          <Link href="/rooms" className="g-link">
             {t("viewAllRooms")}
-            <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+            <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
           </Link>
-        </div>
+        </Reveal>
         {rooms ? (
-          <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-12 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {rooms.map((room, i) => (
-              <li key={room.id}>
+              <Reveal as="li" key={room.id} delay={(i % 3) * 120}>
                 <RoomCard room={room} priority={i < 3} className="h-full" />
-              </li>
+              </Reveal>
             ))}
           </ul>
         ) : (
-          <div className="g-card mt-10 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-maroon-800">{t("roomsUnavailable")}</p>
+          <div className="g-note mt-12 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p>{t("roomsUnavailable")}</p>
             <a href={waLink(contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="g-btn-primary g-btn-sm">
               {tc("whatsapp")}
             </a>
           </div>
         )}
-        <p className="mt-6 text-sm text-maroon-600">{tRooms("taxesNote")}</p>
+        <p className="g-small mt-10">{tRooms("taxesNote")}</p>
       </section>
+
+      {/* Experiences ------------------------------------------------------- */}
+      {show("experiences") && (
+        <section className="bg-paper-200" aria-labelledby="home-experiences">
+          <div className="g-container g-section">
+            <Reveal className="max-w-2xl">
+              <p className="g-eyebrow-gold">{t("experiencesEyebrow")}</p>
+              <h2 id="home-experiences" className="g-h2 mt-4">
+                {copy("experiences_title", t("experiencesTitle"))}
+              </h2>
+            </Reveal>
+            <ul className="mt-14 grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12">
+              {experiences.map((x, i) => (
+                <Reveal as="li" key={x.key} delay={i * 140} className={x.tall ? "md:pt-16" : undefined}>
+                  <Link href={x.href} className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 rounded-[4px]">
+                    <div className={`g-frame g-zoom ${x.tall ? "aspect-[3/4]" : "aspect-[4/3]"}`}>
+                      <Image src={siteImage(site, x.slot)} alt="" fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover" />
+                    </div>
+                    <h3 className="g-h3 mt-6">{copy(`experience_${x.key}_title`, t(`experiences.${x.key}.title`))}</h3>
+                    <p className="g-body mt-3">{copy(`experience_${x.key}_body`, t(`experiences.${x.key}.body`))}</p>
+                    <span className="g-link mt-5">
+                      {t(`experiences.${x.key}.cta`)}
+                      <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                  </Link>
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Facilities -------------------------------------------------------- */}
-      <section className="pt-20 sm:pt-24" aria-labelledby="home-facilities">
-        <div className="g-container">
-          <p className="g-eyebrow">{t("facilitiesEyebrow")}</p>
-          <h2 id="home-facilities" className="g-h2 mt-3">
-            {t("facilitiesTitle")}
-          </h2>
-        </div>
-        <ul className="g-container mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-thin lg:grid lg:grid-cols-6 lg:overflow-visible">
-          {FACILITIES.map(({ key, src }) => (
-            <li key={key} className="w-[72vw] shrink-0 snap-start sm:w-[44vw] lg:w-auto">
-              <figure>
-                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100">
-                  {/* The figcaption carries the name — an identical alt would be read twice. */}
-                  <Image src={src} alt="" fill sizes="(min-width: 1024px) 190px, 72vw" className="object-cover" />
-                </div>
-                <figcaption className="mt-3 text-sm font-bold text-maroon-800">{t(`facilities.${key}`)}</figcaption>
-              </figure>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {show("facilities") && (
+        <section className="g-section" aria-labelledby="home-facilities">
+          <Reveal className="g-container flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="g-eyebrow-gold">{t("facilitiesEyebrow")}</p>
+              <h2 id="home-facilities" className="g-h2 mt-4">
+                {copy("facilities_title", t("facilitiesTitle"))}
+              </h2>
+            </div>
+          </Reveal>
+          {/* Scrolls sideways below lg, so the list itself takes focus (arrow keys scroll it) and is named by the heading. */}
+          <ul
+            tabIndex={0}
+            aria-labelledby="home-facilities"
+            className="g-focus g-container mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 scrollbar-none lg:grid lg:grid-cols-6 lg:overflow-visible"
+          >
+            {FACILITIES.map(({ key, slot }, i) => (
+              <Reveal as="li" key={key} delay={i * 80} className="w-[68vw] shrink-0 snap-start sm:w-[40vw] lg:w-auto" style={{ "--g-rise": "12px" } as React.CSSProperties}>
+                <figure>
+                  <div className="g-frame g-zoom aspect-[4/3]">
+                    {/* The figcaption carries the name — an identical alt would be read twice. */}
+                    <Image src={siteImage(site, slot)} alt="" fill sizes="(min-width: 1024px) 200px, 68vw" className="object-cover" />
+                  </div>
+                  <figcaption className="g-eyebrow mt-4 text-ink">{copy(`facility_${key}`, t(`facilities.${key}`))}</figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Add to your stay -------------------------------------------------- */}
-      <section className="g-container pt-20 sm:pt-24" aria-labelledby="home-addons">
-        <p className="g-eyebrow">{ta("homeEyebrow")}</p>
-        <h2 id="home-addons" className="g-h2 mt-3">
-          {ta("homeTitle")}
-        </h2>
-        <p className="g-lead mt-3 max-w-2xl">{ta("homeIntro")}</p>
-        <ul className="mt-10 grid gap-6 md:grid-cols-2">
-          {addonCards.map((card) => (
-            <li key={card.key} className="g-card flex flex-col overflow-hidden sm:flex-row">
-              <div className="relative aspect-[16/10] bg-stone-100 sm:aspect-auto sm:w-2/5 sm:shrink-0">
-                <Image src={card.src} alt="" fill sizes="(min-width: 1024px) 240px, (min-width: 640px) 40vw, 100vw" className="object-cover" />
-              </div>
-              <div className="flex flex-1 flex-col p-5 sm:p-6">
-                <h3 className="text-lg font-extrabold text-maroon-900">{card.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-maroon-700">{card.body}</p>
-                {card.price && (
-                  <p className="mt-3 text-sm font-bold text-maroon-800 tabular-nums" dir="ltr">
-                    {card.price}
-                  </p>
-                )}
-                <Link href={card.href} className="g-link mt-auto inline-flex items-center gap-1.5 pt-4 text-sm no-underline hover:underline">
-                  {card.cta}
-                  <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+      {show("addons") && (
+        <section className="g-container border-t border-ink-line g-section" aria-labelledby="home-addons">
+          <Reveal className="max-w-2xl">
+            <p className="g-eyebrow-gold">{ta("homeEyebrow")}</p>
+            <h2 id="home-addons" className="g-h2 mt-4">
+              {ta("homeTitle")}
+            </h2>
+            <p className="g-body mt-5">{ta("homeIntro")}</p>
+          </Reveal>
+          <ul className="mt-12 grid gap-10 md:grid-cols-2 md:gap-8">
+            {addonCards.map((card, i) => (
+              <Reveal as="li" key={card.key} delay={i * 140} className="group flex flex-col">
+                <Link href={card.href} className="g-frame g-zoom block aspect-[16/10] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2" tabIndex={-1} aria-hidden="true">
+                  <Image src={card.src} alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
                 </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-6 text-sm text-maroon-600">{ta("homeFootnote")}</p>
-      </section>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 pt-6">
+                  <h3 className="g-h3">{card.title}</h3>
+                  {card.price && (
+                    <p className="g-price text-lg" dir="ltr">
+                      {card.price}
+                    </p>
+                  )}
+                </div>
+                <p className="g-body mt-3">{card.body}</p>
+                <Link href={card.href} className="g-link mt-5">
+                  {card.cta}
+                  <ArrowRight className="g-arrow h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              </Reveal>
+            ))}
+          </ul>
+          <p className="g-small mt-10">{ta("homeFootnote")}</p>
+        </section>
+      )}
 
       {/* Location ---------------------------------------------------------- */}
-      <section className="g-container grid items-center gap-10 pt-20 sm:pt-24 lg:grid-cols-2 lg:gap-16" aria-labelledby="home-location">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-stone-100 lg:order-2">
-          <Image src="/images/hotel/aerial-canyon-pool.jpg" alt="" fill sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" />
-        </div>
-        <div className="lg:order-1">
-          <p className="g-eyebrow">{t("locationEyebrow")}</p>
-          <h2 id="home-location" className="g-h2 mt-3">
-            {t("locationTitle")}
-          </h2>
-          <p className="g-lead mt-4">{t("locationBody")}</p>
-          <div className="mt-6 rounded-2xl border border-gold-300 bg-gold-50 p-5">
-            <div className="flex items-start gap-3">
-              <Car className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" aria-hidden="true" />
-              <div>
-                <h3 className="font-extrabold text-maroon-900">{t("fourWdTitle")}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-maroon-800">{t("fourWdBody")}</p>
-                <p className="mt-2 text-sm leading-relaxed text-maroon-800">
-                  {transfer ? ta("transferTeaserPriced", { price: tc("omrAmount", { amount: formatRate(transfer.price) }) }) : ta("transferTeaser")}{" "}
-                  <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-link">
-                    {ta("transferTeaserLink")}
-                  </Link>
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-maroon-700">{t("fuelTip")}</p>
+      {show("location") && (
+        <section className="bg-paper-200" aria-labelledby="home-location">
+          <div className="g-container g-section grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <Reveal className="g-frame g-zoom aspect-[4/3] lg:order-2">
+              <Image src={siteImage(site, "home_location")} alt="" fill sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />
+            </Reveal>
+            <Reveal className="lg:order-1">
+              <p className="g-eyebrow-gold">{t("locationEyebrow")}</p>
+              <h2 id="home-location" className="g-h2 mt-4">
+                {copy("location_title", t("locationTitle"))}
+              </h2>
+              <p className="g-body mt-6 max-w-lg">{copy("location_body", t("locationBody"))}</p>
+              <div className="mt-8 max-w-lg border-s-2 border-gold-500 ps-5">
+                <h3 className="font-semibold text-ink">{t("fourWdTitle")}</h3>
+                <p className="g-body mt-2">{t("fourWdBody")}</p>
+                {/* The priced transfer line only when the add-on cards above are hidden — otherwise it would be said twice on one page. */}
+                {!show("addons") && (
+                  <p className="g-body mt-2">
+                    {transfer ? ta("transferTeaserPriced", { price: tc("omrAmount", { amount: formatRate(transfer.price) }) }) : ta("transferTeaser")}{" "}
+                    <Link href={{ pathname: "/policies", hash: "transfers" }} className="g-inline">
+                      {ta("transferTeaserLink")}
+                    </Link>
+                  </p>
+                )}
+                <p className="g-small mt-2">{t("fuelTip")}</p>
               </div>
-            </div>
+              <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
+                <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-outline g-btn-sm">
+                  {t("openMaps")}
+                  <ArrowUpRight className="g-arrow-ext h-3.5 w-3.5" aria-hidden="true" />
+                </a>
+                <a href={telLink(contact.phone)} className="g-link" dir="ltr">
+                  {prettyPhone(contact.phone)}
+                </a>
+              </div>
+            </Reveal>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a href={contact.maps_link} target="_blank" rel="noopener noreferrer" className="g-btn-primary g-btn-sm">
-              <MapPin className="h-4 w-4" aria-hidden="true" />
-              {t("openMaps")}
-            </a>
-            <a href={telLink(contact.phone)} className="g-btn-outline g-btn-sm" dir="ltr">
-              {prettyPhone(contact.phone)}
-            </a>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Pay at hotel ------------------------------------------------------ */}
-      <section className="g-container pt-20 sm:pt-24">
-        <div className="flex flex-col gap-5 rounded-3xl bg-maroon-900 p-8 text-gold-100 sm:flex-row sm:items-center sm:gap-8 sm:p-10">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gold-500 text-maroon-950">
-            <Wallet className="h-7 w-7" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-2xl font-extrabold text-gold-200">{t("payAtHotelTitle")}</h2>
-            <p className="mt-2 max-w-2xl leading-relaxed text-gold-100/85">{t("payAtHotelBody")}</p>
-          </div>
-        </div>
+      <section className="g-container g-section">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <span className="g-rule mx-auto" aria-hidden="true" />
+          <h2 className="g-h3 mt-6">{copy("pay_title", t("payAtHotelTitle"))}</h2>
+          <p className="g-body mt-4">{copy("pay_body", t("payAtHotelBody"))}</p>
+        </Reveal>
       </section>
+
+      {/* Closing photo band ------------------------------------------------ */}
+      {show("closing") && (
+        <section className="relative isolate" aria-labelledby="home-closing">
+          <div className="relative h-[70svh] min-h-[440px] w-full overflow-hidden">
+            <Image src={siteImage(site, "home_closing")} alt="" fill sizes="100vw" className="object-cover" />
+            <div className="absolute inset-0 bg-ink/45" aria-hidden="true" />
+            <Reveal className="g-container relative flex h-full flex-col items-center justify-center text-center">
+              <h2 id="home-closing" className="g-h2 text-paper">
+                {copy("closing_title", t("closingTitle"))}
+              </h2>
+              <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-light mt-8">
+                {t("closingCta")}
+              </Link>
+            </Reveal>
+          </div>
+        </section>
+      )}
 
       <div className="h-20 md:hidden" aria-hidden="true" />
       <StickyCta />

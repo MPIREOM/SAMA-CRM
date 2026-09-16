@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Book direct at Sama Hotel, a mountain resort at 2,000 m in Jabal Al Akhdar, Oman. Pay at the hotel.",
     start_url: "/en",
     display: "standalone",
-    background_color: "#faf6f0",
+    background_color: "#f7f3ec",
     theme_color: "#3b171b",
     lang: "en",
     icons: [

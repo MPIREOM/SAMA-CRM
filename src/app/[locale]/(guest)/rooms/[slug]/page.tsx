@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowLeft, BedDouble, Eye, Ruler, Users } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getRoomTypeBySlug, getRoomTypes } from "@/lib/bk/catalogue";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { AvailabilityWidget } from "@/components/guest/availability-widget";
 import { AmenityList } from "@/components/guest/amenity-list";
+import { Reveal } from "@/components/guest/reveal";
 import { RoomCard } from "@/components/guest/room-card";
 import { RoomGallery } from "@/components/guest/room-gallery";
 import { StickyCta } from "@/components/guest/sticky-cta";
@@ -14,11 +15,13 @@ import { safePublicSettings } from "@/components/guest/data";
 import { pageMetadata } from "@/components/guest/metadata";
 import { formatRate, localizeRoom, n } from "@/components/guest/lib";
 
-// Rates, settings and photos change rarely: serve statically, refresh every 10 minutes.
 // Rendered per request: room data lives in Supabase and must never make a build fail.
 export const dynamic = "force-dynamic";
 
 type Props = { params: { locale: string; slug: string } };
+
+/** Keep an em dash on the line of the word before it ("Sama Suite —" / "City View"). */
+const bindDash = (s: string) => s.replace(/ — /g, " — ");
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
@@ -50,70 +53,95 @@ export default async function RoomPage({ params }: Props) {
   const room = localizeRoom(rt, locale);
   const others = allTypes.filter((x) => x.slug !== room.slug).slice(0, 3).map((x) => localizeRoom(x, locale));
 
+  // One hairline strip of facts: View / Beds / Size / Sleeps.
   const facts = [
-    { Icon: Eye, label: t("view"), value: room.view },
-    { Icon: BedDouble, label: t("bed"), value: room.bed },
-    { Icon: Ruler, label: t("size"), value: room.sizeSqm ? t("sizeSqm", { n: n(room.sizeSqm) }) : "" },
-    { Icon: Users, label: t("capacity"), value: t("sleepsShort", { a: n(room.maxAdults), c: n(room.maxChildren) }) },
+    { key: "view", label: t("view"), value: room.view },
+    { key: "bed", label: t("bed"), value: room.bed },
+    { key: "size", label: t("size"), value: room.sizeSqm ? t("sizeSqm", { n: n(room.sizeSqm) }) : "" },
+    { key: "capacity", label: t("capacity"), value: t("sleepsShort", { a: n(room.maxAdults), c: n(room.maxChildren), adults: room.maxAdults, children: room.maxChildren }) },
   ].filter((f) => f.value);
+  const paragraphs = room.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const price = `${tc("omr")} ${formatRate(room.baseRate)}`;
+  const extraBed = t("extraBedNote", { price: n(settings.booking.extra_bed_omr), age: n(settings.booking.child_free_under) });
 
   return (
-    <>
-      <section className="g-container pt-8 sm:pt-12">
-        <Link href="/rooms" className="g-link inline-flex items-center gap-1.5 text-sm no-underline hover:underline">
-          <ArrowLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+    <div className="g-page">
+      <div className="g-container">
+        <Link href="/rooms" className="g-link">
+          <ArrowLeft className="g-arrow-back h-3.5 w-3.5" aria-hidden="true" />
           {t("backToRooms")}
         </Link>
-        <div className="mt-6 grid gap-10 lg:grid-cols-[1.6fr_1fr] lg:gap-14">
+
+        <div className="mt-8 sm:mt-10">
+          <RoomGallery images={room.images} name={room.name} />
+        </div>
+
+        {/* Story on the left; the price stays in view on the right. The
+            booking form is a full-width band further down: its five-column
+            desktop layout needs more room than a sidebar can give. */}
+        <div className="mt-12 grid gap-12 lg:mt-16 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-16 xl:gap-24">
           <div>
-            <RoomGallery images={room.images} name={room.name} />
+            <p className="g-eyebrow-gold">{t("eyebrow")}</p>
+            <h1 className="g-h1 mt-5 [text-wrap:balance]">{bindDash(room.name)}</h1>
+            {room.tagline && <p className="g-lead mt-6 max-w-2xl">{room.tagline}</p>}
+            {/* Phones and tablets: the price sits with the name; desktop shows the card instead. */}
+            <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1 lg:hidden">
+              <span className="g-eyebrow">{t("from")}</span>
+              <span className="g-price text-4xl leading-none" dir="ltr">
+                {price}
+              </span>
+              <span className="g-small">/ {t("perNight")}</span>
+            </p>
 
-            <div className="mt-8">
-              <p className="g-eyebrow">{t("eyebrow")}</p>
-              <h1 className="g-h1 mt-3 text-3xl sm:text-4xl lg:text-5xl">{room.name}</h1>
-              {room.tagline && <p className="g-lead mt-3">{room.tagline}</p>}
-            </div>
-
-            <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {facts.map(({ Icon, label, value }) => (
-                <div key={label} className="rounded-2xl border border-stone-200 bg-white p-4">
-                  <dt className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">
-                    <Icon className="h-4 w-4 text-gold-700" aria-hidden="true" />
-                    {label}
-                  </dt>
-                  <dd className="mt-2 text-sm font-semibold text-maroon-900">{value}</dd>
+            <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-7 border-y border-ink-line py-7 sm:grid-cols-4 sm:gap-x-8" aria-label={t("detailsTitle")}>
+              {facts.map((f) => (
+                <div key={f.key}>
+                  <dt className="g-eyebrow">{f.label}</dt>
+                  <dd className="g-h4 mt-2">{f.value}</dd>
                 </div>
               ))}
             </dl>
 
-            {room.description && <p className="g-prose mt-8 max-w-3xl text-base leading-relaxed text-maroon-800">{room.description}</p>}
+            {paragraphs.length > 0 && (
+              <Reveal className="g-body g-prose mt-10 max-w-2xl">
+                {paragraphs.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </Reveal>
+            )}
 
             {room.amenities.length > 0 && (
-              <section className="mt-10" aria-labelledby="room-amenities">
+              <Reveal as="section" className="mt-12 border-t border-ink-line pt-10" aria-labelledby="room-amenities">
                 <h2 id="room-amenities" className="g-h3">
                   {t("amenitiesTitle")}
                 </h2>
-                <div className="mt-5">
+                <div className="mt-7">
                   <AmenityList amenities={room.amenities} columns={3} />
                 </div>
-              </section>
+              </Reveal>
             )}
 
-            <p className="mt-8 text-sm text-maroon-600">
-              {t("extraBedNote", { price: n(settings.booking.extra_bed_omr), age: n(settings.booking.child_free_under) })}
-            </p>
+            <div className="mt-10 max-w-2xl space-y-2">
+              <p className="g-small">{extraBed}</p>
+              <p className="g-small lg:hidden">{t("taxesNote")}</p>
+            </div>
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="g-card p-5 sm:p-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-maroon-600 rtl:text-sm rtl:tracking-normal">{t("from")}</p>
-              <p dir="ltr" className="mt-1 text-4xl font-extrabold tabular-nums text-maroon-900">
-                <span className="text-base font-bold text-gold-700">{tc("omr")}</span> {formatRate(room.baseRate)}
-                <span className="ms-2 text-base font-semibold text-maroon-600">/ {t("perNight")}</span>
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="g-card hidden p-7 lg:block">
+              <p className="g-eyebrow">{t("from")}</p>
+              <p className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className="g-price text-4xl leading-none" dir="ltr">
+                  {price}
+                </span>
+                <span className="g-small">/ {t("perNight")}</span>
               </p>
-              <p className="mt-2 text-xs text-maroon-600">{t("taxesNote")}</p>
+              <p className="g-small mt-5 border-t border-ink-line pt-4">{t("taxesNote")}</p>
             </div>
-            <div className="mt-4">
+            <h2 id="room-dates" className="g-h3 mb-5 lg:sr-only">
+              {t("checkDates")}
+            </h2>
+            <div className="lg:mt-4">
               <AvailabilityWidget
                 today={muscatToday()}
                 maxNights={settings.booking.max_nights}
@@ -122,30 +150,37 @@ export default async function RoomPage({ params }: Props) {
                 checkOutTime={settings.times.check_out}
                 roomSlug={room.slug}
                 roomName={room.name}
-                variant="panel"
+                variant="stack"
               />
             </div>
           </aside>
         </div>
-      </section>
 
+      </div>
+
+      {/* Other rooms --------------------------------------------------------- */}
       {others.length > 0 && (
-        <section className="g-container mt-20" aria-labelledby="other-rooms">
-          <h2 id="other-rooms" className="g-h2">
-            {t("otherRooms")}
-          </h2>
-          <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {others.map((r) => (
-              <li key={r.id}>
-                <RoomCard room={r} className="h-full" />
-              </li>
-            ))}
-          </ul>
+        <section className="g-container mt-16 sm:mt-24" aria-labelledby="other-rooms">
+          <div className="g-section-tight border-t border-ink-line">
+            <Reveal className="max-w-2xl">
+              <p className="g-eyebrow-gold">{t("otherRoomsEyebrow")}</p>
+              <h2 id="other-rooms" className="g-h2 mt-4">
+                {t("otherRooms")}
+              </h2>
+            </Reveal>
+            <ul className="mt-12 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+              {others.map((r, i) => (
+                <Reveal as="li" key={r.id} delay={i * 120}>
+                  <RoomCard room={r} className="h-full" />
+                </Reveal>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
 
       <div className="h-20 md:hidden" aria-hidden="true" />
       <StickyCta label={t("checkDates")} />
-    </>
+    </div>
   );
 }

@@ -3,28 +3,39 @@
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Menu, X } from "lucide-react";
 import { Link, usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
 
+// Fixed site header. Over a page hero ([data-hero] anywhere in the body) it
+// is transparent with light type until the guest scrolls; everywhere else it
+// sits on paper with a hairline. The over-hero state is pure CSS (:has), so
+// the first paint is right before any JavaScript runs.
+
 const NAV = [
-  { href: "/", key: "home" },
   { href: "/rooms", key: "rooms" },
   { href: "/the-peak", key: "peak" },
   { href: "/apex-zipline", key: "apex" },
   { href: "/contact", key: "contact" },
 ] as const;
 
-export function SiteHeader() {
+export function SiteHeader({ logo, announcement }: { logo: string; announcement?: string | null }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Close the drawer on navigation and lock scroll while it is open.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -40,84 +51,106 @@ export function SiteHeader() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gold-500/20 bg-maroon-900/95 text-gold-100 backdrop-blur supports-[backdrop-filter]:bg-maroon-900/85">
+    <header className={cn("g-header fixed inset-x-0 top-0 z-40", scrolled && "is-scrolled", open && "is-open")}>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-3 focus:z-50 focus:rounded-full focus:bg-gold-500 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-maroon-950"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-3 focus:z-50 focus:rounded-[3px] focus:bg-gold-500 focus:px-4 focus:py-2 focus:text-xs focus:font-semibold focus:uppercase focus:tracking-caps focus:text-ink"
       >
         {t("skipToContent")}
       </a>
-      <div className="g-container flex h-16 items-center justify-between gap-4 sm:h-[4.5rem]">
+
+      {/* The announcement folds away while the menu is open instead of vanishing. */}
+      {announcement && (
+        <div className={cn("g-collapse", !open && "is-open")}>
+          <div>
+            <div className="g-announce border-b border-paper/10 text-center text-[11px] font-semibold uppercase tracking-wide2 rtl:text-[13px] rtl:tracking-normal">
+              <p className="g-container truncate py-2">{announcement}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="g-container flex h-[4.5rem] items-center justify-between gap-6">
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-maroon-900"
+          aria-label={t("brandWordmark")}
+          className="g-focus flex shrink-0 items-center gap-3 rounded-sm transition-opacity duration-300 hover:opacity-80 active:opacity-60"
         >
-          <Image src="/images/brand/logo-mark.png" alt="" width={40} height={39} priority className="h-9 w-auto sm:h-10" />
-          <span className="flex flex-col leading-none">
-            <span className="text-lg font-extrabold tracking-wide text-gold-200">{t("brandWordmark")}</span>
-            <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-400/90 rtl:tracking-normal rtl:text-xs">
-              {t("brandSub")}
-            </span>
-          </span>
+          <Image src={logo} alt="" width={40} height={39} priority className="g-header-mark h-8 w-auto transition-[filter] duration-600 sm:h-9" />
+          <span className="font-display text-[1.45rem] leading-none tracking-wide rtl:font-display-ar rtl:text-[1.55rem]">{t("brandWordmark")}</span>
         </Link>
 
-        <nav aria-label={t("primaryNav")} className="hidden items-center gap-1 md:flex">
+        <nav aria-label={t("primaryNav")} className="hidden items-center gap-8 md:flex">
           {NAV.map((item) => (
+            <Link key={item.key} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} className="g-nav-link">
+              {t(item.key)}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Suspense fallback={<span className="inline-block h-9 w-14" aria-hidden="true" />}>
+            <LanguageSwitcher className="hidden sm:inline-flex" />
+          </Suspense>
+          <Link href={{ pathname: "/", hash: "availability" }} className="g-header-cta g-btn g-btn-sm hidden sm:inline-flex">
+            {t("bookNow")}
+          </Link>
+          <button
+            type="button"
+            className="g-burger g-focus relative -me-2 inline-flex h-11 w-11 items-center justify-center rounded-full md:hidden"
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? t("closeMenu") : t("openMenu")}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <span aria-hidden="true" className={cn("g-burger-line", open && "translate-y-[3.5px] rotate-45")} />
+            <span aria-hidden="true" className={cn("g-burger-line", open && "-translate-y-[3.5px] -rotate-45")} />
+          </button>
+        </div>
+      </div>
+
+      {/* Full-screen menu (mobile) ------------------------------------- */}
+      <div
+        id="mobile-nav"
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-0 top-[4.5rem] z-40 flex flex-col bg-ink text-paper transition-opacity duration-600 ease-out motion-reduce:transition-none md:hidden",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        )}
+      >
+        <nav aria-label={t("mobileNav")} className="g-container flex flex-1 flex-col justify-center gap-1 py-8">
+          {[{ href: "/", key: "home" } as const, ...NAV].map((item, i) => (
             <Link
               key={item.key}
               href={item.href}
+              tabIndex={open ? 0 : -1}
               aria-current={isActive(item.href) ? "page" : undefined}
+              style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-maroon-900",
-                isActive(item.href) ? "bg-gold-500/15 text-gold-200" : "text-gold-100/85 hover:bg-gold-500/10 hover:text-gold-100"
+                "g-display block py-3 text-[2.4rem] leading-tight text-paper transition-[opacity,transform] duration-600 ease-out motion-reduce:transition-none rtl:text-[2.6rem]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded-sm",
+                isActive(item.href) ? "text-gold-300" : "hover:text-gold-200 active:text-gold-300",
+                open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
               )}
             >
               {t(item.key)}
             </Link>
           ))}
         </nav>
-
-        <div className="flex items-center gap-2">
-          <Suspense fallback={<span className="inline-block h-10 w-20 rounded-full border border-gold-500/40" aria-hidden="true" />}>
-            <LanguageSwitcher />
+        <div
+          className={cn(
+            "g-container flex items-center justify-between gap-4 border-t border-paper/15 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] transition-opacity duration-600 motion-reduce:transition-none",
+            open ? "opacity-100" : "opacity-0"
+          )}
+          style={{ transitionDelay: open ? "420ms" : "0ms" }}
+        >
+          <Suspense fallback={<span className="h-9 w-14" aria-hidden="true" />}>
+            <LanguageSwitcher tone="light" tabIndex={open ? 0 : -1} />
           </Suspense>
-          <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-gold g-btn-sm hidden sm:inline-flex">
+          <Link href={{ pathname: "/", hash: "availability" }} tabIndex={open ? 0 : -1} className="g-btn-gold g-btn-sm">
             {t("bookNow")}
           </Link>
-          <button
-            type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-gold-100 hover:bg-gold-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-maroon-900 md:hidden"
-            aria-expanded={open}
-            aria-controls="mobile-nav"
-            aria-label={open ? t("closeMenu") : t("openMenu")}
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
-          </button>
         </div>
-      </div>
-
-      <div
-        id="mobile-nav"
-        hidden={!open}
-        className="border-t border-gold-500/20 bg-maroon-900 md:hidden"
-      >
-        <nav aria-label={t("mobileNav")} className="g-container flex flex-col py-3">
-          {NAV.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className="rounded-xl px-3 py-3 text-base font-bold text-gold-100 hover:bg-gold-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
-            >
-              {t(item.key)}
-            </Link>
-          ))}
-          <Link href={{ pathname: "/", hash: "availability" }} className="g-btn-gold mt-2">
-            {t("bookNow")}
-          </Link>
-        </nav>
       </div>
     </header>
   );

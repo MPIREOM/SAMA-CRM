@@ -7,7 +7,7 @@ Next.js 14 App Router + TypeScript + Tailwind, `src/` structure. Supabase
 (Postgres + Auth + Realtime + Edge Functions). WhatsApp Cloud API + Resend.
 
 ## Brand
-- Tailwind colors: `maroon` (primary, 800 = #3B171B), `gold` (accent, 500 = #C5A04F),
+- Tailwind colours: `maroon` (primary, 800 = #3B171B), `gold` (accent, 500 = #C5A04F),
   `crimson` (secondary, 700 = #841424), `jabal` (success green, 600 = #098E4B).
 - Primary buttons: maroon bg / gold text. Accents & active nav: gold. Success: jabal.
 - Cards: white, `border-maroon-100`, `shadow-card`, `rounded-xl`.
@@ -38,7 +38,7 @@ Next.js 14 App Router + TypeScript + Tailwind, `src/` structure. Supabase
   state. RLS is the final backstop.
 
 ## Phones & markets
-- Always store E.164 (`+96891234567`). Normalize any input with
+- Always store E.164 (`+96891234567`). Normalise any input with
   `normalizePhone()` from `@/lib/phone`. Market is a GENERATED column in the DB
   (`+968`→Oman, +966/971/965/974/973→GCC, other `+`→International) — never
   write `market`, preview it client-side with `marketFromPhone()`.
@@ -76,3 +76,37 @@ Utils: `cn`, `generateBookingRef`, `nightsBetween`, `formatDate`,
 - Booking status values: `Confirmed` | `Cancelled` | `Completed`.
 - Message statuses: outbound `sent|delivered|read|failed`, inbound `received`.
 - Hotel timezone: Asia/Muscat (UTC+4).
+
+## Guest site design system (`src/app/globals.css`, `g-*` classes)
+
+The guest site (`src/app/[locale]`) does not use the CRM primitives. It has its own quiet,
+editorial system; everything reusable is a `g-*` class so pages stay readable.
+
+- **Ground & ink**: `bg-paper` / `text-ink`; muted text `text-ink-soft`, `text-ink-mute`;
+  hairlines `border-ink-line`; alternate bands `bg-paper-200`; dark bands `bg-ink text-paper`.
+  Gold (`gold-500/700`) only for hairlines, eyebrows and small accents.
+- **Type**: `g-h1` … `g-h4` (Cormorant Garamond / Amiri, weight 400, lining numerals),
+  `g-eyebrow` / `g-eyebrow-gold` (tracked small caps), `g-lead`, `g-body`, `g-small`,
+  `g-price` (serif numbers), `g-unit`, `g-ordinal`. Nothing heavier than weight 600.
+- **Layout**: `g-container` (84rem), `g-narrow`, `g-section` / `g-section-tight`, `g-page`
+  (top padding for pages without a hero). A full-bleed hero section carries `data-hero`
+  so the fixed header renders transparent over it.
+- **Surfaces**: `g-card`, `g-card-soft`, `g-frame` (photo container; add `g-zoom` for the
+  hover drift), `g-note` / `-gold` / `-green` / `-red` / `-inline`, `g-tag` / `-dark` / `-gold`,
+  `g-list` + `g-list-row` (hairline lists).
+- **Controls**: `g-btn-primary` / `-gold` / `-outline` / `-ghost` / `-light` / `-danger`,
+  `g-btn-sm`, `g-btn-block`; text links `g-link` (underline sweep), `g-link-light`, `g-inline`;
+  forms `g-label`, `g-input`, `g-select`, `g-textarea`, `g-hint`, `g-error`, `g-check`,
+  `g-choice` / `g-choice-on`.
+- **Motion**: `<Reveal>` (`@/components/guest/reveal`) for scroll reveals, `g-fade-up` /
+  `g-fade` with `--g-delay`, `g-kenburns` on hero photos, `g-enter` for panel entrances,
+  `g-collapse` + `is-open` for folding panels, `g-backdrop` / `g-leaving` for dialogs,
+  `g-press` / `g-focus` for custom controls, `g-arrow*` for nudging arrows. All keyframes live in
+  `globals.css` (Tailwind never emits `theme.keyframes` on its own) and every animation is off
+  under `prefers-reduced-motion`.
+- **RTL**: logical utilities only (`ms-`, `me-`, `ps-`, `start-`, `end-`), arrows use `g-arrow`
+  (mirrors itself). Numbers stay Latin (`n()` in `components/guest/lib.ts`).
+- **Content**: photos come from `siteImage(site, "<slot>")` with `site = await getSiteContent()`;
+  slots are declared once in `src/lib/bk/site-content.ts` and managed on `/website`.
+- **Strings**: `messages/*.json` through `node scripts/i18n-set.mjs`; spell-check with cspell
+  (`.cspell.json`, British English).

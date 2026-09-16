@@ -47,7 +47,7 @@ const STR = {
   upcoming: { en: "Upcoming bookings", ar: "الحجوزات القادمة" },
   arrivals: { en: "Arrivals today", ar: "وصول اليوم" },
   departures: { en: "Departures today", ar: "مغادرة اليوم" },
-  messages7d: { en: "Messages (7 days)", ar: "الرسائل (٧ أيام)" },
+  messages7d: { en: "Messages (7 days)", ar: "الرسائل (7 أيام)" },
   automationsOn: { en: "Active automations", ar: "الأتمتة المفعّلة" },
   byMarket: { en: "Guests by market", ar: "الضيوف حسب السوق" },
   quickActions: { en: "Quick actions", ar: "إجراءات سريعة" },

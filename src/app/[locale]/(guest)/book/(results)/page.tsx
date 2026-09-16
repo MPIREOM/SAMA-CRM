@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { AlertTriangle, ArrowRight, Check, Info, MessageCircle, Users } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Link, isLocale, type Locale } from "@/i18n/routing";
 import { getRoomTypes, searchAvailability } from "@/lib/bk/catalogue";
 import { getPublicSettings } from "@/lib/bk/settings";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { addDays, nightsBetween, quoteFromNightly } from "@/lib/booking-engine/pricing";
 import type { AvailabilityRow } from "@/lib/bk/types";
+import { cn } from "@/lib/utils";
 import { PriceSummary } from "@/components/guest/price-summary";
+import { Reveal } from "@/components/guest/reveal";
 import { SearchSummary } from "@/components/guest/search-summary";
 import { pageMetadata } from "@/components/guest/metadata";
 import { localizeRoom, n, waLink } from "@/components/guest/lib";
@@ -27,9 +29,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BookPage({ params, searchParams }: Props) {
   const locale: Locale = isLocale(params.locale) ? params.locale : "en";
   setRequestLocale(locale);
-  const [t, tc, settings, roomTypes] = await Promise.all([
+  const [t, tc, tRooms, settings, roomTypes] = await Promise.all([
     getTranslations("search"),
     getTranslations("common"),
+    getTranslations("rooms"),
     getPublicSettings(),
     getRoomTypes(),
   ]);
@@ -58,138 +61,149 @@ export default async function BookPage({ params, searchParams }: Props) {
     .filter((s): s is { d: number; q: SearchQuery } => s.q !== null);
 
   return (
-    <div className="g-container pt-8 sm:pt-12">
-      <p className="g-eyebrow">{t("eyebrow")}</p>
-      <h1 className="g-h1 mt-3 text-3xl sm:text-4xl">{t("title")}</h1>
+    <div className="g-page pb-24 sm:pb-32">
+      <div className="g-container">
+        <Reveal>
+          <p className="g-eyebrow-gold">{t("eyebrow")}</p>
+          <h1 className="g-h1 mt-5">{t("title")}</h1>
+        </Reveal>
 
-      <div className="mt-6">
-        <SearchSummary query={query} locale={locale} widget={widget} defaultOpen={result.error !== null} />
-      </div>
+        <Reveal delay={120} className="mt-8 sm:mt-10">
+          <SearchSummary query={query} locale={locale} widget={widget} defaultOpen={result.error !== null} />
+        </Reveal>
 
-      {fallback && (
-        <p role="status" className="mt-4 flex items-start gap-2 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-maroon-800">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold-700" aria-hidden="true" />
-          {t("invalidParams")}
-        </p>
-      )}
+        {fallback && (
+          <p role="status" className="g-note mt-4">
+            {t("invalidParams")}
+          </p>
+        )}
 
-      {result.error && (
-        <p role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-crimson-200 bg-crimson-50 px-4 py-3 text-sm font-semibold text-crimson-800">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          {t(`errors.${result.error}`, { n: n(settings.booking.max_nights) })}
-        </p>
-      )}
+        {result.error && (
+          <p role="alert" className="g-note-red mt-4">
+            {t(`errors.${result.error}`, { n: n(settings.booking.max_nights) })}
+          </p>
+        )}
 
-      {!result.error && (
-        <>
-          <div className="mt-10 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="g-h2 text-2xl sm:text-3xl">{nothing ? t("noResultsTitle") : t("resultsTitle")}</h2>
-              <p className="mt-2 text-sm text-maroon-700">
-                {nothing
-                  ? t("noResultsBody")
-                  : t("resultsIntro", {
-                      nights: tc("nights", { count: nights, n: n(nights) }),
-                      guests: t("guestsSummary", { adults: query.adults, a: n(query.adults), children: query.children, c: n(query.children) }),
-                    })}
-              </p>
-            </div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-jabal-50 px-3.5 py-1.5 text-xs font-bold text-jabal-800">
-              <Check className="h-4 w-4" aria-hidden="true" />
-              {t("payAtHotel")}
-            </p>
-          </div>
+        {!result.error && (
+          <>
+            <Reveal delay={200} className="mt-14 flex flex-wrap items-end justify-between gap-x-10 gap-y-5 border-t border-ink-line pt-10 sm:mt-16">
+              <div className="max-w-2xl">
+                <h2 className="g-h2">{nothing ? t("noResultsTitle") : t("resultsTitle")}</h2>
+                <p className="g-body mt-4">
+                  {nothing
+                    ? t("noResultsBody")
+                    : t("resultsIntro", {
+                        nights: tc("nights", { count: nights, n: n(nights) }),
+                        guests: t("guestsSummary", { adults: query.adults, a: n(query.adults), children: query.children, c: n(query.children) }),
+                      })}
+                </p>
+              </div>
+              {!nothing && (
+                <p className="g-note-green g-note-inline">
+                  <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{t("payAtHotel")}</span>
+                </p>
+              )}
+            </Reveal>
 
-          {nothing && (
-            <div className="g-card mt-6 p-5 sm:p-6">
-              <h3 className="g-h3">{t("tryDates")}</h3>
-              <ul className="mt-4 flex flex-wrap gap-3">
-                {shifts.map(({ d, q }) => (
-                  <li key={d}>
-                    <Link href={{ pathname: "/book", query: searchParamsFor(q) }} className="g-btn-outline g-btn-sm">
-                      {d < 0 ? t("shiftEarlier", { n: Math.abs(d), d: n(Math.abs(d)) }) : t("shiftLater", { n: d, d: n(d) })}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 text-sm text-maroon-700">
-                {t("contactForHelp")}{" "}
-                <a href={waLink(settings.contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="g-link inline-flex items-center gap-1">
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  {tc("whatsapp")}
-                </a>
-              </p>
-            </div>
-          )}
+            {nothing && (
+              <Reveal className="g-card mt-8 p-6 sm:p-8">
+                <h3 className="g-h3">{t("tryDates")}</h3>
+                <ul className="mt-5 flex flex-wrap gap-3">
+                  {shifts.map(({ d, q }) => (
+                    <li key={d}>
+                      <Link href={{ pathname: "/book", query: searchParamsFor(q) }} className="g-btn-outline g-btn-sm">
+                        {d < 0 ? t("shiftEarlier", { n: Math.abs(d), d: n(Math.abs(d)) }) : t("shiftLater", { n: d, d: n(d) })}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="g-body mt-6">
+                  {t("contactForHelp")}{" "}
+                  <a href={waLink(settings.contact.whatsapp)} target="_blank" rel="noopener noreferrer" className="g-inline">
+                    {tc("whatsapp")}
+                  </a>
+                </p>
+              </Reveal>
+            )}
 
-          <ul className="mt-6 space-y-5">
-            {rooms.map(({ room, avail }) => {
-              const soldOut = !avail || avail.available_count <= 0;
-              const minStayFail = !!avail && !avail.min_stay_ok;
-              const capacityFail = !!avail && !avail.fits_capacity;
-              const ok = !soldOut && !minStayFail && !capacityFail;
-              const quote = avail ? quoteFromNightly(avail.nightly, settings.taxes) : null;
-              return (
-                <li key={room.id} className={ok ? "g-card overflow-hidden" : "g-card overflow-hidden opacity-95"}>
-                  <div className="grid md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr_300px]">
-                    <div className="relative aspect-[4/3] bg-stone-100 md:aspect-auto md:min-h-[240px]">
-                      <Image src={room.images[0]} alt="" fill sizes="(min-width: 1024px) 320px, (min-width: 768px) 280px, 100vw" className={ok ? "object-cover" : "object-cover grayscale-[35%]"} />
-                      {soldOut && (
-                        <span className="absolute start-3 top-3 rounded-full bg-maroon-900/90 px-3 py-1 text-xs font-bold text-gold-100">{t("soldOut")}</span>
-                      )}
-                      {ok && avail && avail.available_count <= 3 && (
-                        <span className="absolute start-3 top-3 rounded-full bg-gold-500 px-3 py-1 text-xs font-bold text-maroon-950">
-                          {t("leftOnly", { count: avail.available_count, n: n(avail.available_count) })}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col p-5 sm:p-6">
-                      <h3 className="g-h3">
-                        <Link href={`/rooms/${room.slug}`} className="hover:underline">
-                          {room.name}
-                        </Link>
-                      </h3>
-                      {room.tagline && <p className="mt-1.5 text-sm leading-relaxed text-maroon-700">{room.tagline}</p>}
-                      <p className="mt-3 inline-flex items-center gap-2 text-sm text-maroon-700">
-                        <Users className="h-4 w-4 text-gold-700" aria-hidden="true" />
-                        {t("capacity", { a: n(room.maxAdults), c: n(room.maxChildren) })}
-                      </p>
-                      {avail && avail.min_stay > 1 && (
-                        <p className={minStayFail ? "mt-3 text-sm font-semibold text-crimson-700" : "mt-3 text-sm text-maroon-700"}>
-                          {t("minStay", { count: avail.min_stay, n: n(avail.min_stay) })}
-                          {minStayFail && (
-                            <span className="block font-normal text-maroon-700">{t("minStayBody", { count: avail.min_stay, n: n(avail.min_stay) })}</span>
-                          )}
-                        </p>
-                      )}
-                      {capacityFail && <p className="mt-3 text-sm font-semibold text-crimson-700">{t("capacityBody")}</p>}
-                      {soldOut && <p className="mt-3 text-sm text-maroon-700">{t("soldOutBody", { name: room.name })}</p>}
-                    </div>
-
-                    <div className="border-t border-stone-200 bg-stone-50 p-5 sm:p-6 lg:border-s lg:border-t-0">
-                      {quote ? <PriceSummary quote={{ ...quote, addons: [] }} taxes={settings.taxes} locale={locale} compact /> : null}
-                      <div className="mt-4">
-                        {ok ? (
-                          <Link href={{ pathname: `/book/${room.slug}`, query: searchParamsFor(query) }} className="g-btn-primary w-full">
-                            {t("select")}
-                            <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
-                          </Link>
-                        ) : (
-                          <span aria-disabled="true" className="g-btn-outline w-full cursor-not-allowed opacity-60">
-                            {soldOut ? t("soldOut") : t("select")}
-                          </span>
+            <ul className="mt-8 space-y-6">
+              {rooms.map(({ room, avail }, i) => {
+                const soldOut = !avail || avail.available_count <= 0;
+                const minStayFail = !!avail && !avail.min_stay_ok;
+                const capacityFail = !!avail && !avail.fits_capacity;
+                const ok = !soldOut && !minStayFail && !capacityFail;
+                const quote = avail ? quoteFromNightly(avail.nightly, settings.taxes) : null;
+                const fewLeft = ok && avail && avail.available_count <= 3;
+                // One quiet line of facts under the tagline: who it sleeps, then size, beds and view.
+                const facts = [
+                  t("capacity", { adults: room.maxAdults, a: n(room.maxAdults), children: room.maxChildren, c: n(room.maxChildren) }),
+                  room.sizeSqm ? tRooms("sizeSqm", { n: n(room.sizeSqm) }) : null,
+                  room.bed || null,
+                  room.view || null,
+                ].filter(Boolean);
+                return (
+                  <Reveal as="li" key={room.id} delay={Math.min(i, 3) * 80} className="g-card overflow-hidden">
+                    <div className="grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)_minmax(0,3.4fr)]">
+                      <div className={cn("g-frame aspect-[4/3] rounded-none md:aspect-auto md:min-h-[260px]", ok && "g-zoom")}>
+                        <Image
+                          src={room.images[0]}
+                          alt=""
+                          fill
+                          sizes="(min-width: 1024px) 420px, (min-width: 768px) 42vw, 100vw"
+                          className={cn("object-cover", soldOut && "grayscale")}
+                        />
+                        {soldOut && <span className="g-tag-dark absolute start-4 top-4">{t("soldOut")}</span>}
+                        {fewLeft && avail && (
+                          <span className="g-tag-gold absolute start-4 top-4">{t("leftOnly", { count: avail.available_count, n: n(avail.available_count) })}</span>
                         )}
                       </div>
+
+                      <div className="flex flex-col p-6 sm:p-8">
+                        <h3 className="g-h3">
+                          <Link
+                            href={`/rooms/${room.slug}`}
+                            className="rounded-sm transition-colors duration-300 hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
+                          >
+                            {room.name}
+                          </Link>
+                        </h3>
+                        {room.tagline && <p className="g-body mt-3">{room.tagline}</p>}
+                        <p className="g-small mt-4">{facts.join(" · ")}</p>
+                        {avail && avail.min_stay > 1 && (
+                          <p className={minStayFail ? "g-error mt-3" : "g-small mt-3"}>
+                            {t("minStay", { count: avail.min_stay, n: n(avail.min_stay) })}
+                            {minStayFail && <span className="g-small mt-1 block font-normal">{t("minStayBody", { count: avail.min_stay, n: n(avail.min_stay) })}</span>}
+                          </p>
+                        )}
+                        {capacityFail && <p className="g-error mt-3">{t("capacityBody")}</p>}
+                        {soldOut && <p className="g-small mt-3">{t("soldOutBody", { name: room.name })}</p>}
+                      </div>
+
+                      <div className="flex flex-col border-t border-ink-line bg-paper-100 p-6 sm:p-8 md:col-span-2 lg:col-span-1 lg:border-s lg:border-t-0">
+                        {quote ? <PriceSummary quote={{ ...quote, addons: [] }} taxes={settings.taxes} locale={locale} compact /> : null}
+                        <div className="mt-auto pt-6">
+                          {ok ? (
+                            <Link href={{ pathname: `/book/${room.slug}`, query: searchParamsFor(query) }} className="g-btn-primary w-full">
+                              {t("select")}
+                              <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+                            </Link>
+                          ) : (
+                            <span aria-disabled="true" className="g-btn-outline w-full cursor-not-allowed opacity-50">
+                              {soldOut ? t("soldOut") : t("select")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-6 text-sm text-maroon-600">{t("weekendNote")}</p>
-        </>
-      )}
+                  </Reveal>
+                );
+              })}
+            </ul>
+            <p className="g-small mt-8">{t("weekendNote")}</p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

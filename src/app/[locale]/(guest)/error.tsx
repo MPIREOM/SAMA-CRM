@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { logger } from "@/lib/logger";
 
@@ -15,17 +16,20 @@ export default function GuestError({ error, reset }: { error: Error & { digest?:
   }, [error]);
 
   return (
-    <section className="g-container flex min-h-[60vh] flex-col items-center justify-center py-24 text-center">
-      <p className="g-eyebrow">Sama</p>
-      <h1 className="g-h2 mt-3">{t("genericTitle")}</h1>
-      <p className="g-lead mx-auto mt-4 max-w-xl">{t("genericBody")}</p>
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <button type="button" onClick={reset} className="g-btn-primary">
-          {t("retry")}
-        </button>
-        <Link href="/" className="g-btn-outline">
-          {t("backHome")}
-        </Link>
+    <section className="g-page g-container pb-24 sm:pb-32">
+      <div className="mx-auto flex min-h-[40vh] max-w-2xl flex-col items-center justify-center text-center">
+        <p className="g-eyebrow-gold">Sama</p>
+        <h1 className="g-h2 mt-5 [text-wrap:balance]">{t("genericTitle")}</h1>
+        <p className="g-lead mt-5 max-w-lg">{t("genericBody")}</p>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/" className="g-btn-primary">
+            {t("backHome")}
+            <ArrowRight className="g-btn-arrow" aria-hidden="true" />
+          </Link>
+          <button type="button" onClick={reset} className="g-btn-ghost">
+            {t("retry")}
+          </button>
+        </div>
       </div>
     </section>
   );

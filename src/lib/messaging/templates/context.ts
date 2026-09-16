@@ -68,7 +68,7 @@ function sampleAddonCatalogue(now: string): Record<"apex" | "transferUp", BkAddo
       name_en: "APEX Zipline",
       name_ar: "أبكس زيبلاين",
       tagline_en: "310 m over the canyon at up to 60 km/h — it starts right next to the hotel.",
-      tagline_ar: "310 متراً فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
+      tagline_ar: "310 أمتار فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
       description_en: null,
       description_ar: null,
       price_omr: 5,

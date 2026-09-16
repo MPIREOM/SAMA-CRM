@@ -180,7 +180,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <PropertyOverview name={name} data={"error" in property ? null : property} error={"error" in property ? property.error : null} />
+      <PropertyOverview name={name} data={"error" in property ? null : property} error={"error" in property ? property.error : null} isAdmin={isAdmin} />
       {stats && (
         // The CRM view carries its own welcome header; the property section above already greets the user.
         <div className="mt-10 border-t border-maroon-100 pt-8 [&>div>div:first-child]:hidden">

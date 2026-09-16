@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils";
 import { addonUnitKey, formatRate, n, type LocalizedAddon } from "./lib";
 import { ADDON_NOTE_MAX, addonFieldName } from "./schemas";
 
-// "Add to your stay" — one card per active add-on with a − / + quantity
-// stepper and, once something is selected, a short note field (preferred
-// day, arrival time …). The parent owns the state and re-quotes on change;
-// hidden inputs carry the selection into the server action.
+// "Add to your stay" — one hairline row per active add-on with a − / +
+// quantity stepper and, once something is selected, a short note field
+// (preferred day, arrival time …). The parent owns the state and re-quotes on
+// change; hidden inputs carry the selection into the server action.
 
 export interface AddonChoice {
   quantity: number;
@@ -20,6 +20,9 @@ export interface AddonChoice {
 }
 
 export type AddonSelectionMap = Record<string, AddonChoice>;
+
+const stepBtn =
+  "g-press g-focus-inset flex h-11 w-11 items-center justify-center text-ink hover:bg-paper-200 active:bg-paper-300 disabled:pointer-events-none disabled:opacity-30";
 
 export function AddonPicker({
   addons,
@@ -39,11 +42,11 @@ export function AddonPicker({
 
   return (
     <section aria-labelledby={`${uid}-title`}>
-      <h3 id={`${uid}-title`} className="g-h3 text-lg">
+      <h3 id={`${uid}-title`} className="g-h4">
         {t("pickerTitle")}
       </h3>
-      <p className="mt-1 text-sm text-maroon-600">{t("pickerHint")}</p>
-      <ul className="mt-4 space-y-3">
+      <p className="g-body mt-2">{t("pickerHint")}</p>
+      <ul className="mt-6 border-b border-ink-line">
         {addons.map((addon) => {
           const choice = selection[addon.slug] ?? { quantity: 0, note: "" };
           const selected = choice.quantity > 0;
@@ -51,42 +54,42 @@ export function AddonPicker({
           const qtyId = `${uid}-${addon.slug}-qty`;
           const noteError = errors?.[addon.slug];
           return (
-            <li
-              key={addon.slug}
-              className={cn(
-                "rounded-2xl border bg-white p-4 transition-colors sm:p-5",
-                selected ? "border-gold-500 shadow-card" : "border-stone-200"
-              )}
-            >
-              <div className="flex gap-4">
-                <div className="relative hidden h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-stone-100 sm:block">
-                  <Image src={addon.image} alt="" fill sizes="96px" className="object-cover" />
+            <li key={addon.slug} className="relative border-t border-ink-line py-6">
+              {/* A gold bar draws in the margin once something is picked; the row itself never reflows. */}
+              <span aria-hidden="true" className={cn("g-select-bar", selected && "is-on")} />
+              <div className="flex gap-5">
+                <div className="g-frame hidden h-20 w-24 shrink-0 sm:block">
+                  <Image src={addon.image} alt="" fill sizes="96px" className={cn("object-cover transition-[filter] duration-600", !selected && "saturate-[0.85]")} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                    <p id={`${uid}-${addon.slug}-name`} className="text-base font-extrabold text-maroon-900">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <p id={`${uid}-${addon.slug}-name`} className="g-h4">
                       {addon.name}
                     </p>
-                    <p className="text-sm font-bold text-maroon-800 tabular-nums" dir="ltr">
-                      {tc("omrAmount", { amount: formatRate(addon.price) })}{" "}
-                      <span className="font-normal text-maroon-600">{t(`unit.${addonUnitKey(addon.unit, addon.kind)}`)}</span>
+                    <p className="shrink-0 whitespace-nowrap" dir="ltr">
+                      <span className="g-price text-lg">{tc("omrAmount", { amount: formatRate(addon.price) })}</span>{" "}
+                      <span className="g-small">{t(`unit.${addonUnitKey(addon.unit, addon.kind)}`)}</span>
                     </p>
                   </div>
-                  {addon.tagline && <p className="mt-1 text-sm leading-relaxed text-maroon-700">{addon.tagline}</p>}
+                  {addon.tagline && <p className="g-body mt-2">{addon.tagline}</p>}
 
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-xs text-maroon-600">{t("maxQuantity", { n: n(addon.maxQuantity) })}</span>
-                    <div
-                      role="group"
-                      aria-labelledby={`${uid}-${addon.slug}-name`}
-                      className="inline-flex items-center rounded-full border border-stone-300 bg-white"
-                    >
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                    <p className="g-small" aria-live="polite">
+                      {selected ? (
+                        <span className="text-ink tabular-nums" dir="ltr">
+                          {t("lineTotal", { qty: n(choice.quantity), amount: formatOmr(addon.price * choice.quantity) })}
+                        </span>
+                      ) : (
+                        t("maxQuantity", { n: n(addon.maxQuantity) })
+                      )}
+                    </p>
+                    <div role="group" aria-labelledby={`${uid}-${addon.slug}-name`} className="inline-flex items-center overflow-hidden rounded-[3px] border border-ink/25 bg-white" dir="ltr">
                       <button
                         type="button"
                         onClick={() => onChange(addon.slug, { ...choice, quantity: Math.max(0, choice.quantity - 1) })}
                         disabled={choice.quantity <= 0}
                         aria-label={t("decrease", { name: addon.name })}
-                        className="flex h-11 w-11 items-center justify-center rounded-full text-maroon-800 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 disabled:opacity-40"
+                        className={stepBtn}
                       >
                         <Minus className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -94,7 +97,7 @@ export function AddonPicker({
                         id={qtyId}
                         aria-live="polite"
                         aria-label={t("quantityLabel", { name: addon.name })}
-                        className="w-10 text-center text-base font-extrabold text-maroon-900 tabular-nums"
+                        className="w-11 border-x border-ink-line text-center text-base font-semibold leading-[2.75rem] text-ink tabular-nums"
                       >
                         {choice.quantity}
                       </output>
@@ -103,44 +106,44 @@ export function AddonPicker({
                         onClick={() => onChange(addon.slug, { ...choice, quantity: Math.min(addon.maxQuantity, choice.quantity + 1) })}
                         disabled={choice.quantity >= addon.maxQuantity}
                         aria-label={t("increase", { name: addon.name })}
-                        className="flex h-11 w-11 items-center justify-center rounded-full text-maroon-800 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 disabled:opacity-40"
+                        className={stepBtn}
                       >
                         <Plus className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
 
-                  {selected && (
-                    <p className="mt-2 text-sm font-semibold text-jabal-700 tabular-nums" dir="ltr">
-                      {t("lineTotal", { qty: n(choice.quantity), amount: formatOmr(addon.price * choice.quantity) })}
-                    </p>
-                  )}
-
-                  {selected && addon.requiresNote && (
-                    <div className="mt-3">
-                      <label htmlFor={noteId} className="g-label">
-                        {t("noteLabel")}
-                      </label>
-                      <input
-                        id={noteId}
-                        type="text"
-                        maxLength={ADDON_NOTE_MAX}
-                        value={choice.note}
-                        onChange={(e) => onChange(addon.slug, { ...choice, note: e.target.value })}
-                        autoComplete="off"
-                        aria-describedby={`${noteId}-hint`}
-                        aria-invalid={!!noteError}
-                        className="g-input"
-                      />
-                      {noteError ? (
-                        <p className="g-error" role="alert">
-                          {noteError}
-                        </p>
-                      ) : (
-                        <p id={`${noteId}-hint`} className="g-hint">
-                          {addon.noteHint || t("noteHint")}
-                        </p>
-                      )}
+                  {/* The note field unfolds (.g-collapse) once something is picked; closed, it is out of the tab order.
+                      The 4px inset keeps the input's focus ring clear of the clipping wrapper. */}
+                  {addon.requiresNote && (
+                    <div className={cn("g-collapse -mx-1", selected && "is-open")}>
+                      <div className="px-1">
+                        <div className="mt-5">
+                          <label htmlFor={noteId} className="g-label">
+                            {t("noteLabel")}
+                          </label>
+                          <input
+                            id={noteId}
+                            type="text"
+                            maxLength={ADDON_NOTE_MAX}
+                            value={choice.note}
+                            onChange={(e) => onChange(addon.slug, { ...choice, note: e.target.value })}
+                            autoComplete="off"
+                            aria-describedby={`${noteId}-hint`}
+                            aria-invalid={!!noteError}
+                            className="g-input"
+                          />
+                          {noteError ? (
+                            <p className="g-error" role="alert">
+                              {noteError}
+                            </p>
+                          ) : (
+                            <p id={`${noteId}-hint`} className="g-hint">
+                              {addon.noteHint || t("noteHint")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -156,7 +159,7 @@ export function AddonPicker({
           );
         })}
       </ul>
-      <p className="mt-3 text-xs text-maroon-600">{t("pickerFootnote")}</p>
+      <p className="g-small mt-4 text-xs">{t("pickerFootnote")}</p>
     </section>
   );
 }

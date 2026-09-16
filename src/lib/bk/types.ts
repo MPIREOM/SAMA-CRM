@@ -2,6 +2,7 @@
 import type { TaxSettings } from "@/lib/booking-engine/pricing";
 import type { MessagingSchedule } from "@/lib/booking-engine/dates";
 import type { Json } from "@/lib/database.types";
+import type { SiteSettings } from "./site-content";
 
 export interface TimesSettings {
   check_in: string; // "14:00"
@@ -93,6 +94,8 @@ export interface AllSettings {
   messaging: MessagingSettings;
   promo: PromoSettings;
   cron: CronSettings;
+  /** Website photos, hero copy and section toggles (see site-content.ts). */
+  site: SiteSettings;
 }
 
 export type SettingsKey = keyof AllSettings;

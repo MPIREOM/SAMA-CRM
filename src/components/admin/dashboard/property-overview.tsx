@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, BedDouble, CalendarDays, Car, MailWarning, PlaneLanding, PlaneTakeoff, Plus, type LucideIcon } from "lucide-react";
+import { AlertTriangle, BedDouble, CalendarDays, Car, Globe, MailWarning, PlaneLanding, PlaneTakeoff, Plus, type LucideIcon } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -130,7 +130,7 @@ function MovementList({ items, empty }: { items: Movement[]; empty: string }) {
   );
 }
 
-export function PropertyOverview({ name, data, error }: { name: string | null; data: PropertyData | null; error: string | null }) {
+export function PropertyOverview({ name, data, error, isAdmin = false }: { name: string | null; data: PropertyData | null; error: string | null; isAdmin?: boolean }) {
   const { lang } = useLang();
   const locale = lang === "ar" ? "ar-OM" : "en-GB";
 
@@ -141,6 +141,12 @@ export function PropertyOverview({ name, data, error }: { name: string | null; d
         subtitle={`${STR.subtitle[lang]}${data ? ` · ${fmtDate(data.today, lang)}` : ""}`}
         actions={
           <>
+            {isAdmin && (
+              <Link href="/website" className="inline-flex h-10 items-center gap-2 rounded-lg border border-maroon-200 bg-white px-4 text-sm font-semibold text-maroon-800 hover:bg-maroon-50">
+                <Globe className="h-4 w-4" />
+                {COMMON.website[lang]}
+              </Link>
+            )}
             <Link href="/calendar" className="inline-flex h-10 items-center gap-2 rounded-lg border border-maroon-200 bg-white px-4 text-sm font-semibold text-maroon-800 hover:bg-maroon-50">
               <CalendarDays className="h-4 w-4" />
               {STR.openCalendar[lang]}
@@ -207,7 +213,13 @@ export function PropertyOverview({ name, data, error }: { name: string | null; d
                   {data.chart.map((d) => {
                     const pct = data.activeRooms === 0 ? 0 : Math.round((d.occupied / data.activeRooms) * 100);
                     return (
-                      <div key={d.date} className="group flex flex-1 flex-col items-center justify-end gap-1" title={`${fmtDateShort(d.date, lang)} · ${d.occupied}/${data.activeRooms} (${pct}%)`}>
+                      <div
+                        key={d.date}
+                        className="group flex flex-1 flex-col items-center justify-end gap-1"
+                        title={`${fmtDateShort(d.date, lang)} · ${d.occupied}/${data.activeRooms} (${pct}%)`}
+                        // Node and Chromium format "Tue 15 Sept" with different ICU rules; the tooltip only.
+                        suppressHydrationWarning
+                      >
                         <span className="text-[9px] font-semibold text-maroon-400 opacity-0 transition-opacity group-hover:opacity-100">{pct}%</span>
                         <div
                           className={cn("w-full rounded-t-sm transition-colors", d.date === data.today ? "bg-gold-500" : isWeekend(d.date) ? "bg-maroon-600" : "bg-maroon-800", "group-hover:bg-gold-400")}

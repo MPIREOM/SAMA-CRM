@@ -10,7 +10,7 @@ reviewed by the owner before launch.
 - Google Maps: https://maps.app.goo.gl/YC7RXydtYz61cFZj9
 - 3-star mountain resort, **60 units** (incl. 14 chalets), canyon/mountain views, sunrise & sunset sides.
 - Facilities: Sama Restaurant (multi-cuisine, 06:00–22:00, 60 seats), **The Peak** speciality coffee shop (07:00–22:00), lounge & pergola seating, outdoor swimming pool & jacuzzi on the cliff edge, children's park, Sama Tower, fitness centre, Diana Point, free Wi-Fi, laundry, room service (12 h), shisha area, banquet hall.
-- Family services: babysitter on request (free), children playground (free), children pool (common). **APEX Zipline** add-on OMR 5.
+- Family services: babysitter on request (free), children's playground (free), children's pool (common). **APEX Zipline** add-on OMR 5.
 - Meals (OMR): breakfast 5, lunch 8, dinner 8. Kids menu and packed meals available.
 
 ## Room types (6) — canonical values match the CRM `ROOM_TYPES`
