@@ -13,6 +13,7 @@ import { bookingToken } from "@/lib/booking-engine/tokens";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { addDays, nightsBetween } from "@/lib/booking-engine/pricing";
 import { dispatchForBooking } from "@/lib/messaging/dispatch";
+import { notifyStaffNewBooking } from "@/lib/messaging/staff-notify";
 import { logger } from "@/lib/logger";
 import {
   MAX_ADULTS,
@@ -211,14 +212,22 @@ export async function createBookingAction(prev: CreateBookingState | FormData, m
     return { error: "unknown" };
   }
 
-  try {
-    await dispatchForBooking(bookingId, ["confirmation"]);
-  } catch (err) {
-    logger.error("guest.book", "confirmation dispatch failed (booking kept)", {
-      ref,
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
+  // Guest confirmation and the desk's new-booking alert go out together;
+  // neither can fail the booking (the cron retries both).
+  await Promise.all([
+    dispatchForBooking(bookingId, ["confirmation"]).catch((err: unknown) => {
+      logger.error("guest.book", "confirmation dispatch failed (booking kept)", {
+        ref,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }),
+    notifyStaffNewBooking(bookingId).catch((err: unknown) => {
+      logger.error("guest.book", "staff alert failed (booking kept)", {
+        ref,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }),
+  ]);
 
   redirect({ href: { pathname: `/booking/${ref}`, query: { token: bookingToken(ref) } }, locale: data.locale });
   // redirect() throws; this satisfies the return type only.

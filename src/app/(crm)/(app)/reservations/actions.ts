@@ -10,6 +10,7 @@ import { getQuote } from "@/lib/bk/catalogue";
 import { getSettings } from "@/lib/bk/settings";
 import type { QuoteResult } from "@/lib/bk/types";
 import { dispatchForBooking } from "@/lib/messaging/dispatch";
+import { notifyStaffNewBooking } from "@/lib/messaging/staff-notify";
 import { normalizePhone } from "@/lib/phone";
 import { logger } from "@/lib/logger";
 import { muscatToday } from "@/lib/booking-engine/dates";
@@ -666,11 +667,14 @@ export async function createStaffBooking(input: unknown): Promise<ActionResult<{
       addons_omr: booking.addons_omr,
       total_omr: booking.total_omr,
     });
-    try {
-      await dispatchForBooking(booking.id, ["confirmation"]);
-    } catch (e) {
-      logger.warn("booking.create", "dispatch failed; the cron will retry", { error: (e as Error).message });
-    }
+    await Promise.all([
+      dispatchForBooking(booking.id, ["confirmation"]).catch((e: unknown) => {
+        logger.warn("booking.create", "dispatch failed; the cron will retry", { error: (e as Error).message });
+      }),
+      notifyStaffNewBooking(booking.id).catch((e: unknown) => {
+        logger.warn("booking.create", "staff alert failed; the cron will retry", { error: (e as Error).message });
+      }),
+    ]);
     revalidateBooking(booking.id);
     revalidatePath("/messaging");
     return { ok: true, data: { id: booking.id, ref: booking.ref } };

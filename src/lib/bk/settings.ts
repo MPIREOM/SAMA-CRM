@@ -62,6 +62,8 @@ export const SETTINGS_DEFAULTS: AllSettings = {
     },
     whatsapp_business_account_id: "",
     whatsapp_app_id: "",
+    notify_new_booking: true,
+    notify_email: "reservations@samahotel.net",
   },
   promo: { codes: [] },
   cron: { secret: "", dispatch_url: "" },

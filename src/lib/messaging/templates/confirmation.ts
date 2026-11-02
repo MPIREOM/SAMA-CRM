@@ -37,7 +37,8 @@ export function confirmationParams(ctx: TemplateContext, locale: Locale): string
   ];
 }
 
-function itemisedRows(ctx: TemplateContext, locale: Locale): Block {
+/** Itemised price table (room, discount, taxes, add-ons, total) — shared with the staff alert so both show the same numbers. */
+export function itemisedRows(ctx: TemplateContext, locale: Locale): Block {
   const b = ctx.booking;
   const t = ctx.settings.taxes;
   const rows: { label: string; value: string; total?: boolean; negative?: boolean }[] = [];

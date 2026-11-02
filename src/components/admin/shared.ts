@@ -199,8 +199,14 @@ export const KIND_LABELS: Record<BkMessageKind, Localized> = {
   post_stay: { en: "Post-stay", ar: "بعد الإقامة" },
 };
 
+/** Log-only kinds (no scheduled row): the desk's new-booking alert. */
+export const EXTRA_KIND_LABELS: Record<string, Localized> = {
+  staff_new_booking: { en: "New-booking alert (desk)", ar: "تنبيه حجز جديد (الاستقبال)" },
+};
+
 export function kindLabel(kind: string | null | undefined, lang: Lang): string {
   if (kind && kind in KIND_LABELS) return KIND_LABELS[kind as BkMessageKind][lang];
+  if (kind && kind in EXTRA_KIND_LABELS) return EXTRA_KIND_LABELS[kind][lang];
   return kind ?? "—";
 }
 

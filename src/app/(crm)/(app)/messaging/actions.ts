@@ -10,6 +10,8 @@ import { normalizePhone } from "@/lib/phone";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
 import { sendTestSafe } from "@/components/admin/messaging/preview-adapter";
+import { invalidRecipients, parseRecipients } from "@/lib/messaging/recipients";
+import { sendStaffNewBookingTest } from "@/lib/messaging/staff-notify";
 
 const uuid = z.string().uuid();
 
@@ -94,5 +96,52 @@ export async function sendTestMessage(input: unknown): Promise<ActionResult<{ av
     if (!result.available) return { ok: true, data: { available: false } };
     if (!result.ok) return { ok: false, error: result.error ?? "send_failed" };
     return { ok: true, data: { available: true } };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// New-booking alert to the reservations desk
+// ---------------------------------------------------------------------------
+
+const StaffAlertSchema = z.object({ enabled: z.boolean(), email: z.string().trim().max(500) });
+
+function recipientsOrError(raw: string): { ok: true; list: string[] } | { ok: false; error: string } {
+  const bad = invalidRecipients(raw);
+  if (bad.length > 0) return { ok: false, error: `Not an email address: ${bad.join(", ")}` };
+  return { ok: true, list: parseRecipients(raw) };
+}
+
+/** Switch the alert on/off and set where it goes (several addresses separated by commas). */
+export async function saveStaffAlert(input: unknown): Promise<ActionResult> {
+  return runAction("messaging.staff_alert", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { enabled, email } = StaffAlertSchema.parse(input);
+    const parsed = recipientsOrError(email);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    if (enabled && parsed.list.length === 0) return { ok: false, error: "Enter at least one email address, or switch the alert off." };
+    const patch = { notify_new_booking: enabled, notify_email: parsed.list.join(", ") };
+    await updateSetting("messaging", patch, actor.userId);
+    await audit(actor, "settings.update", "bk_settings", "messaging", patch);
+    revalidateAll();
+    revalidatePath("/settings");
+    return { ok: true };
+  });
+}
+
+/** Send the alert with sample booking data to the given addresses (and remember them). */
+export async function sendStaffAlertTest(input: unknown): Promise<ActionResult<{ stubbed: boolean }>> {
+  return runAction<{ stubbed: boolean }>("messaging.staff_alert_test", async () => {
+    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { email } = z.object({ email: z.string().trim().max(500) }).parse(input);
+    const parsed = recipientsOrError(email);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    if (parsed.list.length === 0) return { ok: false, error: "Enter at least one email address." };
+    await updateSetting("messaging", { notify_email: parsed.list.join(", ") }, actor.userId);
+    const result = await sendStaffNewBookingTest(parsed.list);
+    await audit(actor, "messaging.staff_alert_test", "bk_settings", "messaging", { to: parsed.list, ok: result.ok, stubbed: result.stubbed });
+    revalidateAll();
+    if (result.stubbed) return { ok: true, data: { stubbed: true } };
+    if (!result.ok) return { ok: false, error: result.error ?? "send_failed" };
+    return { ok: true, data: { stubbed: false } };
   });
 }

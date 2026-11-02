@@ -177,6 +177,17 @@ test.describe("guest booking", () => {
     expect(scheduled.filter((s) => s.kind !== "confirmation").every((s) => s.status === "pending")).toBe(true);
     const log = await db.rows("bk_message_log", `select=id,status&booking_id=eq.${booking.id}`);
     expect(log.length).toBeGreaterThanOrEqual(2);
+    // The reservations desk is told about every booking (one row per address; stubbed here because no RESEND_API_KEY).
+    const deskAlert = await db.rows<{ status: string; recipient: string; channel: string; payload: { subject?: string; source?: string } }>(
+      "bk_message_log",
+      `select=status,recipient,channel,payload&booking_id=eq.${booking.id}&kind=eq.staff_new_booking`
+    );
+    // ≥ 1: the staff spec may briefly add a second address while this runs.
+    expect(deskAlert.length).toBeGreaterThanOrEqual(1);
+    const toDesk = deskAlert.find((r) => r.recipient === "reservations@samahotel.net");
+    expect(toDesk).toMatchObject({ status: "stubbed", channel: "email" });
+    expect(toDesk?.payload.subject).toContain(`New booking ${ref}`);
+    expect(toDesk?.payload.source).toBe("website");
 
     // CRM mirror + contact upsert
     const mirror = await db.rows<{ status: string; room_type: string }>("bookings", `select=status,room_type&id=eq.${booking.id}`);

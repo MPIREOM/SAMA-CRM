@@ -1,5 +1,5 @@
 // Tiny in-memory stand-in for the Supabase service-role client, covering the
-// query shapes the dispatcher uses (select/update/insert with eq/in/lte/lt/is,
+// query shapes the dispatcher uses (select/update/insert with eq/in/lte/gte/lt/is,
 // order, limit, select-after-update, maybeSingle). Unknown tables read as
 // empty. Enough to exercise the lock → send → log → status pipeline without a
 // database.
@@ -18,6 +18,8 @@ export interface FakeTables {
   messages: Row[];
   /** CRM contacts — the dispatcher reads `consent` for marketing kinds. */
   contacts: Row[];
+  /** Bookings — the staff-alert catch-up scans recent ones. */
+  bk_bookings?: Row[];
 }
 
 function cmp(a: unknown, b: unknown): number {
@@ -67,6 +69,10 @@ class Query implements PromiseLike<Result> {
   }
   lte(col: string, val: unknown): this {
     this.filters.push((r) => cmp(r[col], val) <= 0);
+    return this;
+  }
+  gte(col: string, val: unknown): this {
+    this.filters.push((r) => cmp(r[col], val) >= 0);
     return this;
   }
   lt(col: string, val: unknown): this {
