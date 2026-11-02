@@ -31,6 +31,7 @@ import {
   type MessageChannel,
 } from "../shared";
 import type { PreviewResult } from "./preview-adapter";
+import { invalidRecipients, MAX_STAFF_RECIPIENTS, parseRecipients } from "@/lib/messaging/recipients";
 
 export type QueueRow = BkScheduledMessage & {
   booking: { ref: string; guest_name: string; guest_phone: string; guest_email: string | null; preferred_lang: string } | null;
@@ -74,6 +75,8 @@ const STR = {
     ar: "بريد واحد لكل حجز — من الموقع أو من النظام — يتضمن بيانات الضيف والإقامة والخدمات الإضافية والطلبات والسعر الكامل. حتى خمسة عناوين مفصولة بفواصل ثم احفظوا. الإرسال التجريبي يرسل نموذجاً (معلَّماً TEST) إلى العناوين المكتوبة دون حفظها. يعيد المجدوِل محاولة الإرسال الفاشل حتى ثلاث مرات، وتظهر كل محاولة في السجل أدناه.",
   },
   staffAlertSaved: { en: "New-booking alert saved", ar: "تم حفظ إعداد التنبيه" },
+  staffAlertBad: { en: "Not an email address", ar: "ليس عنوان بريد إلكتروني" },
+  staffAlertTooMany: { en: "At most five addresses", ar: "خمسة عناوين كحد أقصى" },
   staffAlertTestSent: { en: "Test alert sent — check the inbox", ar: "أُرسل التنبيه التجريبي — تحققوا من البريد" },
   staffAlertStubbed: { en: "Email is not configured on this deployment (RESEND_API_KEY), so nothing was sent.", ar: "البريد غير مهيأ في هذا النشر (RESEND_API_KEY) فلم يُرسل شيء." },
 } satisfies Strings;
@@ -109,6 +112,8 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
   useEffect(() => setAlertEmail(staffAlert.email), [staffAlert.email]);
   const isAdmin = role === "super_admin";
   const alertDirty = alertEmail.trim() !== staffAlert.email.trim();
+  const alertBad = invalidRecipients(alertEmail);
+  const alertTooMany = parseRecipients(alertEmail, Number.POSITIVE_INFINITY).length > MAX_STAFF_RECIPIENTS;
 
   const filtered = useMemo(
     () => queue.filter((m) => (!fStatus || m.status === fStatus) && (!fKind || m.kind === fKind) && (!fChannel || m.channel === fChannel)),
@@ -137,6 +142,21 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
       if (!r.ok) setError(r.error);
       else {
         setNotice(r.data.available ? STR.testSent[lang] : STR.testUnavailable[lang]);
+        router.refresh();
+      }
+    });
+  }
+
+  function saveAlert(enabled: boolean, email: string) {
+    setError(null);
+    setNotice(null);
+    start(async () => {
+      const r = await saveStaffAlert({ enabled, email });
+      if (!r.ok) setError(r.error);
+      else {
+        // Show the list exactly as stored ("a, b"), even when normalising did not change the saved value.
+        setAlertEmail(r.data.email);
+        setNotice(STR.staffAlertSaved[lang]);
         router.refresh();
       }
     });
@@ -210,7 +230,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
             <Switch
               checked={staffAlert.enabled}
               disabled={!isAdmin || pending}
-              onCheckedChange={(v) => run(() => saveStaffAlert({ enabled: v, email: staffAlert.email }), STR.staffAlertSaved[lang])}
+              onCheckedChange={(v) => saveAlert(v, staffAlert.email)}
               label={STR.staffAlertOn[lang]}
             />
             {STR.staffAlertOn[lang]}
@@ -232,7 +252,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
             </div>
             {isAdmin && (
               <>
-                <Button loading={pending} disabled={!alertDirty} onClick={() => run(() => saveStaffAlert({ enabled: staffAlert.enabled, email: alertEmail }), STR.staffAlertSaved[lang])}>
+                <Button loading={pending} disabled={!alertDirty} onClick={() => saveAlert(staffAlert.enabled, alertEmail)}>
                   {COMMON.save[lang]}
                 </Button>
                 <Button variant="outline" loading={pending} disabled={!alertEmail.trim()} onClick={sendAlertTest}>
@@ -242,6 +262,12 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
               </>
             )}
           </div>
+          {alertBad.length > 0 && (
+            <p className="text-xs font-semibold text-crimson-700" dir="auto">
+              {STR.staffAlertBad[lang]}: <span dir="ltr">{alertBad.join(", ")}</span>
+            </p>
+          )}
+          {alertTooMany && <p className="text-xs font-semibold text-crimson-700">{STR.staffAlertTooMany[lang]}</p>}
           <p className="text-xs text-maroon-400">{STR.staffAlertHint[lang]}</p>
         </CardContent>
       </Card>

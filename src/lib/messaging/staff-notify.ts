@@ -41,9 +41,10 @@ export const CATCH_UP_MAX_AGE_MS = 48 * 3600_000;
 /** bk_settings row used as the catch-up mutex; a claim is good for CATCH_UP_LOCK_TTL_MS. */
 export const CATCH_UP_LOCK_KEY = "staff_alert_cron";
 export const CATCH_UP_LOCK_TTL_MS = 4 * 60_000;
-const CATCH_UP_SCAN = 200;
-const CATCH_UP_BATCH = 20;
-const LOG_CHUNK = 40;
+/** Bookings looked at per run (oldest first), bookings sent per run, booking ids per log query. */
+export const CATCH_UP_SCAN = 200;
+export const CATCH_UP_BATCH = 20;
+export const LOG_CHUNK = 40;
 
 const SCOPE = "messaging.staff_alert";
 

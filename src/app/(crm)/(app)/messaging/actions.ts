@@ -105,28 +105,28 @@ export async function sendTestMessage(input: unknown): Promise<ActionResult<{ av
 
 const StaffAlertSchema = z.object({ enabled: z.boolean(), email: z.string().trim().max(500) });
 
+/** Error codes only (ERROR_MESSAGES translates them) — never the typed text, which errorText would scan for codes. */
 function recipientsOrError(raw: string): { ok: true; list: string[] } | { ok: false; error: string } {
-  const bad = invalidRecipients(raw);
-  if (bad.length > 0) return { ok: false, error: `Not an email address: ${bad.join(", ")}` };
+  if (invalidRecipients(raw).length > 0) return { ok: false, error: "invalid_recipient" };
   const all = parseRecipients(raw, Number.POSITIVE_INFINITY);
-  if (all.length > MAX_STAFF_RECIPIENTS) return { ok: false, error: `At most ${MAX_STAFF_RECIPIENTS} addresses — remove ${all.length - MAX_STAFF_RECIPIENTS}.` };
+  if (all.length > MAX_STAFF_RECIPIENTS) return { ok: false, error: "too_many_recipients" };
   return { ok: true, list: all };
 }
 
-/** Switch the alert on/off and set where it goes (several addresses separated by commas). */
-export async function saveStaffAlert(input: unknown): Promise<ActionResult> {
-  return runAction("messaging.staff_alert", async () => {
+/** Switch the alert on/off and set where it goes (several addresses separated by commas). Returns the list as stored. */
+export async function saveStaffAlert(input: unknown): Promise<ActionResult<{ email: string }>> {
+  return runAction<{ email: string }>("messaging.staff_alert", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
     const { enabled, email } = StaffAlertSchema.parse(input);
     const parsed = recipientsOrError(email);
     if (!parsed.ok) return { ok: false, error: parsed.error };
-    if (enabled && parsed.list.length === 0) return { ok: false, error: "Enter at least one email address, or switch the alert off." };
+    if (enabled && parsed.list.length === 0) return { ok: false, error: "recipient_required" };
     const patch = { notify_new_booking: enabled, notify_email: parsed.list.join(", ") };
     await updateSetting("messaging", patch, actor.userId);
     await audit(actor, "settings.update", "bk_settings", "messaging", patch);
     revalidateAll();
     revalidatePath("/settings");
-    return { ok: true };
+    return { ok: true, data: { email: patch.notify_email } };
   });
 }
 
@@ -137,7 +137,7 @@ export async function sendStaffAlertTest(input: unknown): Promise<ActionResult<{
     const { email } = z.object({ email: z.string().trim().max(500) }).parse(input);
     const parsed = recipientsOrError(email);
     if (!parsed.ok) return { ok: false, error: parsed.error };
-    if (parsed.list.length === 0) return { ok: false, error: "Enter at least one email address." };
+    if (parsed.list.length === 0) return { ok: false, error: "recipient_required" };
     const result = await sendStaffNewBookingTest(parsed.list);
     await audit(actor, "messaging.staff_alert_test", "bk_settings", "messaging", { to: parsed.list, ok: result.ok, stubbed: result.stubbed });
     revalidateAll();

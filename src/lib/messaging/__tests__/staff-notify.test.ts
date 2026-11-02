@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookingWithRelations } from "@/lib/bk/bookings";
-import { createFakeAdmin, type FakeAdmin, type FakeTables } from "./fake-admin";
+import { createFakeAdmin, type FakeAdmin, type FakeHooks, type FakeTables } from "./fake-admin";
 import { sampleBooking, SAMPLE_SETTINGS } from "../templates";
 
 vi.mock("server-only", () => ({}));
@@ -26,8 +26,11 @@ vi.mock("../providers/email", () => ({
 }));
 
 import {
+  CATCH_UP_BATCH,
   CATCH_UP_LOCK_KEY,
   CATCH_UP_LOCK_TTL_MS,
+  CATCH_UP_SCAN,
+  LOG_CHUNK,
   MAX_STAFF_ALERT_FAILURES,
   notifyStaffNewBooking,
   notifyStaffPendingBookings,
@@ -45,6 +48,7 @@ const failedEmail = { ok: false, stubbed: false, messageId: null, error: "Resend
 const stubbedEmail = { ok: false, stubbed: true, messageId: null, error: "Resend is not configured (RESEND_API_KEY).", reason: "stubbed: RESEND_API_KEY not configured", retryable: false, fallback_sender: false };
 
 let tables: FakeTables;
+let hooks: FakeHooks;
 
 function minutesAgo(n: number): string {
   return new Date(Date.now() - n * 60_000).toISOString();
@@ -56,7 +60,8 @@ function logRows() {
 
 beforeEach(() => {
   tables = { bk_scheduled_messages: [], bk_message_log: [], messages: [], contacts: [], bk_bookings: [], bk_settings: [] };
-  admin = createFakeAdmin(tables);
+  hooks = {};
+  admin = createFakeAdmin(tables, hooks);
   bookings.clear();
   bookings.set(B1, { ...sampleBooking("en"), id: B1 });
   settings.messaging.notify_new_booking = true;
@@ -269,6 +274,66 @@ describe("notifyStaffPendingBookings (cron catch-up)", () => {
     expect(await notifyStaffPendingBookings()).toMatchObject({ checked: 0, sent: 0 });
     expect(sendGuestEmail).not.toHaveBeenCalled();
     expect(tables.bk_settings).toHaveLength(0); // no lock taken when there is nothing to do
+  });
+});
+
+// --- catch-up caps -----------------------------------------------------------
+describe("notifyStaffPendingBookings caps", () => {
+  /** N bookings, oldest first, all inside the window, none announced yet. */
+  function seed(n: number, opts: { delivered?: boolean } = {}) {
+    for (let i = 0; i < n; i++) {
+      const id = `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`;
+      tables.bk_bookings!.push({ id, ref: `REF-${i + 1}`, created_at: minutesAgo(30 + n - i) });
+      bookings.set(id, { ...sampleBooking("en"), id, ref: `REF-${i + 1}` });
+      if (opts.delivered) {
+        for (const r of [DESK, MANAGER]) tables.bk_message_log.push({ booking_id: id, recipient: r, status: "sent", kind: STAFF_NEW_BOOKING_KIND, channel: "email", payload: { recipients: [DESK, MANAGER] } });
+      }
+    }
+  }
+
+  it("sends at most CATCH_UP_BATCH bookings per run and counts the rest as skipped", async () => {
+    seed(CATCH_UP_BATCH + 5);
+    const summary = await notifyStaffPendingBookings();
+    expect(summary).toMatchObject({ checked: CATCH_UP_BATCH + 5, sent: CATCH_UP_BATCH, skipped: 5, failed: 0 });
+    expect(sendGuestEmail).toHaveBeenCalledTimes(CATCH_UP_BATCH * 2);
+    // Oldest first: REF-1 goes before REF-25.
+    expect(logRows()[0].booking_id).toBe(`00000000-0000-4000-8000-${"1".padStart(12, "0")}`);
+    // The next run (lock expired) picks up the five that were left.
+    tables.bk_settings![0].updated_at = new Date(Date.now() - CATCH_UP_LOCK_TTL_MS - 1000).toISOString();
+    sendGuestEmail.mockClear();
+    expect(await notifyStaffPendingBookings()).toMatchObject({ sent: 5, skipped: 0 });
+  });
+
+  it("reads the log in chunks so a long list still dedups every booking", async () => {
+    seed(LOG_CHUNK + 7, { delivered: true });
+    const summary = await notifyStaffPendingBookings();
+    expect(summary).toMatchObject({ checked: LOG_CHUNK + 7, sent: 0, skipped: 0, failed: 0 });
+    expect(sendGuestEmail).not.toHaveBeenCalled();
+  });
+
+  it("looks at no more than CATCH_UP_SCAN bookings per run", async () => {
+    seed(CATCH_UP_SCAN + 5, { delivered: true });
+    expect((await notifyStaffPendingBookings()).checked).toBe(CATCH_UP_SCAN);
+  });
+
+  it("loses the lock-row race gracefully: the insert fails and the other run's fresh claim wins", async () => {
+    seed(1);
+    hooks.beforeInsert = (table) => {
+      if (table !== "bk_settings") return;
+      // Simulate the other runner inserting and claiming first.
+      tables.bk_settings!.push({ key: CATCH_UP_LOCK_KEY, value: {}, updated_at: new Date().toISOString(), updated_by: null });
+      return { message: 'duplicate key value violates unique constraint "bk_settings_pkey"' };
+    };
+    expect(await notifyStaffPendingBookings()).toMatchObject({ locked: true, sent: 0, errors: [] });
+    expect(sendGuestEmail).not.toHaveBeenCalled();
+  });
+
+  it("surfaces an unexpected lock error instead of sending unlocked", async () => {
+    seed(1);
+    hooks.beforeInsert = (table) => (table === "bk_settings" ? { message: "permission denied for table bk_settings" } : undefined);
+    const summary = await notifyStaffPendingBookings();
+    expect(summary.sent).toBe(0);
+    expect(summary.errors[0]).toContain("lock insert failed");
   });
 });
 

@@ -81,8 +81,10 @@ test.describe("cron dispatcher", () => {
 
     const run = await request.get("/api/cron/dispatch", { headers: { authorization: `Bearer ${CRON_SECRET}` } });
     expect(run.status()).toBe(200);
-    const summary = (await run.json()) as { ok: boolean; picked: number; stubbed: number; sent: number; failed: number; errors: string[] };
+    const summary = (await run.json()) as { ok: boolean; picked: number; stubbed: number; sent: number; failed: number; errors: string[]; staff_alerts: Record<string, unknown> };
     expect(summary.ok).toBe(true);
+    // The desk-alert catch-up runs in the same tick; without RESEND_API_KEY it has nothing to do.
+    expect(summary.staff_alerts).toEqual({ checked: 0, sent: 0, failed: 0, skipped: 0, locked: false, errors: [] });
     expect(summary.picked).toBeGreaterThanOrEqual(2);
     expect(summary.stubbed).toBeGreaterThanOrEqual(2);
     expect(summary.sent).toBe(0);
@@ -105,8 +107,9 @@ test.describe("cron dispatcher", () => {
     expect(await db.rows("messages", `select=id&booking_id=eq.${id}`)).toHaveLength(0);
 
     // Second run is a no-op (idempotent).
-    const again = (await (await request.get("/api/cron/dispatch", { headers: { authorization: `Bearer ${CRON_SECRET}` } })).json()) as { picked: number };
+    const again = (await (await request.get("/api/cron/dispatch", { headers: { authorization: `Bearer ${CRON_SECRET}` } })).json()) as { picked: number; staff_alerts: { errors: string[] } };
     expect(again.picked).toBe(0);
+    expect(again.staff_alerts.errors).toEqual([]);
 
     await db.cancelE2EBookings();
   });

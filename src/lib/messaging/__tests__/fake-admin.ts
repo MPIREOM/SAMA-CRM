@@ -101,6 +101,8 @@ class Query implements PromiseLike<Result> {
   private run(): Result {
     const rows = this.tables[this.table] ?? (this.tables[this.table] = []);
     if (this.op === "insert") {
+      const veto = this.hooks.beforeInsert?.(this.table, this.inserted);
+      if (veto) return { data: null, error: veto };
       for (const r of this.inserted) rows.push({ id: `${this.table}-${rows.length + 1}`, ...r });
       return { data: null, error: null };
     }
@@ -133,6 +135,8 @@ class Query implements PromiseLike<Result> {
 export interface FakeHooks {
   /** Return rows that must NOT be updated (simulates another worker winning the lock). */
   beforeUpdate?: (table: keyof FakeTables, rows: Row[], patch: Row) => Row[] | void;
+  /** Return an error to make an insert fail (simulates a primary-key race). */
+  beforeInsert?: (table: keyof FakeTables, rows: Row[]) => { message: string } | void;
 }
 
 export function createFakeAdmin(tables: FakeTables, hooks: FakeHooks = {}) {
