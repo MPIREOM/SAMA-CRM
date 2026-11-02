@@ -108,7 +108,16 @@ export function staffNewBookingSubject(ctx: TemplateContext): string {
   return `New booking ${b.ref} · ${roomName(ctx, "en")} · ${compactRange(b.check_in, b.check_out)} · OMR ${formatOmr(b.total_omr)}`;
 }
 
-export function buildStaffNewBooking(ctx: TemplateContext, backOfficeUrl: string = backOfficeBookingUrl(ctx.booking.id)): StaffEmail {
+export interface StaffEmailOptions {
+  /** Admin "send test": sample data, marked as such in the subject and the body. */
+  test?: boolean;
+}
+
+export function buildStaffNewBooking(
+  ctx: TemplateContext,
+  backOfficeUrl: string = backOfficeBookingUrl(ctx.booking.id),
+  options: StaffEmailOptions = {}
+): StaffEmail {
   const b = ctx.booking;
   const times = ctx.settings.times;
   const name = guestName(ctx);
@@ -147,10 +156,13 @@ export function buildStaffNewBooking(ctx: TemplateContext, backOfficeUrl: string
   ];
 
   const blocks: Block[] = [
+    ...(options.test
+      ? [{ type: "callout", title: "Test message — not a real booking", text: "Sent from Messaging → New-booking alert → Send test with sample data. Nothing needs to be done." } satisfies Block]
+      : []),
     { type: "heading", text: `New booking ${b.ref}` },
     {
       type: "paragraph",
-      text: `Made from ${source}${made ? ` on ${made} (Muscat time)` : ""}. ${status === "Confirmed" ? "The guest has been sent a confirmation." : `Status: ${status}.`} Pay at the hotel — nothing has been charged.`,
+      text: `Made from ${source}${made ? ` on ${made} (Muscat time)` : ""}. Status: ${status}. Pay at the hotel — nothing has been charged. The guest's confirmation goes out separately — the send log shows whether it was delivered.`,
     },
     {
       type: "callout",
@@ -194,7 +206,7 @@ export function buildStaffNewBooking(ctx: TemplateContext, backOfficeUrl: string
     text: "Sent automatically the moment a booking is made. Change the address or switch it off under Messaging → New-booking alert.",
   });
 
-  const subject = staffNewBookingSubject(ctx);
+  const subject = options.test ? `TEST · ${staffNewBookingSubject(ctx)}` : staffNewBookingSubject(ctx);
   const rendered = renderEmail({
     locale: "en",
     title: subject,

@@ -260,7 +260,7 @@ export async function sendStaffNewBookingTest(to: string[]): Promise<{ ok: boole
     const settings = await getSettings();
     const admin = createAdminClient();
     const booking: BookingWithRelations = sampleBooking("en");
-    const built = buildStaffNewBooking(buildContext(booking, settings, "en"));
+    const built = buildStaffNewBooking(buildContext(booking, settings, "en"), undefined, { test: true });
     const r = await deliver(admin, null, to, built, { ref: booking.ref, source: booking.source }, true);
     if (r.stubbed && r.sent.length === 0) return { ok: false, stubbed: true, error: r.error };
     return { ok: r.failed.length === 0, stubbed: false, error: r.failed.length > 0 ? r.error : null };

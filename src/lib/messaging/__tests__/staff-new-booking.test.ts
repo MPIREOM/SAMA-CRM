@@ -59,8 +59,9 @@ describe("staff new-booking email", () => {
       expect(body).toContain("OM");
       expect(body).toContain("English");
       // where it came from, when, status
-      expect(body).toContain("Made from the website on 16 Sep 2026, 10:42 (Muscat time)");
-      expect(body).toContain("Confirmed");
+      expect(body).toContain("Made from the website on 16 Sep 2026, 10:42 (Muscat time). Status: Confirmed.");
+      expect(body).toContain("The guest's confirmation goes out separately");
+      expect(body).not.toContain("Test message");
       // stay
       expect(body).toContain("Deluxe Room — Mountain & Sunset View");
       expect(body).toContain("Twin beds");
@@ -107,6 +108,13 @@ describe("staff new-booking email", () => {
     expect(email.html).toContain("Status: Pending.");
     expect(email.html).toContain("Special requests:</strong> none.");
     expect(email.html).not.toContain("Add-ons to arrange");
+  });
+
+  it("marks a test send in the subject and the body", () => {
+    const email = buildStaffNewBooking(ctxWith(), "https://x.test/reservations/1", { test: true });
+    expect(email.subject).toBe("TEST · New booking SAMA-26-K7P3QX · Deluxe Room — Mountain & Sunset View · 17–19 Sep 2026 · OMR 180.232");
+    expect(email.html).toContain("Test message — not a real booking");
+    expect(email.text).toContain("Nothing needs to be done.");
   });
 
   it("escapes guest-supplied text", () => {

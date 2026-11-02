@@ -197,6 +197,9 @@ describe("sendStaffNewBookingTest", () => {
     expect(logRows()).toHaveLength(1);
     expect(logRows()[0]).toMatchObject({ booking_id: null, recipient: DESK, status: "test" });
     expect(logRows()[0].payload).toMatchObject({ test: true, ref: "SAMA-26-K7P3QX" });
+    const [, subject, html] = sendGuestEmail.mock.calls[0] as [string, string, string];
+    expect(subject.startsWith("TEST · ")).toBe(true);
+    expect(html).toContain("Test message — not a real booking");
   });
 
   it("tells the admin when nothing could go out", async () => {
