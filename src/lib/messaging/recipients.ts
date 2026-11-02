@@ -11,7 +11,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * semicolons and whitespace; duplicates (case-insensitive) collapse; anything
  * that is not an address is dropped; at most MAX_STAFF_RECIPIENTS survive.
  */
-export function parseRecipients(raw: string | null | undefined): string[] {
+export function parseRecipients(raw: string | null | undefined, max: number = MAX_STAFF_RECIPIENTS): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const part of String(raw ?? "").split(/[\s,;]+/)) {
@@ -21,7 +21,7 @@ export function parseRecipients(raw: string | null | undefined): string[] {
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(v);
-    if (out.length >= MAX_STAFF_RECIPIENTS) break;
+    if (out.length >= max) break;
   }
   return out;
 }

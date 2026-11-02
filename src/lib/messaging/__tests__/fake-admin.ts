@@ -20,6 +20,8 @@ export interface FakeTables {
   contacts: Row[];
   /** Bookings — the staff-alert catch-up scans recent ones. */
   bk_bookings?: Row[];
+  /** Settings rows — the staff-alert catch-up keeps its lock in one of them. */
+  bk_settings?: Row[];
 }
 
 function cmp(a: unknown, b: unknown): number {

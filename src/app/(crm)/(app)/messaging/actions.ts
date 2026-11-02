@@ -10,7 +10,7 @@ import { normalizePhone } from "@/lib/phone";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
 import { sendTestSafe } from "@/components/admin/messaging/preview-adapter";
-import { invalidRecipients, parseRecipients } from "@/lib/messaging/recipients";
+import { invalidRecipients, MAX_STAFF_RECIPIENTS, parseRecipients } from "@/lib/messaging/recipients";
 import { sendStaffNewBookingTest } from "@/lib/messaging/staff-notify";
 
 const uuid = z.string().uuid();
@@ -108,7 +108,9 @@ const StaffAlertSchema = z.object({ enabled: z.boolean(), email: z.string().trim
 function recipientsOrError(raw: string): { ok: true; list: string[] } | { ok: false; error: string } {
   const bad = invalidRecipients(raw);
   if (bad.length > 0) return { ok: false, error: `Not an email address: ${bad.join(", ")}` };
-  return { ok: true, list: parseRecipients(raw) };
+  const all = parseRecipients(raw, Number.POSITIVE_INFINITY);
+  if (all.length > MAX_STAFF_RECIPIENTS) return { ok: false, error: `At most ${MAX_STAFF_RECIPIENTS} addresses — remove ${all.length - MAX_STAFF_RECIPIENTS}.` };
+  return { ok: true, list: all };
 }
 
 /** Switch the alert on/off and set where it goes (several addresses separated by commas). */
@@ -128,7 +130,7 @@ export async function saveStaffAlert(input: unknown): Promise<ActionResult> {
   });
 }
 
-/** Send the alert with sample booking data to the given addresses (and remember them). */
+/** Send the alert with sample booking data to the typed addresses. Does not change the saved list — press Save for that. */
 export async function sendStaffAlertTest(input: unknown): Promise<ActionResult<{ stubbed: boolean }>> {
   return runAction<{ stubbed: boolean }>("messaging.staff_alert_test", async () => {
     const { actor } = await requireStaff(ADMIN_ROLES);
@@ -136,7 +138,6 @@ export async function sendStaffAlertTest(input: unknown): Promise<ActionResult<{
     const parsed = recipientsOrError(email);
     if (!parsed.ok) return { ok: false, error: parsed.error };
     if (parsed.list.length === 0) return { ok: false, error: "Enter at least one email address." };
-    await updateSetting("messaging", { notify_email: parsed.list.join(", ") }, actor.userId);
     const result = await sendStaffNewBookingTest(parsed.list);
     await audit(actor, "messaging.staff_alert_test", "bk_settings", "messaging", { to: parsed.list, ok: result.ok, stubbed: result.stubbed });
     revalidateAll();

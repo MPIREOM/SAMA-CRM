@@ -25,7 +25,15 @@ vi.mock("../providers/email", () => ({
   emailConfigured: () => configured,
 }));
 
-import { MAX_STAFF_ALERT_FAILURES, notifyStaffNewBooking, notifyStaffPendingBookings, sendStaffNewBookingTest, STAFF_NEW_BOOKING_KIND } from "../staff-notify";
+import {
+  CATCH_UP_LOCK_KEY,
+  CATCH_UP_LOCK_TTL_MS,
+  MAX_STAFF_ALERT_FAILURES,
+  notifyStaffNewBooking,
+  notifyStaffPendingBookings,
+  sendStaffNewBookingTest,
+  STAFF_NEW_BOOKING_KIND,
+} from "../staff-notify";
 
 // --- Fixtures ---------------------------------------------------------------
 const B1 = "00000000-0000-4000-8000-000000000001";
@@ -47,7 +55,7 @@ function logRows() {
 }
 
 beforeEach(() => {
-  tables = { bk_scheduled_messages: [], bk_message_log: [], messages: [], contacts: [], bk_bookings: [] };
+  tables = { bk_scheduled_messages: [], bk_message_log: [], messages: [], contacts: [], bk_bookings: [], bk_settings: [] };
   admin = createFakeAdmin(tables);
   bookings.clear();
   bookings.set(B1, { ...sampleBooking("en"), id: B1 });
@@ -125,6 +133,23 @@ describe("notifyStaffNewBooking", () => {
     expect(sendGuestEmail).toHaveBeenCalledTimes(2);
   });
 
+  it("leaves an address alone once it failed the maximum number of times", async () => {
+    for (let i = 0; i < MAX_STAFF_ALERT_FAILURES; i++) {
+      tables.bk_message_log.push({ booking_id: B1, recipient: DESK, status: "failed", kind: STAFF_NEW_BOOKING_KIND, channel: "email", payload: { recipients: [DESK, MANAGER] } });
+    }
+    const r = await notifyStaffNewBooking(B1);
+    expect(r).toMatchObject({ status: "sent", recipients: [MANAGER] });
+    expect(sendGuestEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not back-fill an address that was added after the booking was announced", async () => {
+    tables.bk_message_log.push({ booking_id: B1, recipient: DESK, status: "sent", kind: STAFF_NEW_BOOKING_KIND, channel: "email", payload: { recipients: [DESK] } });
+    expect(await notifyStaffNewBooking(B1)).toMatchObject({ status: "already_sent", recipients: [], delivered: [DESK] });
+    expect(sendGuestEmail).not.toHaveBeenCalled();
+    // …unless forced.
+    expect((await notifyStaffNewBooking(B1, { force: true })).recipients).toEqual([DESK, MANAGER]);
+  });
+
   it("never throws: unknown booking and a settings outage come back as statuses", async () => {
     expect((await notifyStaffNewBooking("missing")).status).toBe("booking_not_found");
     getSettings.mockRejectedValueOnce(new Error("db down"));
@@ -136,47 +161,104 @@ describe("notifyStaffNewBooking", () => {
 describe("notifyStaffPendingBookings (cron catch-up)", () => {
   const ids = {
     fresh: "00000000-0000-4000-8000-00000000000a", // 2 min old — inline send may still be running
-    missed: "00000000-0000-4000-8000-00000000000b", // 30 min old, no log → send
-    partial: "00000000-0000-4000-8000-00000000000c", // desk has it, manager does not → send to manager
-    done: "00000000-0000-4000-8000-00000000000d", // everyone has it → skip
-    givenUp: "00000000-0000-4000-8000-00000000000e", // too many failures → skip
-    old: "00000000-0000-4000-8000-00000000000f", // 3 days old → outside the window
+    missed: "00000000-0000-4000-8000-00000000000b", // 30 min old, no log → both addresses
+    partial: "00000000-0000-4000-8000-00000000000c", // desk has it, manager does not → manager only
+    done: "00000000-0000-4000-8000-00000000000d", // everyone has it → nothing
+    givenUp: "00000000-0000-4000-8000-00000000000e", // both addresses failed 3× → given up, counted as skipped
+    capped: "00000000-0000-4000-8000-00000000000f", // desk failed 3×, manager never tried → manager only
+    added: "00000000-0000-4000-8000-000000000011", // desk got it when it was the only address; manager added later → nothing
+    old: "00000000-0000-4000-8000-000000000010", // 3 days old → outside the window
+  };
+  const refs: Record<string, string> = {
+    [ids.fresh]: "REF-FRESH",
+    [ids.missed]: "REF-MISSED",
+    [ids.partial]: "REF-PARTIAL",
+    [ids.done]: "REF-DONE",
+    [ids.givenUp]: "REF-GIVENUP",
+    [ids.capped]: "REF-CAPPED",
+    [ids.added]: "REF-ADDED",
+    [ids.old]: "REF-OLD",
   };
 
   beforeEach(() => {
-    const row = (id: string, minutes: number) => ({ id, ref: `REF-${id.slice(-1)}`, created_at: minutesAgo(minutes) });
-    tables.bk_bookings!.push(row(ids.fresh, 2), row(ids.missed, 30), row(ids.partial, 60), row(ids.done, 90), row(ids.givenUp, 120), row(ids.old, 3 * 24 * 60));
-    for (const id of Object.values(ids)) bookings.set(id, { ...sampleBooking("en"), id, ref: `REF-${id.slice(-1)}` });
-    const log = (booking_id: string, recipient: string, status: string) => ({ booking_id, recipient, status, kind: STAFF_NEW_BOOKING_KIND, channel: "email" });
+    const row = (id: string, minutes: number) => ({ id, ref: refs[id], created_at: minutesAgo(minutes) });
+    tables.bk_bookings!.push(row(ids.fresh, 2), row(ids.missed, 30), row(ids.partial, 60), row(ids.done, 90), row(ids.givenUp, 120), row(ids.capped, 150), row(ids.added, 180), row(ids.old, 3 * 24 * 60));
+    for (const id of Object.values(ids)) bookings.set(id, { ...sampleBooking("en"), id, ref: refs[id] });
+    // Every row records the list that attempt was meant for (payload.recipients).
+    const log = (booking_id: string, recipient: string, status: string, planned: string[] = [DESK, MANAGER]) => ({
+      booking_id,
+      recipient,
+      status,
+      kind: STAFF_NEW_BOOKING_KIND,
+      channel: "email",
+      payload: { recipients: planned },
+    });
+    const failures = (booking_id: string, recipient: string) => Array.from({ length: MAX_STAFF_ALERT_FAILURES }, () => log(booking_id, recipient, "failed"));
     tables.bk_message_log.push(
-      log(ids.partial, DESK, "sent"),
+      log(ids.partial, DESK, "sent"), // crashed before the manager's turn
       log(ids.done, DESK, "sent"),
       log(ids.done, MANAGER, "sent"),
-      ...Array.from({ length: MAX_STAFF_ALERT_FAILURES }, () => log(ids.givenUp, DESK, "failed"))
+      ...failures(ids.givenUp, DESK),
+      ...failures(ids.givenUp, MANAGER),
+      ...failures(ids.capped, DESK), // the manager's row was never written
+      log(ids.added, DESK, "sent", [DESK]) // sent when the list was just the desk; manager added afterwards
     );
   });
 
-  it("re-sends what is missing inside the 10 min – 48 h window and nothing else", async () => {
+  it("re-sends only what is owed inside the 10 min – 48 h window, oldest booking first", async () => {
     const summary = await notifyStaffPendingBookings();
-    expect(summary).toMatchObject({ checked: 4, sent: 2, failed: 0, skipped: 1, errors: [] });
+    expect(summary).toMatchObject({ checked: 6, sent: 3, failed: 0, skipped: 1, locked: false, errors: [] });
 
-    // Oldest first: partial (60 min) → manager only, then missed (30 min) → both.
+    // capped (150 min) → manager; partial (60) → manager; missed (30) → desk + manager.
     const sentTo = (sendGuestEmail.mock.calls as string[][]).map((c) => c[0]);
-    expect(sentTo).toEqual([MANAGER, DESK, MANAGER]);
+    expect(sentTo).toEqual([MANAGER, MANAGER, DESK, MANAGER]);
     const newRows = logRows().filter((l) => l.provider_message_id === "em_1");
     expect(newRows.map((l) => [l.booking_id, l.recipient])).toEqual([
+      [ids.capped, MANAGER],
       [ids.partial, MANAGER],
       [ids.missed, DESK],
       [ids.missed, MANAGER],
     ]);
-    expect(logRows().some((l) => l.booking_id === ids.fresh || l.booking_id === ids.old)).toBe(false);
+    expect(logRows().some((l) => [ids.fresh, ids.old, ids.done, ids.givenUp, ids.added].includes(l.booking_id as string) && l.provider_message_id === "em_1")).toBe(false);
+    // Rows record the list they were meant for, so a later run knows what was planned.
+    expect(newRows[2].payload).toMatchObject({ recipients: [DESK, MANAGER] });
   });
 
-  it("counts failures and keeps trying the next run until the cap", async () => {
+  it("counts failures per address and keeps trying the next run until the cap", async () => {
     sendGuestEmail.mockResolvedValue(failedEmail);
     const summary = await notifyStaffPendingBookings();
-    expect(summary.failed).toBe(2);
-    expect(summary.errors).toEqual(["REF-c: resend_5xx", "REF-b: resend_5xx"]);
+    expect(summary.failed).toBe(3);
+    expect(summary.errors).toEqual(["REF-CAPPED: resend_5xx", "REF-PARTIAL: resend_5xx", "REF-MISSED: resend_5xx"]);
+    // The desk address of `capped` was already at the cap: not tried again.
+    expect(logRows().filter((l) => l.booking_id === ids.capped && l.recipient === DESK)).toHaveLength(MAX_STAFF_ALERT_FAILURES);
+  });
+
+  it("takes a lock so two overlapping cron runs never both send", async () => {
+    const now = new Date();
+    // A fresh claim by the other runner → this run steps aside.
+    tables.bk_settings!.push({ key: CATCH_UP_LOCK_KEY, value: { locked_at: now.toISOString() }, updated_at: new Date(now.getTime() - 30_000).toISOString(), updated_by: null });
+    expect(await notifyStaffPendingBookings(now)).toMatchObject({ locked: true, checked: 0, sent: 0 });
+    expect(sendGuestEmail).not.toHaveBeenCalled();
+
+    // An expired claim is taken over and refreshed.
+    tables.bk_settings![0].updated_at = new Date(now.getTime() - CATCH_UP_LOCK_TTL_MS - 1000).toISOString();
+    const second = await notifyStaffPendingBookings(now);
+    expect(second.locked).toBe(false);
+    expect(second.sent).toBe(3);
+    expect(tables.bk_settings![0].updated_at).toBe(now.toISOString());
+
+    // Straight after, the lock is still held.
+    sendGuestEmail.mockClear();
+    expect((await notifyStaffPendingBookings(new Date(now.getTime() + 1000))).locked).toBe(true);
+    expect(sendGuestEmail).not.toHaveBeenCalled();
+  });
+
+  it("creates the lock row on first use", async () => {
+    expect(tables.bk_settings).toHaveLength(0);
+    const summary = await notifyStaffPendingBookings();
+    expect(summary.locked).toBe(false);
+    expect(tables.bk_settings).toHaveLength(1);
+    expect(tables.bk_settings![0].key).toBe(CATCH_UP_LOCK_KEY);
   });
 
   it("stays quiet when email is not configured or the alert is off", async () => {
@@ -186,6 +268,7 @@ describe("notifyStaffPendingBookings (cron catch-up)", () => {
     settings.messaging.notify_new_booking = false;
     expect(await notifyStaffPendingBookings()).toMatchObject({ checked: 0, sent: 0 });
     expect(sendGuestEmail).not.toHaveBeenCalled();
+    expect(tables.bk_settings).toHaveLength(0); // no lock taken when there is nothing to do
   });
 });
 

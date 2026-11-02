@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BellRing, ChevronDown, ChevronUp, MailX, RotateCcw, Send, XCircle } from "lucide-react";
@@ -70,12 +70,12 @@ const STR = {
   staffAlertOn: { en: "Email the desk on every new booking", ar: "إرسال بريد إلى الاستقبال عند كل حجز جديد" },
   staffAlertTo: { en: "Send to", ar: "إرسال إلى" },
   staffAlertHint: {
-    en: "One email per booking — website and back-office alike — with the guest's details, the stay, add-ons, requests and the full price. Several addresses: separate them with commas. Sends that fail are retried for 48 hours; every attempt shows in the log below.",
-    ar: "بريد واحد لكل حجز — من الموقع أو من النظام — يتضمن بيانات الضيف والإقامة والخدمات الإضافية والطلبات والسعر الكامل. لأكثر من عنوان افصلوا بينها بفواصل. تُعاد محاولة الإرسال الفاشل لمدة 48 ساعة، وتظهر كل محاولة في السجل أدناه.",
+    en: "One email per booking — website and back-office alike — with the guest's details, the stay, add-ons, requests and the full price. Up to five addresses, separated by commas, then Save. Send test sends a sample (marked TEST) to the addresses typed, without saving them. A send that fails is retried by the scheduler up to three times; every attempt shows in the log below.",
+    ar: "بريد واحد لكل حجز — من الموقع أو من النظام — يتضمن بيانات الضيف والإقامة والخدمات الإضافية والطلبات والسعر الكامل. حتى خمسة عناوين مفصولة بفواصل ثم احفظوا. الإرسال التجريبي يرسل نموذجاً (معلَّماً TEST) إلى العناوين المكتوبة دون حفظها. يعيد المجدوِل محاولة الإرسال الفاشل حتى ثلاث مرات، وتظهر كل محاولة في السجل أدناه.",
   },
   staffAlertSaved: { en: "New-booking alert saved", ar: "تم حفظ إعداد التنبيه" },
   staffAlertTestSent: { en: "Test alert sent — check the inbox", ar: "أُرسل التنبيه التجريبي — تحققوا من البريد" },
-  staffAlertStubbed: { en: "Addresses saved. Email is not configured on this deployment (RESEND_API_KEY), so nothing was sent.", ar: "تم حفظ العناوين. البريد غير مهيأ في هذا النشر (RESEND_API_KEY) فلم يُرسل شيء." },
+  staffAlertStubbed: { en: "Email is not configured on this deployment (RESEND_API_KEY), so nothing was sent.", ar: "البريد غير مهيأ في هذا النشر (RESEND_API_KEY) فلم يُرسل شيء." },
 } satisfies Strings;
 
 interface Props {
@@ -104,10 +104,11 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
   const [previewChannel, setPreviewChannel] = useState<MessageChannel>("whatsapp");
   const [testPhoneInput, setTestPhoneInput] = useState(testPhone);
   const [testEmailInput, setTestEmailInput] = useState(testEmail);
-  const [alertEnabled, setAlertEnabled] = useState(staffAlert.enabled);
   const [alertEmail, setAlertEmail] = useState(staffAlert.email);
+  // After a save the server echoes the normalised list ("a, b"); show that, not the draft.
+  useEffect(() => setAlertEmail(staffAlert.email), [staffAlert.email]);
   const isAdmin = role === "super_admin";
-  const alertDirty = alertEnabled !== staffAlert.enabled || alertEmail.trim() !== staffAlert.email.trim();
+  const alertDirty = alertEmail.trim() !== staffAlert.email.trim();
 
   const filtered = useMemo(
     () => queue.filter((m) => (!fStatus || m.status === fStatus) && (!fKind || m.kind === fKind) && (!fChannel || m.channel === fChannel)),
@@ -206,7 +207,12 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
         </CardHeader>
         <CardContent className="space-y-4">
           <label className="flex items-center gap-3 text-sm font-semibold text-maroon-800">
-            <Switch checked={alertEnabled} disabled={!isAdmin || pending} onCheckedChange={setAlertEnabled} label={STR.staffAlertOn[lang]} />
+            <Switch
+              checked={staffAlert.enabled}
+              disabled={!isAdmin || pending}
+              onCheckedChange={(v) => run(() => saveStaffAlert({ enabled: v, email: staffAlert.email }), STR.staffAlertSaved[lang])}
+              label={STR.staffAlertOn[lang]}
+            />
             {STR.staffAlertOn[lang]}
             <Badge variant={staffAlert.enabled ? "green" : "gray"}>{staffAlert.enabled ? COMMON.on[lang] : COMMON.off[lang]}</Badge>
           </label>
@@ -226,7 +232,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
             </div>
             {isAdmin && (
               <>
-                <Button loading={pending} disabled={!alertDirty} onClick={() => run(() => saveStaffAlert({ enabled: alertEnabled, email: alertEmail }), STR.staffAlertSaved[lang])}>
+                <Button loading={pending} disabled={!alertDirty} onClick={() => run(() => saveStaffAlert({ enabled: staffAlert.enabled, email: alertEmail }), STR.staffAlertSaved[lang])}>
                   {COMMON.save[lang]}
                 </Button>
                 <Button variant="outline" loading={pending} disabled={!alertEmail.trim()} onClick={sendAlertTest}>
