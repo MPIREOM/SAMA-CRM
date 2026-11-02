@@ -118,21 +118,21 @@ test.describe("staff back-office", () => {
     const alertCard = page.getByTestId("staff-alert");
     await expect(alertCard.getByText("New-booking alert")).toBeVisible();
     const alertInput = alertCard.locator("#staff-alert-email");
-    await expect(alertInput).toHaveValue("reservations@samahotel.net");
+    await expect(alertInput).toHaveValue("reservations@samahotel.net, operations@samahotel.net");
     await expect(alertCard.getByRole("button", { name: "Save" })).toBeDisabled();
-    await alertInput.fill("reservations@samahotel.net, manager@sama.test");
+    await alertInput.fill("reservations@samahotel.net, operations@samahotel.net, manager@sama.test");
     await alertCard.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("New-booking alert saved")).toBeVisible();
     const messagingSetting = async () => (await db.rows<{ value: { notify_email?: string; notify_new_booking?: boolean } }>("bk_settings", "select=value&key=eq.messaging"))[0]?.value;
-    await expect.poll(async () => (await messagingSetting())?.notify_email).toBe("reservations@samahotel.net, manager@sama.test");
+    await expect.poll(async () => (await messagingSetting())?.notify_email).toBe("reservations@samahotel.net, operations@samahotel.net, manager@sama.test");
     expect((await messagingSetting())?.notify_new_booking).toBe(true);
     // A bad address is refused.
     await alertInput.fill("not-an-address");
     await alertCard.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText(/Not an email address: not-an-address/)).toBeVisible();
-    await alertInput.fill("reservations@samahotel.net");
+    await alertInput.fill("reservations@samahotel.net, operations@samahotel.net");
     await alertCard.getByRole("button", { name: "Save" }).click();
-    await expect.poll(async () => (await messagingSetting())?.notify_email).toBe("reservations@samahotel.net");
+    await expect.poll(async () => (await messagingSetting())?.notify_email).toBe("reservations@samahotel.net, operations@samahotel.net");
 
     await page.goto("/audit");
     await expect(page.getByRole("heading", { name: "Audit log" }).first()).toBeVisible();

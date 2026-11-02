@@ -221,7 +221,7 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
                 value={alertEmail}
                 disabled={!isAdmin || pending}
                 onChange={(e) => setAlertEmail(e.target.value)}
-                placeholder="reservations@samahotel.net, manager@samahotel.net"
+                placeholder="reservations@samahotel.net, operations@samahotel.net"
               />
             </div>
             {isAdmin && (

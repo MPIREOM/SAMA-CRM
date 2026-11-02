@@ -39,7 +39,7 @@ _Built 7–8 September 2026 on top of the existing SAMA CRM. Read this first, th
 | **Children pricing** | Children are free up to the room's max (extra bed OMR 10 is text only) | Policy decision; can be added as a rate rule later |
 | **WhatsApp templates** | Code is ready; sends will fail with a clear error until the 3 templates are **approved** in Meta | Section 4 |
 | **Resend domain** | Falls back to `onboarding@resend.dev` if `samahotel.net` is not verified | Section 5 |
-| **New-booking alert email** | On by default, goes to `reservations@samahotel.net` | `/messaging` → New-booking alert: change the address (several, comma-separated) or switch it off; *Send test* sends a sample |
+| **New-booking alert email** | On by default, goes to `reservations@samahotel.net` and `operations@samahotel.net` | `/messaging` → New-booking alert: change the address (several, comma-separated) or switch it off; *Send test* sends a sample |
 | Drag-and-drop on the calendar | Not built (use "Move to room" in the booking drawer) | — |
 | Arabic UI for the back-office | Menu and most screens are bilingual; a few admin dialogs are English-only | — |
 | Legacy CRM "Bookings" screens | `/bookings` now redirects to `/reservations` (the old form did not check inventory or prices) | — |
@@ -74,7 +74,7 @@ No new Vercel env vars are needed for WhatsApp — the CRM's `WHATSAPP_ACCESS_TO
 
 Resend → Domains → add `samahotel.net` → add the DNS records shown (DKIM + SPF, usually 3 TXT/CNAME records at your DNS host) → wait for "Verified". Then set `EMAIL_FROM="Sama Hotel <reservations@samahotel.net>"` in Vercel (it is already set in the CRM — check the value). Until the domain verifies, guest emails go out from `onboarding@resend.dev` (flagged in the log).
 
-**New-booking alert to the desk.** Every booking — made on the website or entered in the back-office — sends one English email to `reservations@samahotel.net` with the full details (guest and contact, room and dates, beds, add-ons with their notes, special requests, promo code, the itemised price, nightly rates, and an *Open in the back-office* button). Change the address or switch it off under `/messaging` → **New-booking alert**; *Send test* sends a sample booking to the saved addresses. Each attempt appears in the send log as kind *New-booking alert (desk)*; a failed send is retried by the cron for 48 hours.
+**New-booking alert to the desk.** Every booking — made on the website or entered in the back-office — sends one English email to `reservations@samahotel.net` and `operations@samahotel.net` with the full details (guest and contact, room and dates, beds, add-ons with their notes, special requests, promo code, the itemised price, nightly rates, and an *Open in the back-office* button). Change the address or switch it off under `/messaging` → **New-booking alert**; *Send test* sends a sample booking to the saved addresses. Each attempt appears in the send log as kind *New-booking alert (desk)*; a failed send is retried by the cron for 48 hours.
 
 > **Until the domain is verified in Resend, check that the alert actually arrives.** Resend's shared `onboarding@resend.dev` sender may only deliver to the email address that owns the Resend account, so the desk alert (and guest emails) can bounce for any other address — the log row then shows `fallback_sender: true` and a Resend error. Verifying `samahotel.net` (above) fixes this for good.
 

@@ -186,6 +186,7 @@ test.describe("guest booking", () => {
     expect(deskAlert.length).toBeGreaterThanOrEqual(1);
     const toDesk = deskAlert.find((r) => r.recipient === "reservations@samahotel.net");
     expect(toDesk).toMatchObject({ status: "stubbed", channel: "email" });
+    expect(deskAlert.find((r) => r.recipient === "operations@samahotel.net")).toMatchObject({ status: "stubbed" });
     expect(toDesk?.payload.subject).toContain(`New booking ${ref}`);
     expect(toDesk?.payload.source).toBe("website");
 
