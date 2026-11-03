@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { muscatToday } from "@/lib/booking-engine/dates";
+import { addDays } from "@/lib/booking-engine/pricing";
+import { loadCategoryInventory } from "./inventory";
 import { guardPage, loadErrorMessage } from "@/components/admin/server";
 import { NoAccess } from "@/components/admin/no-access";
 import { LoadError } from "@/components/admin/load-error";
@@ -27,9 +29,14 @@ export default async function BlocksPage() {
     if (rooms.error) throw new Error(rooms.error.message);
     if (types.error) throw new Error(types.error.message);
 
+    // Categories panel opens on tonight; other ranges are fetched client-side.
+    const today = muscatToday();
+    const inventory = await loadCategoryInventory(admin, (types.data ?? []).map((t) => t.id), today, addDays(today, 1));
+
     return (
       <BlocksView
-        today={muscatToday()}
+        today={today}
+        inventory={inventory}
         role={session.role}
         blocks={(blocks.data ?? []).map((b) => {
           const room = Array.isArray(b.room) ? b.room[0] : b.room;
