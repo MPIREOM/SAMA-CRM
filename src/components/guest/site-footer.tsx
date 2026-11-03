@@ -97,9 +97,10 @@ export async function SiteFooter() {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-paper/15 py-6 text-xs text-paper/50 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            {t("rights", { year: String(year) })} <span className="hidden sm:inline">· {t("legal")}</span>
-          </p>
+          <div className="space-y-1">
+            <p>{t("rights", { year: String(year) })}</p>
+            <p>{t("legal")}</p>
+          </div>
           <p className="flex items-center gap-5">
             <span>{t("payAtHotel")}</span>
             <a href="/login" className="rounded-sm transition-colors duration-300 hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500">
