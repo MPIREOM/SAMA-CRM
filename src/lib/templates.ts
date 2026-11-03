@@ -1,6 +1,7 @@
 // Template rendering for automations & campaigns.
 // Templates are single bilingual blocks: Arabic text, a divider line, English
 // text. Variables use {{double_braces}}.
+import { appOrigin } from "@/lib/app-url";
 
 export interface TemplateVars {
   name?: string | null;
@@ -42,7 +43,7 @@ export function bookingVars(booking: {
 
 // The app ships its own public terms page, so guests always get a working
 // link even when TERMS_LINK is not configured.
-export const DEFAULT_TERMS_LINK = "https://sama-crm.vercel.app/terms";
+export const DEFAULT_TERMS_LINK = `${appOrigin()}/terms`;
 
 /**
  * TERMS_LINK when it's a real value — the .env.example placeholder contains

@@ -1,3 +1,4 @@
+import { appOrigin } from "@/lib/app-url";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { amiri, cormorant, nunito, tajawal } from "@/fonts";
@@ -29,7 +30,7 @@ export const viewport: Viewport = {
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
   const locale = isLocale(params.locale) ? params.locale : "en";
   const [t, site] = await Promise.all([getTranslations({ locale, namespace: "meta" }), getSiteContent()]);
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
+  const base = appOrigin();
   return {
     metadataBase: new URL(base),
     title: { default: t("siteTitle"), template: `%s · ${t("siteName")}` },

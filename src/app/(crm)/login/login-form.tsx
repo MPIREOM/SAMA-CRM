@@ -19,6 +19,8 @@ const STR = {
   email: { en: "Email", ar: "البريد الإلكتروني" },
   password: { en: "Password", ar: "كلمة المرور" },
   signIn: { en: "Sign in", ar: "تسجيل الدخول" },
+  guestSite: { en: "Looking for the hotel website?", ar: "تبحثون عن موقع الفندق؟" },
+  guestSiteLink: { en: "www.samahotel.net", ar: "www.samahotel.net" },
   invalid: {
     en: "Invalid email or password",
     ar: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
@@ -49,7 +51,7 @@ export default function LoginForm() {
       setLoading(false);
       return;
     }
-    router.replace(searchParams.get("next") || "/dashboard");
+    router.replace(safeNext(searchParams.get("next")));
     router.refresh();
   }
 
@@ -130,8 +132,20 @@ export default function LoginForm() {
               {STR.signIn[lang]}
             </Button>
           </form>
+          <p className="mt-8 text-center text-xs text-maroon-400">
+            {STR.guestSite[lang]}{" "}
+            <a href="/" className="font-semibold text-maroon-700 underline-offset-2 hover:underline">
+              {STR.guestSiteLink[lang]}
+            </a>
+          </p>
         </div>
       </div>
     </div>
   );
+}
+
+/** `?next=` may only point back into this site: a path starting with one "/" (never "//host" or a full URL). */
+function safeNext(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/dashboard";
+  return value;
 }

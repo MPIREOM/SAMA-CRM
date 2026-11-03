@@ -7,6 +7,7 @@
 // opt-out footer the webhook understands (STOP / إيقاف) and a "Book now"
 // button to the guest site. {{1}} is always the guest's first name; the
 // campaign composer maps it (and {{2}} for hotel_news) per campaign.
+import { appOrigin } from "@/lib/app-url";
 import type { Localized } from "@/lib/i18n";
 import { emptyDraft, type TemplateDraft } from "../meta-template-model";
 
@@ -28,12 +29,11 @@ export interface MarketingPackTemplate {
   variants: MarketingPackVariant[];
 }
 
-const SITE = "https://sama-crm.vercel.app";
 const FOOTER: Record<"en" | "ar", string> = { en: "Reply STOP to unsubscribe", ar: "للإلغاء أرسل إيقاف" };
 const BUTTON: Record<"en" | "ar", string> = { en: "Book now", ar: "احجز الآن" };
 
 function variant(language: "en" | "ar", body: string[], examples: string[]): MarketingPackVariant {
-  return { language, body: body.join("\n\n"), examples, footer: FOOTER[language], buttonText: BUTTON[language], buttonUrl: `${SITE}/${language}` };
+  return { language, body: body.join("\n\n"), examples, footer: FOOTER[language], buttonText: BUTTON[language], buttonUrl: `${appOrigin()}/${language}` };
 }
 
 export const MARKETING_PACK: MarketingPackTemplate[] = [

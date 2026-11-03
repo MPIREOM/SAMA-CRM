@@ -1,3 +1,4 @@
+import { appOrigin } from "@/lib/app-url";
 import type { MetadataRoute } from "next";
 
 // Public guest site is crawlable; the CRM, kiosk, API and the booking flow
@@ -26,7 +27,7 @@ const CRM_PREFIXES = [
 const GUEST_PRIVATE = ["/en/book", "/ar/book", "/en/booking", "/ar/booking"];
 
 export default function robots(): MetadataRoute.Robots {
-  const origin = (process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
+  const origin = appOrigin();
   return {
     rules: [
       {

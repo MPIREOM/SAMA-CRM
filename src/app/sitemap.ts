@@ -1,3 +1,4 @@
+import { appOrigin } from "@/lib/app-url";
 import type { MetadataRoute } from "next";
 import { LOCALES } from "@/i18n/routing";
 import { getRoomTypes } from "@/lib/bk/catalogue";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 const STATIC_PATHS = ["", "/rooms", "/the-peak", "/apex-zipline", "/contact", "/policies"] as const;
 
 function base(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
+  return appOrigin();
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

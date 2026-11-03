@@ -1,3 +1,4 @@
+import { configuredAppUrl } from "@/lib/app-url";
 import { ADMIN_ROLES } from "@/lib/bk/staff";
 import { getSettings } from "@/lib/bk/settings";
 import { guardPage, loadErrorMessage } from "@/components/admin/server";
@@ -24,7 +25,7 @@ export default async function SettingsPage() {
     emailFrom: configured("EMAIL_FROM"),
     serviceRole: configured("SUPABASE_SERVICE_ROLE_KEY"),
     cronSecret: configured("CRON_SECRET"),
-    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "",
+    appUrl: configuredAppUrl() ?? "",
   };
 
   try {

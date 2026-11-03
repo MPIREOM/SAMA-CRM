@@ -2,6 +2,7 @@
 // per booking with everything staff need to act on it without opening the
 // back-office: who, when, which room, what they asked for, what they will
 // pay. Pure — no database, no providers — like the guest templates.
+import { appOrigin } from "@/lib/app-url";
 import { formatOmr } from "@/lib/booking-engine/pricing";
 import type { TemplateContext } from "../types";
 import { itemisedRows } from "./confirmation";
@@ -42,10 +43,6 @@ const ADDON_STATUS_LABEL: Record<string, string> = {
 /** Newer ICU spells en-GB September "Sept"; the hotel's documents say "Sep" (same rule as `longDate`). */
 function enGb(value: string): string {
   return value.replace(/\bSept\b/g, "Sep");
-}
-
-function appOrigin(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
 }
 
 /** Back-office page of a booking. */
