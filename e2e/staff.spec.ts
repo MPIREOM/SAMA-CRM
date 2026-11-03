@@ -424,33 +424,94 @@ test.describe("staff back-office", () => {
     await guest.close();
   });
 
-  test("reservation_desk cannot open /settings and sees no Settings in the sidebar", async ({ page }) => {
+  test("reservation_desk: rooms, rates, add-ons and daily lists open; settings, analytics and reports do not", async ({ page }) => {
     await loginAs(page, "desk");
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator("nav").getByRole("link", { name: "Reservations" })).toBeVisible();
-    await expect(page.locator("nav").getByRole("link", { name: "Settings" })).toHaveCount(0);
-    await expect(page.locator("nav").getByRole("link", { name: "Rates" })).toHaveCount(0);
-    await expect(page.locator("nav").getByRole("link", { name: "Add-ons" })).toHaveCount(0);
+    const nav = page.locator("nav");
+    await expect(nav.getByRole("link", { name: "Reservations" })).toBeVisible();
+    for (const name of ["Rooms", "Rates", "Add-ons", "Arrivals & departures"]) await expect(nav.getByRole("link", { name })).toBeVisible();
+    for (const name of ["Settings", "Website", "Analytics", "Reports"]) await expect(nav.getByRole("link", { name })).toHaveCount(0);
 
-    await page.goto("/settings");
-    await expect(page.getByText("You don't have access to this page")).toBeVisible();
-    await page.goto("/rates");
-    await expect(page.getByText("You don't have access to this page")).toBeVisible();
-    await page.goto("/audit");
-    await expect(page.getByText("You don't have access to this page")).toBeVisible();
-    await page.goto("/addons");
-    await expect(page.getByText("You don't have access to this page")).toBeVisible();
-    await page.goto("/website");
-    await expect(page.getByText("You don't have access to this page")).toBeVisible();
-    await expect(page.locator("nav").getByRole("link", { name: "Website" })).toHaveCount(0);
+    for (const path of ["/settings", "/audit", "/website", "/analytics", "/reports"]) {
+      await page.goto(path);
+      await expect(page.getByText("You don't have access to this page")).toBeVisible();
+    }
+    // Admin-only exports refuse the desk role; the front-desk list export is allowed.
+    expect((await page.request.get("/reports/export?type=revenue&format=csv")).status()).toBe(403);
+    expect((await page.request.get("/reports/export?type=guests&format=xlsx")).status()).toBe(403);
+    expect((await page.request.get(`/reports/export?type=daily&from=${muscatDate(0)}&format=csv`)).status()).toBe(200);
 
-    // Front-desk pages still work.
-    await page.goto("/reservations");
-    await expect(page.getByRole("heading", { name: "Reservations" }).first()).toBeVisible();
+    // Pages now open to the front desk.
+    for (const [path, heading] of [
+      ["/rooms", "Rooms"],
+      ["/rates", "Rates"],
+      ["/addons", "Add-ons"],
+      ["/daily-lists", "Arrivals & departures"],
+      ["/reservations", "Reservations"],
+      ["/blocks", "Blocks"],
+    ] as const) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
+      await expect(page.getByText("You don't have access to this page")).toHaveCount(0);
+    }
     await page.goto("/messaging");
     await expect(page.getByTestId("staff-alert").locator("#staff-alert-email")).toBeDisabled();
     await expect(page.getByTestId("staff-alert").getByRole("button", { name: "Save" })).toHaveCount(0);
-    await page.goto("/blocks");
-    await expect(page.getByRole("heading", { name: "Blocks" }).first()).toBeVisible();
+  });
+
+  test("admin: website visits feed analytics; reports download as Excel and CSV; daily lists show arrivals", async ({ page }) => {
+    // A short website journey, sent the way the guest-site beacon sends it.
+    const sid = `e2e-${Date.now()}`;
+    const journey = ["/en", "/en/book", "/en/book/chalet", "/en/booking/SAMA-26-E2E001"];
+    for (const path of journey) {
+      const r = await page.request.post("/api/bk/track", { data: { kind: "pageview", path, sid, referrer: "https://www.google.com/" } });
+      expect(r.status()).toBe(204);
+    }
+    await page.request.post("/api/bk/track", { data: { kind: "booking_review", path: "/en/book/chalet", sid, room: "chalet", referrer: "https://www.google.com/" } });
+
+    const checkin = muscatDate(3);
+    const created = await db.createBooking({
+      room_type_id: ROOM_TYPES.chalet,
+      check_in: checkin,
+      check_out: muscatDate(5),
+      adults: 2,
+      children: 0,
+      guest_name: "E2E-Report Guest",
+      guest_phone: "+96895555555",
+      guest_email: "e2e-report@example.com",
+      preferred_lang: "en",
+      source: "website",
+    });
+    expect(created.status).toBe(200);
+
+    await loginAs(page, "admin", "/analytics?range=7d");
+    await expect(page.getByRole("heading", { name: "Analytics" }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Website traffic" })).toBeVisible();
+    for (const step of ["sessions", "results", "booking", "review", "confirmed"]) {
+      await expect(page.getByTestId(`funnel-${step}`).locator("b")).not.toHaveText("0");
+    }
+    await expect(page.getByText("Google").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Revenue & occupancy" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Booking patterns" })).toBeVisible();
+    await page.goto("/analytics?range=next30");
+    await expect(page.getByText("Chalet").first()).toBeVisible();
+
+    await page.goto("/reports");
+    for (const t of ["reservations", "revenue", "guests", "addons"]) await expect(page.getByTestId(`report-${t}`)).toBeVisible();
+    const xlsx = await page.request.get(`/reports/export?type=revenue&from=${muscatDate(0)}&to=${muscatDate(10)}&format=xlsx`);
+    expect(xlsx.status()).toBe(200);
+    expect(xlsx.headers()["content-type"]).toContain("spreadsheetml");
+    expect((await xlsx.body()).subarray(0, 2).toString()).toBe("PK"); // zip container
+    const csv = await page.request.get(`/reports/export?type=reservations&basis=created&from=${muscatDate(0)}&to=${muscatDate(0)}&status=live&format=csv`);
+    expect(csv.status()).toBe(200);
+    expect(await csv.text()).toContain("E2E-Report Guest");
+    const guests = await page.request.get(`/reports/export?type=guests&from=${checkin}&to=${checkin}&format=csv`);
+    expect(await guests.text()).toContain("+96895555555");
+
+    await page.goto(`/daily-lists?date=${checkin}`);
+    await expect(page.getByTestId("list-arrivals")).toContainText("E2E-Report Guest");
+    await expect(page.getByTestId("list-inhouse")).toContainText("E2E-Report Guest");
+    await page.goto(`/daily-lists?date=${muscatDate(5)}`);
+    await expect(page.getByTestId("list-departures")).toContainText("E2E-Report Guest");
   });
 });

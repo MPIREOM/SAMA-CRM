@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireStaff, ADMIN_ROLES } from "@/lib/bk/staff";
+import { requireStaff, FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import type { Json } from "@/lib/database.types";
 import { cleanBedOptions } from "@/lib/booking-engine/beds";
@@ -48,7 +48,7 @@ const RoomTypeSchema = z.object({
 
 export async function updateRoomType(input: unknown): Promise<ActionResult> {
   return runAction("room_type.update", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id, ...patch } = RoomTypeSchema.parse(input);
     const admin = createAdminClient();
     const { data: before, error: readErr } = await admin.from("bk_room_types").select("*").eq("id", id).maybeSingle();
@@ -76,7 +76,7 @@ const ImagesSchema = z.object({ id: uuid, images: z.array(z.string().trim().min(
 /** Reorder / remove images (paths or public URLs). */
 export async function setRoomTypeImages(input: unknown): Promise<ActionResult> {
   return runAction("room_type.images", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id, images } = ImagesSchema.parse(input);
     const admin = createAdminClient();
     const { data: before } = await admin.from("bk_room_types").select("images").eq("id", id).maybeSingle();
@@ -91,7 +91,7 @@ export async function setRoomTypeImages(input: unknown): Promise<ActionResult> {
 /** Upload one image (FormData: room_type_id, file) to Supabase Storage and append its public URL. */
 export async function uploadRoomTypeImage(formData: FormData): Promise<ActionResult<{ url: string }>> {
   return runAction("room_type.upload_image", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const id = uuid.parse(formData.get("room_type_id"));
     const file = formData.get("file");
     if (!(file instanceof File)) return { ok: false, error: "No file received." };
@@ -133,7 +133,7 @@ const RoomSchema = z.object({
 
 export async function createRoom(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction("room.create", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const data = RoomSchema.parse(input);
     const admin = createAdminClient();
     const { data: row, error } = await admin
@@ -152,7 +152,7 @@ const RoomUpdateSchema = RoomSchema.partial().extend({ id: uuid });
 
 export async function updateRoom(input: unknown): Promise<ActionResult> {
   return runAction("room.update", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id, ...patch } = RoomUpdateSchema.parse(input);
     const admin = createAdminClient();
     const { data: before } = await admin.from("bk_rooms").select("*").eq("id", id).maybeSingle();
@@ -176,7 +176,7 @@ export async function updateRoom(input: unknown): Promise<ActionResult> {
 
 export async function deleteRoom(input: unknown): Promise<ActionResult> {
   return runAction("room.delete", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id } = z.object({ id: uuid }).parse(input);
     const admin = createAdminClient();
     const { count, error: countErr } = await admin.from("bk_bookings").select("id", { count: "exact", head: true }).eq("room_id", id);

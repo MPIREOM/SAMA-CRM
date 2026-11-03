@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ADMIN_ROLES } from "@/lib/bk/staff";
+import { FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { guardPage, loadErrorMessage, param } from "@/components/admin/server";
 import { NoAccess } from "@/components/admin/no-access";
 import { LoadError } from "@/components/admin/load-error";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 type Search = Record<string, string | string[] | undefined>;
 
 export default async function RoomsPage({ searchParams }: { searchParams: Search }) {
-  const session = await guardPage(ADMIN_ROLES);
+  const session = await guardPage(FRONT_DESK_ROLES);
   if (!session) return <NoAccess title="Rooms" />;
   const tab = param(searchParams.tab) === "rooms" ? "rooms" : "types";
 

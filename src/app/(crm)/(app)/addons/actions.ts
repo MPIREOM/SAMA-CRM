@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireStaff, ADMIN_ROLES } from "@/lib/bk/staff";
+import { requireStaff, FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import type { Json } from "@/lib/database.types";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
 
 // Add-on catalogue (bk_addons): super_admin only. Every mutation:
-// requireStaff(ADMIN_ROLES) → Zod → service-role write → audit → revalidate.
+// requireStaff(FRONT_DESK_ROLES) → Zod → service-role write → audit → revalidate.
 // Rows are never deleted (booked lines reference them) — deactivate instead.
 
 const uuid = z.string().uuid();
@@ -88,7 +88,7 @@ function toRow(data: AddonInput, details: Record<string, Json>) {
 
 export async function createAddon(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction("addon.create", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const data = AddonSchema.parse(input);
     const details = parseDetails(data.details);
     if (!details.ok) return { ok: false, error: "invalid_json" };
@@ -106,7 +106,7 @@ const AddonUpdateSchema = AddonSchema.extend({ id: uuid });
 
 export async function updateAddon(input: unknown): Promise<ActionResult> {
   return runAction("addon.update", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id, ...data } = AddonUpdateSchema.parse(input);
     const details = parseDetails(data.details);
     if (!details.ok) return { ok: false, error: "invalid_json" };
@@ -138,7 +138,7 @@ const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
  */
 export async function uploadAddonImage(formData: FormData): Promise<ActionResult<{ url: string }>> {
   return runAction("addon.upload_image", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const slug = z.string().trim().max(60).regex(/^[a-z0-9-]*$/).parse(formData.get("slug") ?? "");
     const file = formData.get("file");
     if (!(file instanceof File)) return { ok: false, error: "No file received." };
@@ -161,7 +161,7 @@ const ActiveSchema = z.object({ id: uuid, is_active: z.boolean() });
 /** Quick on/off from the table. Inactive add-ons disappear from the guest site and the staff form. */
 export async function setAddonActive(input: unknown): Promise<ActionResult> {
   return runAction("addon.set_active", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id, is_active } = ActiveSchema.parse(input);
     const admin = createAdminClient();
     const { data: before } = await admin.from("bk_addons").select("is_active").eq("id", id).maybeSingle();

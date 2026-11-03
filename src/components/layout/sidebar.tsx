@@ -23,6 +23,9 @@ import {
   Users,
   Zap,
   Globe,
+  BarChart3,
+  FileSpreadsheet,
+  ListChecks,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useLang } from "@/components/providers/lang-provider";
@@ -57,13 +60,16 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/calendar", label: COMMON.calendar, icon: CalendarDays, roles: BOTH },
       { href: "/reservations", label: COMMON.reservations, icon: ClipboardList, roles: BOTH },
+      { href: "/daily-lists", label: { en: "Arrivals & departures", ar: "الوصول والمغادرة" }, icon: ListChecks, roles: BOTH },
       { href: "/blocks", label: COMMON.blocks, icon: Ban, roles: BOTH },
       { href: "/messaging", label: COMMON.messaging, icon: Send, roles: BOTH },
-      { href: "/rooms", label: COMMON.rooms, icon: BedDouble, roles: ADMIN },
-      { href: "/rates", label: COMMON.rates, icon: Tag, roles: ADMIN },
-      { href: "/addons", label: COMMON.addons, icon: Sparkles, roles: ADMIN },
+      { href: "/rooms", label: COMMON.rooms, icon: BedDouble, roles: BOTH },
+      { href: "/rates", label: COMMON.rates, icon: Tag, roles: BOTH },
+      { href: "/addons", label: COMMON.addons, icon: Sparkles, roles: BOTH },
       { href: "/website", label: COMMON.website, icon: Globe, roles: ADMIN },
       { href: "/settings", label: COMMON.settings, icon: Settings, roles: ADMIN },
+      { href: "/analytics", label: { en: "Analytics", ar: "التحليلات" }, icon: BarChart3, roles: ADMIN },
+      { href: "/reports", label: { en: "Reports", ar: "التقارير" }, icon: FileSpreadsheet, roles: ADMIN },
       { href: "/audit", label: COMMON.audit, icon: ScrollText, roles: ADMIN },
     ],
   },

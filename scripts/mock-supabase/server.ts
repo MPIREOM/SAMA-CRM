@@ -98,6 +98,8 @@ function rlsFilter(c: Caller, table: string, method: string): Predicate | "denie
     if (isRead) return staff ? () => true : (r) => r.is_active === true;
     return admin ? () => true : "denied";
   }
+  // Migration 0014: no grants to anon/authenticated at all.
+  if (table === "bk_web_events") return isRead ? () => false : "denied";
   if (table.startsWith("bk_")) {
     if (isRead) return staff ? () => true : () => false;
     if (table === "bk_message_log" || table === "bk_audit_log") return "denied";

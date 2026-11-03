@@ -724,6 +724,66 @@ export type Database = {
         }
         Relationships: []
       }
+      bk_web_events: {
+        Row: {
+          booking_ref: string | null
+          browser: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          id: number
+          kind: string
+          locale: string | null
+          page_type: string
+          path: string
+          referrer_host: string | null
+          room_slug: string | null
+          session_id: string
+          source: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          visitor_id: string
+        }
+        Insert: {
+          booking_ref?: string | null
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: number
+          kind?: string
+          locale?: string | null
+          page_type?: string
+          path: string
+          referrer_host?: string | null
+          room_slug?: string | null
+          session_id: string
+          source?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          visitor_id: string
+        }
+        Update: {
+          booking_ref?: string | null
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: number
+          kind?: string
+          locale?: string | null
+          page_type?: string
+          path?: string
+          referrer_host?: string | null
+          room_slug?: string | null
+          session_id?: string
+          source?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           check_in: string | null
