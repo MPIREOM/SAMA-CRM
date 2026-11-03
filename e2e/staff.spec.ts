@@ -55,22 +55,28 @@ test.describe("staff back-office", () => {
     await expect(roomLabels).toHaveCount(60);
     await expect(page.locator(`[title^="${booking.ref}"]`).first()).toBeVisible();
 
-    // Blocks: create a type-level stop-sell for two nights → availability drops → delete → restores.
+    // Blocks: the Categories panel shows availability per room category for the chosen
+    // dates; blocking a category stop-sells it → availability drops → delete → restores.
     const blockStart = muscatDate(60);
     const blockEnd = muscatDate(62);
     const before = await db.availableCount(ROOM_TYPES["deluxe-mountain-view"], blockStart, blockEnd);
     expect(before).toBe(14);
     await page.goto("/blocks");
-    await page.getByRole("button", { name: "New block" }).first().click();
+    await page.locator("#cat-start").fill(blockStart);
+    await page.locator("#cat-nights").fill("2");
+    const catRow = page.getByTestId("category-row").filter({ hasText: "Deluxe Room — Mountain & Sunset View" });
+    await expect(catRow.getByTestId("category-available")).toHaveText("14");
+    await expect(catRow).toContainText("/ 14");
+    await expect(catRow).toContainText("On sale");
+    await catRow.getByRole("button", { name: "Block category" }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.locator("#bl-scope").selectOption("type");
-    await dialog.locator("#bl-type").selectOption(ROOM_TYPES["deluxe-mountain-view"]);
-    await dialog.locator("#bl-start").fill(blockStart);
-    await dialog.locator("#bl-nights").fill("2");
-    await dialog.locator("#bl-reason").fill("e2e stop sell from UI");
-    await dialog.getByRole("button", { name: "Create" }).click();
+    await dialog.locator("#bc-reason").fill("e2e stop sell from UI");
+    await dialog.getByRole("button", { name: "Block category" }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByText("e2e stop sell from UI")).toBeVisible();
+    await expect(catRow.getByTestId("category-available")).toHaveText("0");
+    await expect(catRow).toContainText("Blocked");
+    await expect(catRow.getByRole("button", { name: "Block category" })).toBeDisabled();
     expect(await db.availableCount(ROOM_TYPES["deluxe-mountain-view"], blockStart, blockEnd)).toBe(0);
     const [blockRow] = await db.rows<{ id: string; kind: string; room_type_id: string; end_date: string }>("bk_inventory_blocks", "select=*&reason=eq.e2e%20stop%20sell%20from%20UI");
     expect(blockRow.kind).toBe("stop_sell");

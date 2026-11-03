@@ -7,6 +7,8 @@ import { requireStaff, FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
+import type { CategoryInventory } from "@/components/admin/blocks/blocks-view";
+import { loadCategoryInventory } from "./inventory";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
 const uuid = z.string().uuid();
@@ -71,6 +73,22 @@ export async function createBlock(input: unknown): Promise<ActionResult<{ id: st
     });
     revalidateAll();
     return { ok: true, data: { id: row.id } };
+  });
+}
+
+const RangeSchema = z.object({ start_date: isoDate, end_date: isoDate });
+
+/** Category (room type) inventory for a date range — feeds the Categories panel. */
+export async function getCategoryInventory(input: unknown): Promise<ActionResult<CategoryInventory[]>> {
+  return runAction("block.inventory", async () => {
+    await requireStaff(FRONT_DESK_ROLES);
+    const { start_date, end_date } = RangeSchema.parse(input);
+    if (end_date <= start_date) return { ok: false, error: "invalid_dates" };
+    const admin = createAdminClient();
+    const { data: types, error } = await admin.from("bk_room_types").select("id").order("sort_order");
+    if (error) return { ok: false, error: error.message };
+    const data = await loadCategoryInventory(admin, (types ?? []).map((t) => t.id), start_date, end_date);
+    return { ok: true, data };
   });
 }
 
