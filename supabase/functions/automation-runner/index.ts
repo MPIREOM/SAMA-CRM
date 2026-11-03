@@ -139,7 +139,7 @@ function renderTemplate(template: string, vars: TemplateVars): string {
 
 // The app ships a public terms page, so {{terms_link}} always renders even
 // when the TERMS_LINK secret is not set.
-const DEFAULT_TERMS_LINK = "https://sama-crm.vercel.app/terms";
+const DEFAULT_TERMS_LINK = "https://www.samahotel.net/terms";
 
 function termsLink(): string {
   return configured(ENV.termsLink) ? ENV.termsLink : DEFAULT_TERMS_LINK;

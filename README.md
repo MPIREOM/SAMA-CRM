@@ -98,7 +98,7 @@ Environment variables (`.env.local`):
 | `RESEND_API_KEY` | Resend Dashboard → API Keys. |
 | `EMAIL_FROM` | A sender on your verified Resend domain, e.g. `Sama Hotel <noreply@YOUR_DOMAIN>`. |
 | `NEXT_PUBLIC_APP_URL` | Public URL of the deployed app (no trailing slash), e.g. `https://www.samahotel.net`. Every absolute link — emails, WhatsApp, sitemap, canonical URLs, the webhook callback — follows it (`src/lib/app-url.ts`). |
-| `TERMS_LINK` | Optional — URL substituted into `{{terms_link}}` in templates. Defaults to the built-in bilingual terms page at `https://sama-crm.vercel.app/terms`. |
+| `TERMS_LINK` | Optional — URL substituted into `{{terms_link}}` in templates. Defaults to the built-in bilingual terms page at `<NEXT_PUBLIC_APP_URL>/terms`. |
 | `KIOSK_EXIT_PIN` | 4–8 digit PIN staff enter to exit the `/checkin` kiosk. |
 
 ## Supabase setup
@@ -170,7 +170,7 @@ supabase secrets set --project-ref vsxesrhoovabgsmvodvh \
   RESEND_API_KEY=YOUR_RESEND_API_KEY \
   EMAIL_FROM="Sama Hotel <noreply@YOUR_DOMAIN>"
 # TERMS_LINK is optional — {{terms_link}} defaults to the built-in
-# https://sama-crm.vercel.app/terms page; set it only for a custom URL.
+# <NEXT_PUBLIC_APP_URL>/terms page; set it only for a custom URL.
 ```
 
 Missing secrets never crash the run — affected attempts are logged to `messages` as `failed` with a clear error note.
@@ -228,8 +228,8 @@ The response is a JSON summary per trigger kind: `{ matched, sent, skipped, fail
 > key ship as code fallbacks, so the UI works with zero env vars.
 
 1. Add the remaining variables from `.env.example` under **Project → Settings → Environment Variables** (`SUPABASE_SERVICE_ROLE_KEY` and all WhatsApp/Resend secrets are server-side only, so do not prefix them with `NEXT_PUBLIC_`), then **Redeploy**.
-2. Set `NEXT_PUBLIC_APP_URL=https://sama-crm.vercel.app` (or your custom domain).
-3. Point the Meta webhook (WhatsApp setup step 4) at `https://sama-crm.vercel.app/api/webhooks/whatsapp`.
+2. Set `NEXT_PUBLIC_APP_URL=https://www.samahotel.net` (the live domain since 3 Nov 2026; `https://sama-crm.vercel.app` still serves the same app).
+3. Point the Meta webhook (WhatsApp setup step 4) at `https://www.samahotel.net/api/webhooks/whatsapp` (the Vercel address keeps working too).
 4. If **Settings → Deployment Protection → Vercel Authentication** is enabled for production, disable it for Standard Protection — the kiosk (`/checkin`) and the Meta webhook must be publicly reachable.
 
 ## Compliance rules
@@ -267,9 +267,9 @@ Do these in order — everything else is finished. Each `KEY` goes into Vercel e
 **2. Local run (optional, ~5 min)**
 1. `cp .env.example .env.local`, fill values as you collect them, then `npm install && npm run dev`.
 
-**3. Vercel (~5 min) — project already created & deployed: https://sama-crm.vercel.app**
+**3. Vercel (~5 min) — project already created & deployed: https://www.samahotel.net (also https://sama-crm.vercel.app)**
 1. Add the secret variables from `.env.example` (real values) to Project → Settings → Environment Variables, then Redeploy.
-2. Set `NEXT_PUBLIC_APP_URL=https://sama-crm.vercel.app`. A bilingual terms page ships at `/terms` — `TERMS_LINK` is only needed if you want a different URL.
+2. `NEXT_PUBLIC_APP_URL=https://www.samahotel.net` is set (Production). A bilingual terms page ships at `/terms` — `TERMS_LINK` is only needed if you want a different URL.
 3. Check Settings → Deployment Protection: production must be publicly reachable (kiosk + Meta webhook).
 
 **4. Meta / WhatsApp Cloud API (~30–45 min)**

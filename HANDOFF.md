@@ -10,7 +10,7 @@ _Built 7–8 September 2026 on top of the existing SAMA CRM. Read this first, th
 | Guest site (AR) | `…/ar` | Full RTL |
 | Staff back-office | `https://sama-crm.vercel.app/login` → `/dashboard` | Same login as the CRM. Your existing `super_admin` account works; `reservation_desk` users see a reduced menu |
 | Supabase project | `sama-crm` (`vsxesrhoovabgsmvodvh`) | Migrations `0005`–`0010` are **already applied** |
-| Code | GitHub `MPIREOM/SAMA-CRM`, branch `feat/booking-site` | Production branch is `claude/hotel-crm-nextjs-obex8g` — merge the PR to go live |
+| Code | GitHub `MPIREOM/SAMA-CRM` | Production branch is `claude/hotel-crm-nextjs-obex8g` (Vercel deploys it); work arrives by pull request from `claude/*` branches |
 
 **Deployment status:** see section 9 — the branch could not be pushed from the build sandbox (repository not authorised for push). Everything else is ready.
 
@@ -93,10 +93,10 @@ Resend → Domains → add `samahotel.net` → add the DNS records shown (DKIM +
    - Leave every other record alone — MX, SPF/DKIM/DMARC (email), the Resend records, anything else.
    Wix will warn that the site will no longer be reachable at this domain; that is the intention. Keep the domain registration (and its renewal) — only the Wix *site* plan becomes unnecessary, and cancel that only once the switch is confirmed.
 3. **Wait** until Vercel → Domains shows both entries as *Valid configuration* (usually minutes, at most a few hours). Certificates are automatic. `https://www.samahotel.net/en` then shows the new site; `https://samahotel.net` redirects to it.
-4. **Vercel** → Settings → Environment Variables → `NEXT_PUBLIC_APP_URL` = `https://www.samahotel.net` (Production) → Deployments → **Redeploy** the latest production deployment (`NEXT_PUBLIC_*` values are baked in at build time). Every absolute link follows this one variable: guest booking links in emails and WhatsApp, the desk alert's back-office button, canonical URLs, sitemap, robots, the built-in terms page and the WhatsApp webhook callback shown on `/messaging/whatsapp`.
-5. **Check**: `https://www.samahotel.net/en` and `/ar`, `/login` → dashboard, one test booking (confirmation email links must start with `https://www.samahotel.net/`), `https://www.samahotel.net/sitemap.xml`.
-6. **Optional, later**: `/messaging/whatsapp` → re-register the webhook so Meta calls the new host (the old `sama-crm.vercel.app` keeps working for webhooks and both crons regardless); in Supabase `update bk_settings set value = jsonb_set(value, '{dispatch_url}', '"https://www.samahotel.net/api/cron/dispatch"') where key = 'cron';` (or leave it); Google Search Console → add `https://www.samahotel.net`, submit the sitemap; update the website link on the Google Business Profile and Instagram.
-7. **Old Wix page addresses** (for example `/rooms`, `/contact-us`) do not exist on the new site and will show the 404 page. If any of them rank in Google or are printed anywhere, list them and redirects can be added in `next.config.mjs` in a few minutes.
+4. **Vercel** — *done on 3 Nov*: `NEXT_PUBLIC_APP_URL` = `https://www.samahotel.net` (Production) and a production redeploy. `NEXT_PUBLIC_*` values are baked in at build time, so any later change needs a redeploy. Every absolute link follows this one variable: guest booking links in emails and WhatsApp, the desk alert's back-office button, canonical URLs, sitemap, robots, the built-in terms page and the WhatsApp webhook callback shown on `/messaging/whatsapp`. Two spots only follow it once the branch with `src/lib/app-url.ts` is merged: the "Book now" button URL of the marketing template pack and the default terms link (until then they keep the Vercel address, which still works).
+5. **Check**: `https://www.samahotel.net/en` and `/ar`; `/login` — sign in again, a staff session from `sama-crm.vercel.app` does not carry over because cookies are per host; one test booking (confirmation email links must start with `https://www.samahotel.net/`); `https://www.samahotel.net/sitemap.xml`.
+6. **Follow-ups**: `/messaging/whatsapp` shows a warning badge until the webhook is re-registered on the new host — one click there (the old `sama-crm.vercel.app` keeps receiving webhooks and both crons regardless). Optional: in Supabase `update bk_settings set value = jsonb_set(value, '{dispatch_url}', '"https://www.samahotel.net/api/cron/dispatch"') where key = 'cron';`; `supabase secrets set TERMS_LINK=https://www.samahotel.net/terms --project-ref vsxesrhoovabgsmvodvh` (or redeploy the automation-runner function, whose source default now says `www.samahotel.net`). Meta keeps approved templates as submitted, so the marketing pack's "Book now" button still points at the Vercel address until the pack is resubmitted from `/messaging/whatsapp`. Google Search Console: the Wix verification stops working once Wix no longer serves the domain — add `https://www.samahotel.net` as a new property (DNS TXT or HTML-tag verification) and submit the sitemap; update the website link on the Google Business Profile and Instagram.
+7. **Old Wix page addresses**. Paths such as `/contact-us` or `/about` show the 404 page. Paths that coincide with back-office routes — `/rooms`, `/calendar`, `/settings`, `/reservations`, `/dashboard` — land on the staff **login** page instead (the login page links back to the guest site). If any old address is printed anywhere or ranks in Google, list them and redirects can be added in a few minutes.
 
 ## 7. Optional env vars (Vercel → Settings → Environment Variables)
 
@@ -111,19 +111,9 @@ Resend → Domains → add `samahotel.net` → add the DNS records shown (DKIM +
 
 Two independent timers hit `/api/cron/dispatch`: **Vercel Cron every 15 min** (`vercel.json`, Pro plan) and **pg_cron every 10 min** inside Supabase (job `bk-dispatch-10min`, migration 0007). Both are safe to run together (rows are locked before sending). Confirmations are additionally sent the moment a booking is made. Failed sends retry after 5 min, 30 min and 3 h, then stop; see `/messaging`. The desk's new-booking alert goes out at the same moment; the same cron run re-sends any alert of the last 48 hours that has not reached every configured address (after three failed attempts for one address it gives up on that address and leaves the log to tell the story; the two cron callers take a short lock on `bk_settings.staff_alert_cron` so they never both send).
 
-## 9. Deploy / merge steps (what the sandbox could not do)
+## 9. Deploy / merge steps
 
-The code is committed on branch `feat/booking-site`. Two ways to ship it:
-
-**A. From the sandbox (preferred):** add the `MPIREOM/SAMA-CRM` repository to this Claude session's sources, then say "push and open the PR". The assistant pushes the branch, opens a PR into `claude/hotel-crm-nextjs-obex8g`, and Vercel deploys a preview automatically; merging deploys production.
-
-**B. Manually:** the branch was also exported as `sama-crm-feat-booking-site.bundle` in your Website folder (if present). On a machine with git:
-```
-git clone https://github.com/MPIREOM/SAMA-CRM.git && cd SAMA-CRM
-git fetch ../sama-crm-feat-booking-site.bundle feat/booking-site:feat/booking-site
-git push origin feat/booking-site
-```
-Then open a PR on GitHub → merge into `claude/hotel-crm-nextjs-obex8g` → Vercel deploys.
+Vercel deploys the production branch `claude/hotel-crm-nextjs-obex8g` automatically. Work lands by pull request from a `claude/*` branch (say "pr and merge" in the assistant session, or open and merge it on GitHub); a merge is live a couple of minutes later at `https://www.samahotel.net`. There is nothing to export or push by hand.
 
 After the first production deploy, verify (10 minutes):
 1. Open `https://sama-crm.vercel.app/ar` on your phone. Make a booking with your own number + email. Confirmation should arrive by email within a minute; WhatsApp once templates are approved.

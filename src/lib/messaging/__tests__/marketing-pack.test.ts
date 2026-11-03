@@ -1,3 +1,4 @@
+import { appOrigin } from "@/lib/app-url";
 import { describe, expect, it } from "vitest";
 import { draftToComponents, validateDraft } from "../meta-template-model";
 import { MARKETING_PACK, MARKETING_PACK_NAMES, marketingPackDraft, marketingPackHeaderUrl } from "../templates/marketing-pack";
@@ -16,11 +17,11 @@ describe("marketing template pack", () => {
   it("every variant is a submittable draft once the media handle is known", () => {
     for (const t of MARKETING_PACK) {
       for (const v of t.variants) {
-        const d = marketingPackDraft(t, v, "4::handle", `https://sama-crm.vercel.app${t.headerImage}`);
+        const d = marketingPackDraft(t, v, "4::handle", `${appOrigin()}${t.headerImage}`);
         expect(validateDraft(d), `${t.name}/${v.language}`).toEqual([]);
         expect(d.category).toBe("MARKETING");
         expect(d.footer.length).toBeLessThanOrEqual(60);
-        expect(d.buttons).toEqual([{ type: "URL", text: v.buttonText, url: `https://sama-crm.vercel.app/${v.language}` }]);
+        expect(d.buttons).toEqual([{ type: "URL", text: v.buttonText, url: `${appOrigin()}/${v.language}` }]);
       }
     }
   });
@@ -43,7 +44,7 @@ describe("marketing template pack", () => {
     expect(c.map((x) => x.type)).toEqual(["HEADER", "BODY", "FOOTER", "BUTTONS"]);
     expect(c[0]).toEqual({ type: "HEADER", format: "IMAGE", example: { header_handle: ["4::abc"] } });
     expect(c[1].example?.body_text).toEqual([["Ahmed"]]);
-    expect(c[3].buttons).toEqual([{ type: "URL", text: "Book now", url: "https://sama-crm.vercel.app/en" }]);
+    expect(c[3].buttons).toEqual([{ type: "URL", text: "Book now", url: `${appOrigin()}/en` }]);
   });
 
   it("hotel_news takes the announcement as {{2}}", () => {

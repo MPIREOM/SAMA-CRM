@@ -16,3 +16,9 @@ export function appOrigin(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
   return (usable(raw) ? raw : FALLBACK_APP_URL).replace(/\/+$/, "");
 }
+
+/** The configured origin, or null when the variable is unset, a placeholder or not a URL (the settings page shows that as "not set"). */
+export function configuredAppUrl(): string | null {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  return usable(raw) ? raw.replace(/\/+$/, "") : null;
+}

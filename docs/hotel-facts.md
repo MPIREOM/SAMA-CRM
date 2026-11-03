@@ -40,7 +40,7 @@ Bed layouts: the two Deluxe types offer **twin beds or a king bed** (`bk_room_ty
 ## Contacts
 - Phone: +968 22507681 (also 82/83/84). Reservations mobile/WhatsApp: +968 99475688. Sales: +968 98524012.
 - reservations@samahotel.net · operations@samahotel.net · accounts@samahotel.net
-- Website domain: samahotel.net. Booking site planned at book.samahotel.net.
+- Website domain: www.samahotel.net (the booking site lives there since 3 Nov 2026; samahotel.net redirects to it).
 
 ## Brand (Sama brand guideline)
 - Sama Gold #C5A04F · Pomegranate Maroon #3B171B · Maroon #841424 · Al-Jabal Green #098E4B · Stone Brown #B28855 · Deep Blue Sky #327DD8 · Grey #999999 · White.

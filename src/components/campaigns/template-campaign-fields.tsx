@@ -107,7 +107,7 @@ export function TemplateCampaignFields({
     if (!first) return onChange(null);
     const plan = defaultPlan(templateShape(first));
     // Pack templates ship with their header photo on this deployment — no upload needed.
-    const packHeader = marketingPackHeaderUrl(name, process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : ""));
+    const packHeader = marketingPackHeaderUrl(name, appOrigin());
     if (packHeader) plan.headerMediaUrl = packHeader;
     onChange({ name, plan });
   }
