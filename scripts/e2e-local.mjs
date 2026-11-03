@@ -48,9 +48,16 @@ async function waitForMock(attempts = 50) {
   throw new Error(`mock-supabase did not come up on ${MOCK_URL}`);
 }
 
-const mock = spawn(npx, ["tsx", "scripts/mock-supabase/server.ts"], { stdio: "inherit", env });
+// Own process group: `npx tsx …` is two processes deep, and signalling only
+// the leader used to leave the server itself running on :54321 after the run.
+const mock = spawn(npx, ["tsx", "scripts/mock-supabase/server.ts"], { stdio: "inherit", env, detached: true });
 const stopMock = () => {
-  if (!mock.killed) mock.kill("SIGTERM");
+  if (mock.killed || mock.exitCode !== null) return;
+  try {
+    process.kill(-mock.pid, "SIGTERM");
+  } catch {
+    mock.kill("SIGTERM");
+  }
 };
 process.on("exit", stopMock);
 process.on("SIGINT", () => {

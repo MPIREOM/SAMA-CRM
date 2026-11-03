@@ -15,6 +15,12 @@ test.describe("staff back-office", () => {
   test.afterEach(async () => {
     await db.cancelE2EBookings();
     await db.cleanupInventory();
+    // The admin test edits the desk-alert address; never let that leak into a retry or the next run.
+    const [row] = await db.rows<{ value: Record<string, unknown> }>("bk_settings", "select=value&key=eq.messaging");
+    if (row?.value && ("notify_email" in row.value || "notify_new_booking" in row.value)) {
+      const { notify_email: _e, notify_new_booking: _n, ...rest } = row.value;
+      await db.patch("bk_settings", "key=eq.messaging", { value: rest });
+    }
   });
 
   test("admin: dashboard, calendar, blocks, reservations, cancel, rates, settings, messaging, audit", async ({ page }) => {
@@ -114,6 +120,51 @@ test.describe("staff back-office", () => {
     await expect(page.getByRole("heading", { name: "Messaging" }).first()).toBeVisible();
     await expect(page.getByText(booking.ref).first()).toBeVisible();
 
+    // New-booking alert card: default address, save a second one, persisted in bk_settings, then restore.
+    const alertCard = page.getByTestId("staff-alert");
+    await expect(alertCard.getByText("New-booking alert")).toBeVisible();
+    const alertInput = alertCard.locator("#staff-alert-email");
+    await expect(alertInput).toHaveValue("reservations@samahotel.net, operations@samahotel.net");
+    await expect(alertCard.getByRole("button", { name: "Save" })).toBeDisabled();
+    await alertInput.fill("reservations@samahotel.net, operations@samahotel.net, manager@sama.test");
+    await alertCard.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("New-booking alert saved")).toBeVisible();
+    const messagingSetting = async () => (await db.rows<{ value: { notify_email?: string; notify_new_booking?: boolean } }>("bk_settings", "select=value&key=eq.messaging"))[0]?.value;
+    await expect.poll(async () => (await messagingSetting())?.notify_email).toBe("reservations@samahotel.net, operations@samahotel.net, manager@sama.test");
+    expect((await messagingSetting())?.notify_new_booking).toBe(true);
+    // A bad address is flagged as you type and refused by the server (bilingual code, not the typed text).
+    await alertInput.fill("not-an-address");
+    await expect(alertCard.getByText("Not an email address: not-an-address")).toBeVisible();
+    await alertCard.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("One of the entries is not an email address.")).toBeVisible();
+    // Typing the default list with other separators stores the same value — the field then shows the stored form and Save goes quiet.
+    await alertInput.fill("reservations@samahotel.net;operations@samahotel.net");
+    await alertCard.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("New-booking alert saved")).toBeVisible();
+    await expect(alertInput).toHaveValue("reservations@samahotel.net, operations@samahotel.net");
+    await expect(alertCard.getByRole("button", { name: "Save" })).toBeDisabled();
+    await expect.poll(async () => (await messagingSetting())?.notify_email).toBe("reservations@samahotel.net, operations@samahotel.net");
+    // Send test goes to the typed addresses, is logged as a test, and does not change the saved list.
+    await alertInput.fill("me@sama.test");
+    await alertCard.getByRole("button", { name: "Send test" }).click();
+    await expect(page.getByText("Email is not configured on this deployment (RESEND_API_KEY), so nothing was sent.")).toBeVisible();
+    const testRows = await db.rows<{ booking_id: string | null; status: string; payload: { test?: boolean; subject?: string } }>(
+      "bk_message_log",
+      "select=booking_id,status,payload&kind=eq.staff_new_booking&recipient=eq.me@sama.test"
+    );
+    expect(testRows.length).toBeGreaterThanOrEqual(1);
+    expect(testRows[0]).toMatchObject({ booking_id: null, status: "test" });
+    expect(testRows[0].payload.test).toBe(true);
+    expect(testRows[0].payload.subject?.startsWith("TEST · ")).toBe(true);
+    expect((await messagingSetting())?.notify_email).toBe("reservations@samahotel.net, operations@samahotel.net");
+    // The switch saves at once.
+    const alertSwitch = alertCard.getByRole("switch");
+    await alertSwitch.click();
+    await expect.poll(async () => (await messagingSetting())?.notify_new_booking).toBe(false);
+    await expect(alertCard.getByText("Off", { exact: true })).toBeVisible();
+    await alertSwitch.click();
+    await expect.poll(async () => (await messagingSetting())?.notify_new_booking).toBe(true);
+
     await page.goto("/audit");
     await expect(page.getByRole("heading", { name: "Audit log" }).first()).toBeVisible();
     const cancelRow = page.getByRole("row").filter({ hasText: "booking.cancel" }).filter({ hasText: booking.id.slice(0, 8) });
@@ -200,6 +251,15 @@ test.describe("staff back-office", () => {
     expect(mirror[0]?.status).toBe("Completed");
     const audit = await db.rows<{ action: string }>("bk_audit_log", `select=action&entity_id=eq.${id}&order=created_at.asc`);
     expect(audit.map((a) => a.action)).toEqual(["booking.create", "booking.addon_status", "booking.check_in", "booking.check_out"]);
+    // Back-office bookings alert the desk too.
+    const deskAlert = await db.rows<{ status: string; recipient: string; payload: { source?: string } }>(
+      "bk_message_log",
+      `select=status,recipient,payload&booking_id=eq.${id}&kind=eq.staff_new_booking`
+    );
+    expect(deskAlert.length).toBeGreaterThanOrEqual(1);
+    const toDesk = deskAlert.find((r) => r.recipient === "reservations@samahotel.net");
+    expect(toDesk).toMatchObject({ status: "stubbed" });
+    expect(toDesk?.payload.source).toBe("walk_in");
 
     // CSV export (super_admin only) covers the booking and its add-ons.
     const csv = await page.request.get(`/reservations/export?from=${muscatDate(0)}&to=${muscatDate(0)}`);
@@ -381,6 +441,9 @@ test.describe("staff back-office", () => {
     // Front-desk pages still work.
     await page.goto("/reservations");
     await expect(page.getByRole("heading", { name: "Reservations" }).first()).toBeVisible();
+    await page.goto("/messaging");
+    await expect(page.getByTestId("staff-alert").locator("#staff-alert-email")).toBeDisabled();
+    await expect(page.getByTestId("staff-alert").getByRole("button", { name: "Save" })).toHaveCount(0);
     await page.goto("/blocks");
     await expect(page.getByRole("heading", { name: "Blocks" }).first()).toBeVisible();
   });

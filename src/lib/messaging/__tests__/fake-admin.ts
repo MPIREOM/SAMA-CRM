@@ -1,5 +1,5 @@
 // Tiny in-memory stand-in for the Supabase service-role client, covering the
-// query shapes the dispatcher uses (select/update/insert with eq/in/lte/lt/is,
+// query shapes the dispatcher uses (select/update/insert with eq/in/lte/gte/lt/is,
 // order, limit, select-after-update, maybeSingle). Unknown tables read as
 // empty. Enough to exercise the lock → send → log → status pipeline without a
 // database.
@@ -18,6 +18,10 @@ export interface FakeTables {
   messages: Row[];
   /** CRM contacts — the dispatcher reads `consent` for marketing kinds. */
   contacts: Row[];
+  /** Bookings — the staff-alert catch-up scans recent ones. */
+  bk_bookings?: Row[];
+  /** Settings rows — the staff-alert catch-up keeps its lock in one of them. */
+  bk_settings?: Row[];
 }
 
 function cmp(a: unknown, b: unknown): number {
@@ -69,6 +73,10 @@ class Query implements PromiseLike<Result> {
     this.filters.push((r) => cmp(r[col], val) <= 0);
     return this;
   }
+  gte(col: string, val: unknown): this {
+    this.filters.push((r) => cmp(r[col], val) >= 0);
+    return this;
+  }
   lt(col: string, val: unknown): this {
     this.filters.push((r) => r[col] !== null && r[col] !== undefined && cmp(r[col], val) < 0);
     return this;
@@ -93,6 +101,8 @@ class Query implements PromiseLike<Result> {
   private run(): Result {
     const rows = this.tables[this.table] ?? (this.tables[this.table] = []);
     if (this.op === "insert") {
+      const veto = this.hooks.beforeInsert?.(this.table, this.inserted);
+      if (veto) return { data: null, error: veto };
       for (const r of this.inserted) rows.push({ id: `${this.table}-${rows.length + 1}`, ...r });
       return { data: null, error: null };
     }
@@ -125,6 +135,8 @@ class Query implements PromiseLike<Result> {
 export interface FakeHooks {
   /** Return rows that must NOT be updated (simulates another worker winning the lock). */
   beforeUpdate?: (table: keyof FakeTables, rows: Row[], patch: Row) => Row[] | void;
+  /** Return an error to make an insert fail (simulates a primary-key race). */
+  beforeInsert?: (table: keyof FakeTables, rows: Row[]) => { message: string } | void;
 }
 
 export function createFakeAdmin(tables: FakeTables, hooks: FakeHooks = {}) {

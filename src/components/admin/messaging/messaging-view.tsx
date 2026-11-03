@@ -1,9 +1,9 @@
 "use client";
 
-import { Fragment, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, MailX, RotateCcw, Send, XCircle } from "lucide-react";
+import { BellRing, ChevronDown, ChevronUp, MailX, RotateCcw, Send, XCircle } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import type { BkMessageLog, BkScheduledMessage, Role } from "@/lib/database.types";
@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { cancelMessage, retryMessage, sendTestMessage, setChannelEnabled } from "@/app/(crm)/(app)/messaging/actions";
+import { cancelMessage, retryMessage, saveStaffAlert, sendStaffAlertTest, sendTestMessage, setChannelEnabled } from "@/app/(crm)/(app)/messaging/actions";
 import { InlineAlert } from "../load-error";
 import {
   CHANNELS,
@@ -31,6 +31,7 @@ import {
   type MessageChannel,
 } from "../shared";
 import type { PreviewResult } from "./preview-adapter";
+import { invalidRecipients, MAX_STAFF_RECIPIENTS, parseRecipients } from "@/lib/messaging/recipients";
 
 export type QueueRow = BkScheduledMessage & {
   booking: { ref: string; guest_name: string; guest_phone: string; guest_email: string | null; preferred_lang: string } | null;
@@ -66,6 +67,18 @@ const STR = {
   showing: { en: "showing", ar: "عرض" },
   subject: { en: "Subject", ar: "الموضوع" },
   waSetup: { en: "WhatsApp setup", ar: "إعداد واتساب" },
+  staffAlert: { en: "New-booking alert", ar: "تنبيه الحجز الجديد" },
+  staffAlertOn: { en: "Email the desk on every new booking", ar: "إرسال بريد إلى الاستقبال عند كل حجز جديد" },
+  staffAlertTo: { en: "Send to", ar: "إرسال إلى" },
+  staffAlertHint: {
+    en: "One email per booking — website and back-office alike — with the guest's details, the stay, add-ons, requests and the full price. Up to five addresses, separated by commas, then Save. Send test sends a sample (marked TEST) to the addresses typed, without saving them. A send that fails is retried by the scheduler up to three times; every attempt shows in the log below.",
+    ar: "بريد واحد لكل حجز — من الموقع أو من النظام — يتضمن بيانات الضيف والإقامة والخدمات الإضافية والطلبات والسعر الكامل. حتى خمسة عناوين مفصولة بفواصل ثم احفظوا. الإرسال التجريبي يرسل نموذجاً (معلَّماً TEST) إلى العناوين المكتوبة دون حفظها. يعيد المجدوِل محاولة الإرسال الفاشل حتى ثلاث مرات، وتظهر كل محاولة في السجل أدناه.",
+  },
+  staffAlertSaved: { en: "New-booking alert saved", ar: "تم حفظ إعداد التنبيه" },
+  staffAlertBad: { en: "Not an email address", ar: "ليس عنوان بريد إلكتروني" },
+  staffAlertTooMany: { en: "At most five addresses", ar: "خمسة عناوين كحد أقصى" },
+  staffAlertTestSent: { en: "Test alert sent — check the inbox", ar: "أُرسل التنبيه التجريبي — تحققوا من البريد" },
+  staffAlertStubbed: { en: "Email is not configured on this deployment (RESEND_API_KEY), so nothing was sent.", ar: "البريد غير مهيأ في هذا النشر (RESEND_API_KEY) فلم يُرسل شيء." },
 } satisfies Strings;
 
 interface Props {
@@ -76,10 +89,11 @@ interface Props {
   whatsappEnabled: boolean;
   testPhone: string;
   testEmail: string;
+  staffAlert: { enabled: boolean; email: string };
   previews: PreviewMap;
 }
 
-export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled, testPhone, testEmail, previews }: Props) {
+export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled, testPhone, testEmail, staffAlert, previews }: Props) {
   const { lang } = useLang();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -93,7 +107,13 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
   const [previewChannel, setPreviewChannel] = useState<MessageChannel>("whatsapp");
   const [testPhoneInput, setTestPhoneInput] = useState(testPhone);
   const [testEmailInput, setTestEmailInput] = useState(testEmail);
+  const [alertEmail, setAlertEmail] = useState(staffAlert.email);
+  // After a save the server echoes the normalised list ("a, b"); show that, not the draft.
+  useEffect(() => setAlertEmail(staffAlert.email), [staffAlert.email]);
   const isAdmin = role === "super_admin";
+  const alertDirty = alertEmail.trim() !== staffAlert.email.trim();
+  const alertBad = invalidRecipients(alertEmail);
+  const alertTooMany = parseRecipients(alertEmail, Number.POSITIVE_INFINITY).length > MAX_STAFF_RECIPIENTS;
 
   const filtered = useMemo(
     () => queue.filter((m) => (!fStatus || m.status === fStatus) && (!fKind || m.kind === fKind) && (!fChannel || m.channel === fChannel)),
@@ -122,6 +142,34 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
       if (!r.ok) setError(r.error);
       else {
         setNotice(r.data.available ? STR.testSent[lang] : STR.testUnavailable[lang]);
+        router.refresh();
+      }
+    });
+  }
+
+  function saveAlert(enabled: boolean, email: string) {
+    setError(null);
+    setNotice(null);
+    start(async () => {
+      const r = await saveStaffAlert({ enabled, email });
+      if (!r.ok) setError(r.error);
+      else {
+        // Show the list exactly as stored ("a, b"), even when normalising did not change the saved value.
+        setAlertEmail(r.data.email);
+        setNotice(STR.staffAlertSaved[lang]);
+        router.refresh();
+      }
+    });
+  }
+
+  function sendAlertTest() {
+    setError(null);
+    setNotice(null);
+    start(async () => {
+      const r = await sendStaffAlertTest({ email: alertEmail });
+      if (!r.ok) setError(r.error);
+      else {
+        setNotice(r.data.stubbed ? STR.staffAlertStubbed[lang] : STR.staffAlertTestSent[lang]);
         router.refresh();
       }
     });
@@ -166,6 +214,61 @@ export function MessagingView({ role, queue, log, emailEnabled, whatsappEnabled,
             <Badge variant={whatsappEnabled ? "green" : "gray"}>{whatsappEnabled ? COMMON.on[lang] : COMMON.off[lang]}</Badge>
           </label>
           <p className="basis-full text-xs text-maroon-400">{STR.switchHint[lang]}</p>
+        </CardContent>
+      </Card>
+
+      {/* New-booking alert to the desk */}
+      <Card className="mb-6" data-testid="staff-alert">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellRing className="h-4 w-4 text-gold-600" aria-hidden="true" />
+            {STR.staffAlert[lang]}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex items-center gap-3 text-sm font-semibold text-maroon-800">
+            <Switch
+              checked={staffAlert.enabled}
+              disabled={!isAdmin || pending}
+              onCheckedChange={(v) => saveAlert(v, staffAlert.email)}
+              label={STR.staffAlertOn[lang]}
+            />
+            {STR.staffAlertOn[lang]}
+            <Badge variant={staffAlert.enabled ? "green" : "gray"}>{staffAlert.enabled ? COMMON.on[lang] : COMMON.off[lang]}</Badge>
+          </label>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="min-w-[16rem] flex-1">
+              <label htmlFor="staff-alert-email" className="mb-1 block text-xs font-semibold text-maroon-500">
+                {STR.staffAlertTo[lang]}
+              </label>
+              <Input
+                id="staff-alert-email"
+                dir="ltr"
+                value={alertEmail}
+                disabled={!isAdmin || pending}
+                onChange={(e) => setAlertEmail(e.target.value)}
+                placeholder="reservations@samahotel.net, operations@samahotel.net"
+              />
+            </div>
+            {isAdmin && (
+              <>
+                <Button loading={pending} disabled={!alertDirty} onClick={() => saveAlert(staffAlert.enabled, alertEmail)}>
+                  {COMMON.save[lang]}
+                </Button>
+                <Button variant="outline" loading={pending} disabled={!alertEmail.trim()} onClick={sendAlertTest}>
+                  <Send className="h-4 w-4" />
+                  {STR.sendTest[lang]}
+                </Button>
+              </>
+            )}
+          </div>
+          {alertBad.length > 0 && (
+            <p className="text-xs font-semibold text-crimson-700" dir="auto">
+              {STR.staffAlertBad[lang]}: <span dir="ltr">{alertBad.join(", ")}</span>
+            </p>
+          )}
+          {alertTooMany && <p className="text-xs font-semibold text-crimson-700">{STR.staffAlertTooMany[lang]}</p>}
+          <p className="text-xs text-maroon-400">{STR.staffAlertHint[lang]}</p>
         </CardContent>
       </Card>
 

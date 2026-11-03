@@ -199,8 +199,14 @@ export const KIND_LABELS: Record<BkMessageKind, Localized> = {
   post_stay: { en: "Post-stay", ar: "بعد الإقامة" },
 };
 
+/** Log-only kinds (no scheduled row): the desk's new-booking alert. */
+export const EXTRA_KIND_LABELS: Record<string, Localized> = {
+  staff_new_booking: { en: "New-booking alert (desk)", ar: "تنبيه حجز جديد (الاستقبال)" },
+};
+
 export function kindLabel(kind: string | null | undefined, lang: Lang): string {
   if (kind && kind in KIND_LABELS) return KIND_LABELS[kind as BkMessageKind][lang];
+  if (kind && kind in EXTRA_KIND_LABELS) return EXTRA_KIND_LABELS[kind][lang];
   return kind ?? "—";
 }
 
@@ -457,6 +463,9 @@ export const WEEKEND_DAYS = [4, 5];
 /** Human-readable message for the errors thrown by requireStaff / RPCs. */
 export const ERROR_MESSAGES: Record<string, Localized> = {
   unauthorized: { en: "Please sign in again.", ar: "يرجى تسجيل الدخول مرة أخرى." },
+  invalid_recipient: { en: "One of the entries is not an email address.", ar: "أحد المدخلات ليس عنوان بريد إلكتروني." },
+  recipient_required: { en: "Enter at least one email address, or switch the alert off.", ar: "أدخلوا عنوان بريد واحداً على الأقل، أو أوقفوا التنبيه." },
+  too_many_recipients: { en: "At most five addresses.", ar: "خمسة عناوين كحد أقصى." },
   forbidden: { en: "You don't have permission to do that.", ar: "ليس لديك صلاحية لهذا الإجراء." },
   sold_out: { en: "No rooms of this type are available for those dates.", ar: "لا توجد غرف متاحة من هذا النوع لهذه التواريخ." },
   min_stay: { en: "The stay is shorter than the minimum.", ar: "مدة الإقامة أقل من الحد الأدنى." },

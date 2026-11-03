@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { getSettings } from "@/lib/bk/settings";
 import { logger } from "@/lib/logger";
 import { dispatchDueMessages } from "@/lib/messaging/dispatch";
+import { notifyStaffPendingBookings } from "@/lib/messaging/staff-notify";
 
 // Scheduled-message dispatcher endpoint.
 // Called by Vercel Cron (vercel.json, every 15 min — sends `Authorization:
@@ -59,9 +60,11 @@ async function handle(req: Request): Promise<Response> {
   }
   const started = Date.now();
   const summary = await dispatchDueMessages(BATCH);
+  // Desk alerts that never went out (Resend down, inline send crashed) are re-sent here.
+  const staffAlerts = await notifyStaffPendingBookings();
   const ms = Date.now() - started;
-  logger.info("cron.dispatch", "run complete", { ...summary, errors: summary.errors.length, ms });
-  return NextResponse.json({ ok: true, ms, ...summary });
+  logger.info("cron.dispatch", "run complete", { ...summary, errors: summary.errors.length, staff_alerts: staffAlerts, ms });
+  return NextResponse.json({ ok: true, ms, ...summary, staff_alerts: staffAlerts });
 }
 
 export async function GET(req: Request) {

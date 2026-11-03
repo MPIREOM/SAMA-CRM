@@ -57,6 +57,7 @@ export default async function MessagingPage() {
         whatsappEnabled={settings.messaging.whatsapp_enabled}
         testPhone={settings.messaging.test_phone}
         testEmail={settings.messaging.test_email}
+        staffAlert={{ enabled: settings.messaging.notify_new_booking, email: settings.messaging.notify_email }}
         previews={previews}
       />
     );

@@ -64,6 +64,10 @@ export interface MessagingSettings extends MessagingSchedule {
   whatsapp_business_account_id: string;
   /** Meta app id — needed for media uploads (template headers); fallback when WHATSAPP_APP_ID is unset. */
   whatsapp_app_id: string;
+  /** Email the reservations desk every time a booking is made (website or staff). */
+  notify_new_booking: boolean;
+  /** Where the new-booking alert goes — one address, or several separated by commas. */
+  notify_email: string;
 }
 
 export interface PromoCode {
