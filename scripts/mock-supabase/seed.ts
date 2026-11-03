@@ -218,7 +218,7 @@ const ADDONS: Row[] = [
     name_en: "APEX Zipline",
     name_ar: "أبكس زيبلاين",
     tagline_en: "310 m over the canyon at up to 60 km/h — it starts right next to the hotel.",
-    tagline_ar: "310 متراً فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
+    tagline_ar: "310 أمتار فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
     description_en:
       "Fly 310 metres across the canyon, about 20 metres above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room. Maximum rider weight 120 kg; children ride with a guardian's consent.",
     description_ar:
@@ -229,7 +229,7 @@ const ADDONS: Row[] = [
     taxable: false,
     requires_note: true,
     note_hint_en: "Preferred day (arrival day, any day of your stay) and any riders under 16",
-    note_hint_ar: "اليوم المفضل (يوم الوصول أو أي يوم خلال الإقامة) وعدد الراكبين تحت 16 عاماً",
+    note_hint_ar: "اليوم المفضل (يوم الوصول أو أي يوم خلال الإقامة) وعدد الركّاب دون 16 عاماً",
     image: "/images/addons/apex-zipline.jpg",
     details: { length_m: 310, height_m: 20, speed_kmh: 60, max_weight_kg: 120, website: "https://www.apexzipline.com", operator: "Al Jabal Adventures LLC" },
     sort_order: 10,

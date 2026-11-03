@@ -38,7 +38,7 @@ const STR = {
   addTitle: { en: "Add an add-on", ar: "إضافة عنصر" },
   addon: { en: "Add-on", ar: "الإضافة" },
   quantity: { en: "Quantity", ar: "الكمية" },
-  note: { en: "Note for the team (time, day, riders…)", ar: "ملاحظة للفريق (الوقت، اليوم، عدد الراكبين…)" },
+  note: { en: "Note for the team (time, day, riders…)", ar: "ملاحظة للفريق (الوقت، اليوم، عدد الركّاب…)" },
   lineTotal: { en: "Line total", ar: "إجمالي السطر" },
   taxableTag: { en: "taxable", ar: "خاضع للضريبة" },
   total: { en: "Add-ons total", ar: "إجمالي الإضافات" },

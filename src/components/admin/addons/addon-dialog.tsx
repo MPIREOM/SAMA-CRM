@@ -32,7 +32,7 @@ const STR = {
   unit: { en: "Priced", ar: "التسعير" },
   maxQty: { en: "Max quantity", ar: "الحد الأقصى للكمية" },
   taxable: { en: "Taxable (joins the room subtotal before service charge, tourism fee and VAT)", ar: "خاضع للضريبة (يُضاف إلى إجمالي الغرفة قبل رسوم الخدمة والسياحة وضريبة القيمة المضافة)" },
-  requiresNote: { en: "Ask the guest for a note (time, day, riders…)", ar: "اطلب ملاحظة من النزيل (الوقت، اليوم، عدد الراكبين…)" },
+  requiresNote: { en: "Ask the guest for a note (time, day, riders…)", ar: "اطلب ملاحظة من النزيل (الوقت، اليوم، عدد الركّاب…)" },
   hintEn: { en: "Note hint (EN)", ar: "تلميح الملاحظة (إنجليزي)" },
   hintAr: { en: "Note hint (AR)", ar: "تلميح الملاحظة (عربي)" },
   image: { en: "Photo", ar: "الصورة" },

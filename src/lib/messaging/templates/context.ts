@@ -77,7 +77,7 @@ function sampleAddonCatalogue(now: string): Record<"apex" | "transferUp", BkAddo
       taxable: false,
       requires_note: true,
       note_hint_en: "Preferred day (arrival day, any day of your stay) and any riders under 16",
-      note_hint_ar: "اليوم المفضل (يوم الوصول أو أي يوم خلال الإقامة) وعدد الراكبين تحت 16 عاماً",
+      note_hint_ar: "اليوم المفضل (يوم الوصول أو أي يوم خلال الإقامة) وعدد الركّاب دون 16 عاماً",
       image: "/images/addons/apex-zipline.jpg",
       details: { length_m: 310, height_m: 20, speed_kmh: 60, max_weight_kg: 120, website: "https://www.apexzipline.com" },
       is_active: true,
