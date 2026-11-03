@@ -10,6 +10,7 @@ import "server-only";
 //
 // Values are never logged and never leave the server; the setup page only
 // reports whether each one is present.
+import { appOrigin } from "@/lib/app-url";
 
 /** "YOUR_" anywhere marks a .env.example placeholder value. */
 export function isPlaceholder(value: string | undefined | null): boolean {
@@ -84,8 +85,7 @@ export function withStoredAppId(env: WhatsAppEnv, stored: string | null | undefi
 
 /** Public base URL of this deployment (no trailing slash). */
 export function appBaseUrl(): string {
-  const raw = clean(process.env.NEXT_PUBLIC_APP_URL) ?? "https://sama-crm.vercel.app";
-  return raw.replace(/\/+$/, "");
+  return appOrigin();
 }
 
 /** The callback URL Meta must call for this deployment. */

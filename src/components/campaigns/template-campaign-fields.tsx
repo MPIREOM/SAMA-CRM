@@ -1,5 +1,6 @@
 "use client";
 
+import { appOrigin } from "@/lib/app-url";
 import { useMemo, useState } from "react";
 import { Upload } from "lucide-react";
 import type { Lang, Strings } from "@/lib/i18n";
@@ -43,7 +44,7 @@ const STR = {
 
 const FIELD_LABEL: Record<ParamField, keyof typeof STR> = { name: "fieldName", first_name: "fieldFirst", room_type: "fieldRoom", terms_link: "fieldTerms" };
 
-const SAMPLE = { name: "Ahmed Al Nabhani", room_type: "Chalet", terms_link: "https://sama-crm.vercel.app/terms" };
+const SAMPLE = { name: "Ahmed Al Nabhani", room_type: "Chalet", terms_link: `${appOrigin()}/terms` };
 
 export interface TemplateSelection {
   name: string;

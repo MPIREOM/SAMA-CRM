@@ -1,5 +1,6 @@
 import "server-only";
 
+import { appOrigin } from "@/lib/app-url";
 import { cache } from "react";
 import { getPublicSettings, getSiteSettings, SETTINGS_DEFAULTS } from "@/lib/bk/settings";
 import type { PublicSettings } from "@/lib/bk/types";
@@ -42,5 +43,5 @@ export const getSiteContent = cache(async (): Promise<SiteSettings> => {
 });
 
 export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
+  return appOrigin();
 }

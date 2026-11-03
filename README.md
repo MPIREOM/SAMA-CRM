@@ -97,7 +97,7 @@ Environment variables (`.env.local`):
 | `WHATSAPP_REENGAGE_TEMPLATE` | Name of your approved utility template with a single `{{1}}` body parameter (see WhatsApp setup). |
 | `RESEND_API_KEY` | Resend Dashboard → API Keys. |
 | `EMAIL_FROM` | A sender on your verified Resend domain, e.g. `Sama Hotel <noreply@YOUR_DOMAIN>`. |
-| `NEXT_PUBLIC_APP_URL` | Public URL of the deployed app (no trailing slash). |
+| `NEXT_PUBLIC_APP_URL` | Public URL of the deployed app (no trailing slash), e.g. `https://www.samahotel.net`. Every absolute link — emails, WhatsApp, sitemap, canonical URLs, the webhook callback — follows it (`src/lib/app-url.ts`). |
 | `TERMS_LINK` | Optional — URL substituted into `{{terms_link}}` in templates. Defaults to the built-in bilingual terms page at `https://sama-crm.vercel.app/terms`. |
 | `KIOSK_EXIT_PIN` | 4–8 digit PIN staff enter to exit the `/checkin` kiosk. |
 

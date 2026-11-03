@@ -1,3 +1,4 @@
+import { appOrigin } from "@/lib/app-url";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // Booking-page access tokens: HMAC-SHA256(ref) so /booking/[ref]?token=…
@@ -25,6 +26,6 @@ export function verifyBookingToken(ref: string, token: string | null | undefined
 }
 
 export function bookingUrl(ref: string, locale: "en" | "ar", base?: string): string {
-  const origin = (base ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://sama-crm.vercel.app").replace(/\/$/, "");
+  const origin = (base ?? appOrigin()).replace(/\/+$/, "");
   return `${origin}/${locale}/booking/${encodeURIComponent(ref)}?token=${bookingToken(ref)}`;
 }
