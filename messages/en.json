@@ -71,7 +71,7 @@
     "payAtHotelTitle": "Book direct, pay when you arrive",
     "payAtHotelBody": "No deposit and no card details online. Your booking is confirmed by email and WhatsApp, and you settle by cash or card at check-in.",
     "welcomeEyebrow": "Welcome",
-    "welcomeTitle": "Two thousand metres up, the air changes and so does the pace",
+    "welcomeTitle": "Two thousand meters up, the air changes and so does the pace",
     "welcomeBody": "Sama sits in Sayq, above the terraces where roses bloom in April and pomegranates ripen in September. Mornings begin with coffee on the cliff; evenings end under a sky full of stars, ten degrees cooler than the coast.",
     "welcomeFacts": {
       "altitude": "above sea level",
@@ -486,7 +486,7 @@
   },
   "apex": {
     "eyebrow": "APEX Zipline · Jabal Al Akhdar",
-    "title": "310 metres over the canyon",
+    "title": "310 meters over the canyon",
     "subtitle": "A zipline that starts a short walk from the hotel and flies over the terraces at up to 60 km/h.",
     "heroAlt": "A rider on the APEX Zipline above the Jabal Al Akhdar canyon",
     "stats": {
@@ -501,7 +501,7 @@
     },
     "aboutEyebrow": "The ride",
     "aboutTitle": "From the hotel to Layali Al Jabal Al Akhdar",
-    "fallbackDescription": "Fly 310 metres across the canyon, about 20 metres above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room.",
+    "fallbackDescription": "Fly 310 meters across the canyon, about 20 meters above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room.",
     "routeTitle": "The route",
     "route": {
       "start": "Launch platform — a short walk from Sama Hotel.",
@@ -527,7 +527,7 @@
     "howTitle": "How it works"
   },
   "footer": {
-    "tagline": "A small mountain hotel at 2,000 metres in Jabal Al Akhdar, Oman — cool air, canyon views and an honest welcome.",
+    "tagline": "A small mountain hotel at 2,000 meters in Jabal Al Akhdar, Oman — cool air, canyon views and an honest welcome.",
     "contact": "Contact",
     "explore": "Explore",
     "policies": "Policies",

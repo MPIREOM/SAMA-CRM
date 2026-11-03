@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0015 — Arabic copy fixes for the APEX Zipline add-on (seeded in 0010)
+-- 0015 — Copy fixes for the APEX Zipline add-on (seeded in 0010)
 --   • "310 متراً" → "310 أمتار": 310 ends in ten, so the counted noun is plural.
 --   • "الراكبين تحت 16" → "الركّاب دون 16": الراكبين is the dual ("two riders").
 -- Only rows still holding the original wording are touched, so any text staff
@@ -13,3 +13,8 @@ update public.bk_addons
 update public.bk_addons
    set note_hint_ar = replace(note_hint_ar, 'وعدد الراكبين تحت 16 عاماً', 'وعدد الركّاب دون 16 عاماً')
  where slug = 'apex-zipline' and note_hint_ar like '%وعدد الراكبين تحت 16 عاماً%';
+
+-- English: the owner prefers "meters" to the British "metres" on the website.
+update public.bk_addons
+   set description_en = replace(description_en, 'metres', 'meters')
+ where slug = 'apex-zipline' and description_en like '%metres%';

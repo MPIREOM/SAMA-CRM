@@ -256,7 +256,7 @@ test.describe("guest booking", () => {
     await addonsSection.getByRole("link", { name: "About the zipline" }).click();
     await page.waitForURL(/\/en\/apex-zipline$/, { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { level: 1, name: "310 metres over the canyon" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "310 meters over the canyon" })).toBeVisible();
     // The desktop nav is display:none on the mobile project, hence includeHidden.
     await expect(
       page.getByRole("navigation", { name: "Main navigation", includeHidden: true }).getByRole("link", { name: "APEX Zipline", includeHidden: true })

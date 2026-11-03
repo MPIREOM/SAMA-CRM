@@ -42,11 +42,11 @@
   ],
   "overrides": [
     {
-      // Guest copy must be British: flag the American spellings a hotel site is likely to slip into.
+      // Guest copy is British except "meters" (owner's choice, Nov 2026): flag the American spellings a hotel site is likely to slip into.
       "filename": "messages/en.json",
       "flagWords": [
         "color", "colors", "colored", "center", "centers", "centered", "organize", "organized", "organizing", "organization",
-        "traveling", "traveler", "travelers", "meters", "meter", "kilometers", "liters", "favorite", "favorites",
+        "traveling", "traveler", "travelers", "liters", "favorite", "favorites",
         "canceled", "canceling", "cancelation", "gray", "catalog", "specialty", "customize", "customized",
         "jewelry", "theater", "neighbor", "neighbors", "flavor", "flavors", "honor", "labor", "behavior", "humor",
         "analyze", "realize", "recognize", "apologize", "itemized", "airplane", "cozy", "mustache", "aluminum"

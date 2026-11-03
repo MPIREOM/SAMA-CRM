@@ -220,7 +220,7 @@ const ADDONS: Row[] = [
     tagline_en: "310 m over the canyon at up to 60 km/h — it starts right next to the hotel.",
     tagline_ar: "310 أمتار فوق الوادي بسرعة تصل إلى 60 كم/س — ينطلق من جوار الفندق مباشرة.",
     description_en:
-      "Fly 310 metres across the canyon, about 20 metres above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room. Maximum rider weight 120 kg; children ride with a guardian's consent.",
+      "Fly 310 meters across the canyon, about 20 meters above the terraces of Al Aqar, Al Shraija and Al Ain, at up to 60 km/h. The launch platform is a short walk from the hotel and the ride ends at Layali Al Jabal Al Akhdar. Hotel guests pay a special rate; we book your slot for the day you prefer and you pay with your room. Maximum rider weight 120 kg; children ride with a guardian's consent.",
     description_ar:
       "انطلقوا 310 أمتار فوق الوادي على ارتفاع نحو 20 متراً فوق مدرجات العقر والشريجة والعين، بسرعة تصل إلى 60 كم/س. منصة الانطلاق على بُعد خطوات من الفندق، وتنتهي الرحلة عند ليالي الجبل الأخضر. يحصل نزلاء الفندق على سعر خاص؛ نحجز لكم موعدكم في اليوم الذي تفضلونه وتدفعون مع فاتورة الغرفة. الحد الأقصى لوزن الراكب 120 كجم، ويشارك الأطفال بموافقة ولي الأمر.",
     price_omr: 5,
