@@ -5,8 +5,9 @@ import type { Role } from "@/lib/database.types";
 import type { Actor } from "./audit";
 
 // Role model for the back-office (reuses CRM `profiles`):
-//   super_admin      → everything (rates, settings, rooms, staff, audit, export)
-//   reservation_desk → reservations, calendar, blocks, messaging queue
+//   super_admin      → everything (settings, website, staff, audit, CRM automations)
+//   reservation_desk → reservations, calendar, blocks, rooms, rates, add-ons,
+//                      messaging queue, analytics, reports
 
 export const FRONT_DESK_ROLES: Role[] = ["super_admin", "reservation_desk"];
 export const ADMIN_ROLES: Role[] = ["super_admin"];
@@ -23,5 +24,5 @@ export async function requireStaff(allowed: Role[] = FRONT_DESK_ROLES): Promise<
 }
 
 export function canManageRates(role: Role): boolean {
-  return role === "super_admin";
+  return FRONT_DESK_ROLES.includes(role);
 }

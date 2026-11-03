@@ -4,6 +4,7 @@ import { siteCopy, siteImage } from "@/lib/bk/site-content";
 import { SiteHeader } from "@/components/guest/site-header";
 import { SiteFooter } from "@/components/guest/site-footer";
 import { getSiteContent } from "@/components/guest/data";
+import { AnalyticsTracker } from "@/components/guest/analytics-tracker";
 
 // Guest-site chrome: fixed header (transparent over a page hero), page,
 // ink-dark footer. Every page inside sets its own metadata and setRequestLocale.
@@ -21,6 +22,7 @@ export default async function GuestLayout({ children, params }: { children: Reac
         {children}
       </main>
       <SiteFooter />
+      <AnalyticsTracker />
     </div>
   );
 }

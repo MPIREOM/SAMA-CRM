@@ -45,16 +45,16 @@ export function AppShell({
   }, [open]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
       {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block print:!hidden">
         <Sidebar role={role} fullName={fullName} />
       </div>
 
       {/* Mobile drawer */}
       <div
         className={cn(
-          "fixed inset-0 z-40 lg:hidden",
+          "fixed inset-0 z-40 lg:hidden print:hidden",
           open ? "pointer-events-auto" : "pointer-events-none"
         )}
         aria-hidden={!open}
@@ -89,7 +89,7 @@ export function AppShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="flex items-center gap-3 border-b border-maroon-100 bg-white px-4 py-3 lg:hidden">
+        <header className="flex items-center gap-3 border-b border-maroon-100 bg-white px-4 py-3 lg:hidden print:hidden">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -105,8 +105,8 @@ export function AppShell({
           <p className="text-base font-extrabold text-maroon-900">{COMMON.appName[lang]}</p>
         </header>
 
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">{children}</div>
+        <main className="flex-1 overflow-y-auto scrollbar-thin print:overflow-visible">
+          <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8 print:max-w-none print:p-0">{children}</div>
         </main>
       </div>
     </div>

@@ -296,6 +296,29 @@ export const TABLES: Record<string, TableSpec> = {
     },
     unique: [["id"]],
   },
+  // Migration 0014: first-party website analytics (service role only).
+  bk_web_events: {
+    columns: {
+      id: col("int", { default: (() => { let n = 0; return () => ++n; })() }),
+      created_at: ts(),
+      kind: col("text", { default: () => "pageview", enum: ["pageview", "booking_review"] }),
+      visitor_id: col("text", { required: true }),
+      session_id: col("text", { required: true }),
+      path: col("text", { required: true }),
+      page_type: col("text", { default: () => "other", enum: ["home", "rooms", "room", "results", "booking", "confirmation", "manage", "content", "other"] }),
+      locale: nullable("text"),
+      referrer_host: nullable("text"),
+      source: col("text", { default: () => "direct" }),
+      utm_medium: nullable("text"),
+      utm_campaign: nullable("text"),
+      country: nullable("text"),
+      device: col("text", { default: () => null, enum: ["mobile", "tablet", "desktop"] }),
+      browser: nullable("text"),
+      room_slug: nullable("text"),
+      booking_ref: nullable("text"),
+    },
+    unique: [["id"]],
+  },
   // --- CRM tables the booking engine references -----------------------------
   contacts: {
     columns: {

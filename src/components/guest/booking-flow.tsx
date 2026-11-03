@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { CreateBookingState, QuoteState } from "@/app/[locale]/(guest)/book/[slug]/actions";
 import { AddonPicker, type AddonSelectionMap } from "./addon-picker";
 import { PriceSummary, type PriceLines } from "./price-summary";
+import { trackEvent } from "./analytics-tracker";
 import { n, quoteAddonLines, waLink, type LocalizedAddon, type LocalizedRoom } from "./lib";
 import {
   ADDON_NOTE_MAX,
@@ -140,6 +141,7 @@ export function BookingFlow({ locale, room, query, initialQuote, taxes, times, c
     }
     setErrors({});
     setStep(2);
+    trackEvent("booking_review", { room: room.slug });
     // Always refresh the quote on entering the review step (availability may have moved).
     setQuotedKey(null);
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

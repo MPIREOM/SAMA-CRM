@@ -19,6 +19,8 @@ const env = {
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? `http://127.0.0.1:${process.env.E2E_PORT ?? "3411"}`,
   MOCK_SUPABASE_PORT: MOCK_PORT,
   MOCK_QUIET: process.env.MOCK_QUIET ?? "1",
+  // Playwright runs headless Chrome, which the tracker otherwise ignores as a bot.
+  ANALYTICS_TRACK_HEADLESS: "1",
   // Make sure no real provider credentials leak into the run: sends must be stubbed.
   RESEND_API_KEY: "",
   WHATSAPP_ACCESS_TOKEN: "",

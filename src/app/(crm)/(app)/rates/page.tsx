@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ADMIN_ROLES } from "@/lib/bk/staff";
+import { FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { muscatToday } from "@/lib/booking-engine/dates";
 import { guardPage, loadErrorMessage, param } from "@/components/admin/server";
 import { NoAccess } from "@/components/admin/no-access";
@@ -18,7 +18,7 @@ function monthBounds(month: string): { start: string; endExclusive: string } {
 }
 
 export default async function RatesPage({ searchParams }: { searchParams: Search }) {
-  const session = await guardPage(ADMIN_ROLES);
+  const session = await guardPage(FRONT_DESK_ROLES);
   if (!session) return <NoAccess title="Rates" />;
 
   const monthParam = param(searchParams.month);

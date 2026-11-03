@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireStaff, ADMIN_ROLES } from "@/lib/bk/staff";
+import { requireStaff, FRONT_DESK_ROLES } from "@/lib/bk/staff";
 import { audit } from "@/lib/bk/audit";
 import { runAction } from "@/components/admin/server";
 import type { ActionResult } from "@/components/admin/shared";
@@ -23,7 +23,7 @@ const BaseRateSchema = z.object({ room_type_id: uuid, base_rate_omr: z.number().
 
 export async function setBaseRate(input: unknown): Promise<ActionResult> {
   return runAction("rate.base", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { room_type_id, base_rate_omr } = BaseRateSchema.parse(input);
     const admin = createAdminClient();
     const { data: before } = await admin.from("bk_room_types").select("base_rate_omr").eq("id", room_type_id).maybeSingle();
@@ -59,7 +59,7 @@ const PlanSchema = z
 
 export async function saveRatePlan(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction("rate_plan.save", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id, ...data } = PlanSchema.parse(input);
     const admin = createAdminClient();
     const row = {
@@ -95,7 +95,7 @@ export async function saveRatePlan(input: unknown): Promise<ActionResult<{ id: s
 
 export async function deleteRatePlan(input: unknown): Promise<ActionResult> {
   return runAction("rate_plan.delete", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const { id } = z.object({ id: uuid }).parse(input);
     const admin = createAdminClient();
     const { data: before } = await admin.from("bk_rate_plans").select("*").eq("id", id).maybeSingle();
@@ -128,7 +128,7 @@ const BulkSchema = z
 
 export async function bulkSetRate(input: unknown): Promise<ActionResult<{ created: number }>> {
   return runAction("rate_plan.bulk", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const data = BulkSchema.parse(input);
     const admin = createAdminClient();
     const days = data.days_of_week && data.days_of_week.length > 0 && data.days_of_week.length < 7 ? Array.from(new Set(data.days_of_week)).sort((a, b) => a - b) : null;
@@ -172,7 +172,7 @@ const StopSellSchema = z
 
 export async function stopSell(input: unknown): Promise<ActionResult<{ id: string }>> {
   return runAction("block.stop_sell", async () => {
-    const { actor } = await requireStaff(ADMIN_ROLES);
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
     const data = StopSellSchema.parse(input);
     const admin = createAdminClient();
     const { data: row, error } = await admin
