@@ -1,5 +1,5 @@
 import { appOrigin } from "@/lib/app-url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { draftToComponents, validateDraft } from "../meta-template-model";
 import { MARKETING_PACK, MARKETING_PACK_NAMES, marketingPackDraft, marketingPackHeaderUrl } from "../templates/marketing-pack";
 
@@ -58,5 +58,25 @@ describe("marketing template pack", () => {
   it("resolves the header photo URL on the deployment for the composer", () => {
     expect(marketingPackHeaderUrl("sama_escape_the_heat", "https://sama-crm.vercel.app/")).toBe("https://sama-crm.vercel.app/images/marketing/escape-the-heat.jpg");
     expect(marketingPackHeaderUrl("something_else", "https://sama-crm.vercel.app")).toBeNull();
+  });
+});
+
+describe("MARKETING_PACK origin", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("the Book now button follows NEXT_PUBLIC_APP_URL, and falls back to the Vercel address", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://example.test/");
+    vi.resetModules();
+    const fresh = await import("../templates/marketing-pack");
+    for (const t of fresh.MARKETING_PACK) for (const v of t.variants) expect(v.buttonUrl).toBe(`https://example.test/${v.language}`);
+
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+    vi.resetModules();
+    const fallback = await import("../templates/marketing-pack");
+    const { FALLBACK_APP_URL } = await import("@/lib/app-url");
+    expect(fallback.MARKETING_PACK[0].variants[0].buttonUrl).toBe(`${FALLBACK_APP_URL}/${fallback.MARKETING_PACK[0].variants[0].language}`);
   });
 });

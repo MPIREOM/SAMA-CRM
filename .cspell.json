@@ -35,7 +35,7 @@
   ],
   // Code identifiers and protocol tokens: ignored, but never offered as suggestions.
   "ignoreWords": [
-    "checkin", "dropoff", "conv", "prio", "throttl", "unstub", "apikey", "fkey", "defval", "optin", "laststay", "roomtype", "fourwd", "topbar",
+    "checkin", "dropoff", "conv", "prio", "throttl", "unstub", "apikey", "fkey", "pkey", "defval", "optin", "laststay", "roomtype", "fourwd", "topbar",
     "ilike", "xact", "hashtext", "timestamptz", "PGRST", "MPIREOM",
     "cellpadding", "cellspacing", "extrabold", "kenburns",
     "CALSCALE", "DTEND", "DTSTAMP", "DTSTART", "PRODID", "VALARM", "VCALENDAR", "VEVENT"

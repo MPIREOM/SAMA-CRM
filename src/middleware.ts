@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
-import { routing } from "@/i18n/routing";
+import { DEFAULT_LOCALE, isLocale, routing, type Locale } from "@/i18n/routing";
 
 // ---------------------------------------------------------------------------
 // One middleware, two apps:
@@ -54,6 +54,18 @@ function startsWithAny(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
+/** `/rooms` is both a back-office page and, under a locale, a guest page. */
+function isSharedGuestPath(pathname: string): boolean {
+  return pathname === "/rooms" || pathname.startsWith("/rooms/");
+}
+
+/** The guest locale for a visitor who arrived without one: the next-intl cookie, else Accept-Language, else English. */
+function guestLocale(request: NextRequest): Locale {
+  const cookie = request.cookies.get("NEXT_LOCALE")?.value;
+  if (isLocale(cookie)) return cookie;
+  return /(^|,)\s*ar\b/i.test(request.headers.get("accept-language") ?? "") ? "ar" : DEFAULT_LOCALE;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApi = pathname.startsWith("/api");
@@ -96,6 +108,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const url = request.nextUrl.clone();
+    if (isSharedGuestPath(pathname)) {
+      // An old link to the Wix site's /rooms (or a typed address) must land on
+      // the hotel's rooms page, never on a staff sign-in form. Staff reach the
+      // back-office Rooms page through /login → sidebar as before.
+      url.pathname = `/${guestLocale(request)}${pathname}`;
+      return NextResponse.redirect(url);
+    }
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);

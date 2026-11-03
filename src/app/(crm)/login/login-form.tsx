@@ -144,8 +144,14 @@ export default function LoginForm() {
   );
 }
 
-/** `?next=` may only point back into this site: a path starting with one "/" (never "//host" or a full URL). */
+/** `?next=` may only point back into this site. Resolved the way the browser resolves it, so "//host", "/\\host" and full URLs all fall back. */
 function safeNext(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/dashboard";
-  return value;
+  if (!value || !value.startsWith("/")) return "/dashboard";
+  try {
+    const target = new URL(value, window.location.origin);
+    if (target.origin !== window.location.origin) return "/dashboard";
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return "/dashboard";
+  }
 }

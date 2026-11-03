@@ -179,7 +179,7 @@ describe("notifyStaffPendingBookings (cron catch-up)", () => {
     [ids.missed]: "REF-MISSED",
     [ids.partial]: "REF-PARTIAL",
     [ids.done]: "REF-DONE",
-    [ids.givenUp]: "REF-GIVENUP",
+    [ids.givenUp]: "REF-GIVEN-UP",
     [ids.capped]: "REF-CAPPED",
     [ids.added]: "REF-ADDED",
     [ids.old]: "REF-OLD",
@@ -304,7 +304,7 @@ describe("notifyStaffPendingBookings caps", () => {
     expect(await notifyStaffPendingBookings()).toMatchObject({ sent: 5, skipped: 0 });
   });
 
-  it("reads the log in chunks so a long list still dedups every booking", async () => {
+  it("reads the log in chunks so a long list is still de-duplicated booking by booking", async () => {
     seed(LOG_CHUNK + 7, { delivered: true });
     const summary = await notifyStaffPendingBookings();
     expect(summary).toMatchObject({ checked: LOG_CHUNK + 7, sent: 0, skipped: 0, failed: 0 });

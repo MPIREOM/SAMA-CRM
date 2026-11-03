@@ -28,6 +28,14 @@ test.describe("middleware", () => {
     const addons = await request.get("/addons", { maxRedirects: 0 });
     expect(addons.status()).toBe(307);
     expect(addons.headers().location).toMatch(/\/login\?next=%2Faddons$/);
+    // /rooms is both a back-office page and a guest page: an old link lands on the guest page, in the visitor's language.
+    const rooms = await request.get("/rooms", { maxRedirects: 0 });
+    expect(rooms.status()).toBe(307);
+    expect(rooms.headers().location).toMatch(/\/en\/rooms$/);
+    const arabic = await playwright.request.newContext({ baseURL: baseURL ?? undefined, extraHTTPHeaders: { "accept-language": "ar,en;q=0.5" } });
+    const roomsAr = await arabic.get("/rooms/chalet", { maxRedirects: 0 });
+    expect(roomsAr.headers().location).toMatch(/\/ar\/rooms\/chalet$/);
+    await arabic.dispose();
 
     const cron = await request.get("/api/cron/dispatch");
     expect(cron.status()).toBe(401);
