@@ -33,7 +33,7 @@ export const SAMPLE_SETTINGS: AllSettings = {
     altitude_m: 2000,
     drive_from_muscat_h: 2,
     units: 60,
-    legal_name: "Riyadha Al Jabal Al Akhdar Trading Co. L.L.C (Sama Hotels)",
+    legal_name: "Riyadh Al Jabal Al Akhdhar Trading LLC (Sama Hotel)",
     star_rating: 3,
   },
   reviews: { google: "", tripadvisor: "" },
