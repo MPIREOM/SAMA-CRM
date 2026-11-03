@@ -82,7 +82,7 @@ Resend → Domains → add `samahotel.net` → add the DNS records shown (DKIM +
 
 **Today.** `samahotel.net` is served by Wix: the nameservers are `ns2.wixdns.net` / `ns3.wixdns.net`, the bare domain points at Wix's IPs (`185.230.63.*`) and `www` is a CNAME to `cdn3.wixdns.net`. The mailboxes `@samahotel.net` and Resend's sending records live in that same Wix DNS zone, so **do not change the nameservers** — change only the two web records below. The booking site then lives at `https://www.samahotel.net` (the earlier `book.samahotel.net` plan is superseded); `samahotel.net` without `www` redirects there.
 
-1. **Vercel** → project `sama-crm` → Settings → Domains → *Add* `www.samahotel.net` (Production). Then *Add* `samahotel.net` and choose **Redirect to `www.samahotel.net`** (permanent, 308). Vercel now shows the DNS records it expects — copy them from there; on 3 Nov it recommended:
+1. **Vercel** — *done on 3 Nov from the assistant session*: `www.samahotel.net` is attached to `sama-crm` (Production, verified, no ownership TXT needed) and `samahotel.net` is attached as a permanent (308) redirect to it. If this ever needs redoing: Settings → Domains → *Add* both as described. Vercel's Domains page shows the DNS records it expects; on 3 Nov it recommended:
    - `A` for `samahotel.net`: `216.150.1.1` and `216.150.16.1` (older alternative: `76.76.21.21`)
    - `CNAME` for `www`: `82d92ed2687830c1.vercel-dns-016.com` (generic alternative: `cname.vercel-dns.com`)
    - a `TXT` record for `_vercel` **only if** Vercel asks for ownership verification.
