@@ -121,6 +121,7 @@ export async function getQuote(params: {
         note: a.note ?? null,
       })),
       available_count: Number(q.available_count),
+      web_available_count: Number(q.web_available_count ?? q.available_count),
       min_stay: Number(q.min_stay),
       nightly: (q.nightly ?? []).map((n) => ({ date: n.date, rate: Number(n.rate) })),
     },

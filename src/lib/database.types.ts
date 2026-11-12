@@ -540,6 +540,7 @@ export type Database = {
           max_children: number
           name_ar: string
           name_en: string
+          online_limit: number | null
           size_sqm: number | null
           slug: string
           sort_order: number
@@ -566,6 +567,7 @@ export type Database = {
           max_children?: number
           name_ar: string
           name_en: string
+          online_limit?: number | null
           size_sqm?: number | null
           slug: string
           sort_order?: number
@@ -592,6 +594,7 @@ export type Database = {
           max_children?: number
           name_ar?: string
           name_en?: string
+          online_limit?: number | null
           size_sqm?: number | null
           slug?: string
           sort_order?: number
@@ -1065,6 +1068,14 @@ export type Database = {
           p_check_in: string
           p_check_out: string
           p_exclude_booking?: string
+          p_room_type_id: string
+        }
+        Returns: number
+      }
+      bk_web_available_count: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
           p_room_type_id: string
         }
         Returns: number

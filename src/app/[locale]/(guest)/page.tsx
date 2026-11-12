@@ -132,7 +132,6 @@ export default async function HomePage({ params }: { params: { locale: string } 
     hasMap: contact.maps_link,
     amenityFeature: [
       "Outdoor swimming pool",
-      "Jacuzzi",
       "Restaurant",
       "Coffee shop",
       "Free Wi-Fi",

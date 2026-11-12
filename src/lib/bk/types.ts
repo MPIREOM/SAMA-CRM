@@ -155,7 +155,10 @@ export interface QuoteResult {
   vat: number;
   total: number;
   taxes: TaxSettings;
+  /** Rooms physically free (what staff can sell). */
   available_count: number;
+  /** Rooms the website may still sell: available_count capped by the type's online limit. */
+  web_available_count: number;
   min_stay: number;
   fits_capacity: boolean;
 }

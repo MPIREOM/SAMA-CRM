@@ -8,8 +8,8 @@ reviewed by the owner before launch.
 - Name: **Sama Hotel** (Arabic: **فندق سما**). Legal entity: Riyadha Al Jabal Al Akhdar Trading Co. L.L.C (Sama Hotels), PO Box 20, PC 621, Jabal Akhdar, Sultanate of Oman.
 - Location: Sayq, Jabal Al Akhdar (الجبل الأخضر), Ad Dakhiliyah, Oman — ~2,000–2,500 m altitude, about 2 hours' drive from Muscat.
 - Google Maps: https://maps.app.goo.gl/YC7RXydtYz61cFZj9
-- 3-star mountain resort, **60 units** (incl. 14 chalets), canyon/mountain views, sunrise & sunset sides.
-- Facilities: Sama Restaurant (multi-cuisine, 06:00–22:00, 60 seats), **The Peak** speciality coffee shop (07:00–22:00), lounge & pergola seating, outdoor swimming pool & jacuzzi on the cliff edge, children's park, Sama Tower, fitness centre, Diana Point, free Wi-Fi, laundry, room service (12 h), shisha area, banquet hall.
+- 3-star mountain resort, **50 units** on the booking platform (incl. 14 chalets), canyon/mountain views, sunrise & sunset sides.
+- Facilities: Sama Restaurant (multi-cuisine, 06:00–22:00, 60 seats), **The Peak** speciality coffee shop (07:00–22:00), lounge & pergola seating, outdoor swimming pool on the cliff edge (no jacuzzi anywhere on the property), children's park, Sama Tower, fitness centre, Diana Point, free Wi-Fi, laundry, room service (12 h), shisha area, banquet hall.
 - Family services: babysitter on request (free), children's playground (free), children's pool (common). **APEX Zipline** add-on OMR 5.
 - Meals (OMR): breakfast 5, lunch 8, dinner 8. Kids menu and packed meals available.
 
@@ -19,11 +19,13 @@ reviewed by the owner before launch.
 | chalet | Chalet | Chalet | شاليه | — | King | 2 adults + 1 child | 14 | 65 |
 | deluxe-mountain-view | Deluxe Room Mountain View | Deluxe Room — Mountain & Sunset View | غرفة ديلوكس بإطلالة على الجبل | 27 m² | Twin or king (guest's choice) | 2 + 1 | 14 | 55 |
 | deluxe-city-view | Deluxe Room City View | Deluxe Room — City & Sunrise View | غرفة ديلوكس بإطلالة على المدينة | 27 m² | Twin or king (guest's choice) | 2 + 1 | 14 | 50 |
-| family-deluxe | Family Deluxe | Family Deluxe Room | غرفة عائلية ديلوكس | 27 m² | King | 2 + 2 | 8 | 70 |
-| sama-suite-city-view | Sama Suite City View | Sama Suite — City View | جناح سما بإطلالة على المدينة | 29 m² | King | 2 + 1 | 5 | 85 |
-| sama-suite-mountain-view | Sama Suite Mountain View | Sama Suite — Mountain View with Jacuzzi | جناح سما بإطلالة على الجبل | 29 m² | Twin | 2 + 1 | 5 | 95 |
+| family-deluxe | Family Deluxe | Family Deluxe Room | غرفة عائلية ديلوكس | 27 m² | King | 2 + 2 | 4 | 70 |
+| sama-suite-city-view | Sama Suite City View | Sama Suite — City View | جناح سما بإطلالة على المدينة | 29 m² | King | 2 + 1 | 2 | 85 |
+| sama-suite-mountain-view | Sama Suite Mountain View | Sama Suite — Mountain View | جناح سما بإطلالة على الجبل | 29 m² | Twin | 2 + 1 | 2 | 95 |
 
-\* Unit split (14/14/14/8/5/5 = 60) and rates are **placeholders** — only the total of 60 and the 14 chalets are confirmed. Fix them in `/rooms` and `/rates`.
+\* Family Deluxe (4) and both Sama Suites (2 + 2) are the owner's confirmed counts (12 Nov, migration 0015); the Chalet and Deluxe counts (14/14/14) and all rates are still **placeholders** — fix them in `/rooms` and `/rates`. The Sama Suites have no jacuzzi.
+
+Rooms for sale online: each room type has an optional **online limit** (`bk_room_types.online_limit`, `/rooms` → room type card → *For sale online*) — the most rooms the website may book per night. Empty = every free room; staff bookings are never limited.
 
 Bed layouts: the two Deluxe types offer **twin beds or a king bed** (`bk_room_types.bed_options`, migration 0013). The guest picks one when booking; staff assign a room with that layout, so each physical Deluxe room's layout should be recorded on `/rooms` (Rooms tab → Edit → Beds). Other types have one fixed layout (the *bed* column).
 

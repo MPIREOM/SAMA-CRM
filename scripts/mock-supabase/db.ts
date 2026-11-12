@@ -93,6 +93,7 @@ export const TABLES: Record<string, TableSpec> = {
       amenities: col("json", { default: () => [] }),
       images: col("text[]", { default: () => [] }),
       bed_options: col("text[]", { default: () => [] }),
+      online_limit: nullable("int"),
       base_rate_omr: col("numeric", { required: true }),
       sort_order: col("int", { default: () => 0 }),
       is_active: col("bool", { default: () => true }),

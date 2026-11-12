@@ -378,7 +378,7 @@ test.describe("guest booking", () => {
   test("double-booking race: one room, three concurrent bk_create_booking calls → exactly one succeeds", async () => {
     // Reduce the mountain suites to one active room.
     const rooms = await db.rows<{ id: string }>("bk_rooms", `select=id&room_type_id=eq.${ROOM_TYPES["sama-suite-mountain-view"]}&order=sort_order.asc`);
-    expect(rooms.length).toBe(5);
+    expect(rooms.length).toBe(2);
     for (const r of rooms.slice(1)) await db.patch("bk_rooms", `id=eq.${r.id}`, { status: "maintenance" });
     const checkin = muscatDate(40);
     const checkout = muscatDate(42);
@@ -408,6 +408,48 @@ test.describe("guest booking", () => {
     // inside bk_create_booking (migration 0005, §8) followed by a re-check of
     // bk_available_count. Re-run this scenario against the real project with
     // the service-role key before go-live.
+  });
+
+  test("online limit: the website sells at most the set number per night; staff can still book the rest", async () => {
+    const type = ROOM_TYPES["sama-suite-city-view"];
+    const checkin = muscatDate(44);
+    const checkout = muscatDate(46);
+    const webCount = () => db.rpc<number>("bk_web_available_count", { p_room_type_id: type, p_check_in: checkin, p_check_out: checkout });
+    const book = (i: number, source: string) =>
+      db.createBooking({
+        room_type_id: type,
+        check_in: checkin,
+        check_out: checkout,
+        adults: 2,
+        children: 0,
+        guest_name: `E2E-limit-${i}`,
+        guest_phone: `+9689000010${i}`,
+        preferred_lang: "en",
+        source,
+      });
+    try {
+      // No limit: the website sells both suites.
+      expect(await webCount()).toBe(2);
+      await db.patch("bk_room_types", `id=eq.${type}`, { online_limit: 1 });
+      expect(await webCount()).toBe(1);
+      expect(await db.availableCount(type, checkin, checkout)).toBe(2);
+
+      expect((await book(1, "website")).status).toBe(200);
+      expect(await webCount()).toBe(0);
+      const second = await book(2, "website");
+      expect(second.status).toBe(400);
+      expect(second.body.message).toBe("sold_out");
+
+      // The room held back from the website is still there for the desk.
+      expect(await db.availableCount(type, checkin, checkout)).toBe(1);
+      expect((await book(3, "phone")).status).toBe(200);
+
+      // 0 = not sold online at all.
+      await db.patch("bk_room_types", `id=eq.${type}`, { online_limit: 0 });
+      expect(await db.rpc<number>("bk_web_available_count", { p_room_type_id: type, p_check_in: muscatDate(50), p_check_out: muscatDate(51) })).toBe(0);
+    } finally {
+      await db.patch("bk_room_types", `id=eq.${type}`, { online_limit: null });
+    }
   });
 
   test("Deluxe room: the guest must choose twin or king; the choice shows on review and confirmation", async ({ page }) => {

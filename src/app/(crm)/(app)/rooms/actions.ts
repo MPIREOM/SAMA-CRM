@@ -17,6 +17,8 @@ const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
 function revalidateAll() {
   for (const p of ["/rooms", "/calendar", "/rates", "/reservations/new"]) revalidatePath(p);
+  // Guest pages read room types and availability too.
+  revalidatePath("/", "layout");
 }
 
 // ---------------------------------------------------------------------------
@@ -44,6 +46,8 @@ const RoomTypeSchema = z.object({
   base_rate_omr: z.number().min(0).max(100000),
   sort_order: z.number().int().min(0).max(1000),
   is_active: z.boolean(),
+  /** Max rooms the website may hold per night; null = every free room. */
+  online_limit: z.number().int().min(0).max(1000).nullable(),
 });
 
 export async function updateRoomType(input: unknown): Promise<ActionResult> {
@@ -66,6 +70,25 @@ export async function updateRoomType(input: unknown): Promise<ActionResult> {
       if (JSON.stringify(prev) !== JSON.stringify(next)) diff[key] = { from: prev, to: next };
     }
     await audit(actor, "room_type.update", "bk_room_types", id, diff);
+    revalidateAll();
+    return { ok: true };
+  });
+}
+
+const OnlineLimitSchema = z.object({ id: uuid, online_limit: z.number().int().min(0).max(1000).nullable() });
+
+/** Rooms for sale online — the quick control on the room type card. */
+export async function setOnlineLimit(input: unknown): Promise<ActionResult> {
+  return runAction("room_type.online_limit", async () => {
+    const { actor } = await requireStaff(FRONT_DESK_ROLES);
+    const { id, online_limit } = OnlineLimitSchema.parse(input);
+    const admin = createAdminClient();
+    const { data: before, error: readErr } = await admin.from("bk_room_types").select("online_limit").eq("id", id).maybeSingle();
+    if (readErr) return { ok: false, error: readErr.message };
+    if (!before) return { ok: false, error: "room_type_not_found" };
+    const { error } = await admin.from("bk_room_types").update({ online_limit }).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+    await audit(actor, "room_type.update", "bk_room_types", id, { online_limit: { from: before.online_limit, to: online_limit } });
     revalidateAll();
     return { ok: true };
   });

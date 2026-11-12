@@ -432,7 +432,6 @@ export const AMENITIES: { key: string; en: string; ar: string }[] = [
   { key: "private_garden", en: "Private garden", ar: "حديقة خاصة" },
   { key: "sitting_area", en: "Sitting area", ar: "ركن جلوس" },
   { key: "two_bathrooms", en: "Two bathrooms", ar: "حمّامان" },
-  { key: "jacuzzi", en: "Jacuzzi", ar: "جاكوزي" },
   { key: "tv", en: "TV", ar: "تلفاز" },
   { key: "tea_coffee", en: "Tea & coffee", ar: "شاي وقهوة" },
   { key: "minibar", en: "Minibar", ar: "ميني بار" },
