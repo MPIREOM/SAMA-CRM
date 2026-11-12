@@ -172,6 +172,7 @@ export function sampleBooking(locale: Locale): BookingWithRelations {
       bed_config_en: "Twin",
       bed_config_ar: "سريران",
       bed_options: ["twin", "king"],
+      online_limit: null,
       size_sqm: 27,
       max_adults: 2,
       max_children: 1,

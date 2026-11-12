@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BedDouble, DoorOpen, Pencil, Plus, Trash2 } from "lucide-react";
+import { BedDouble, DoorOpen, Globe, Pencil, Plus, Trash2 } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import type { BkRoom, BkRoomType } from "@/lib/database.types";
@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { deleteRoom, updateRoom } from "@/app/(crm)/(app)/rooms/actions";
+import { deleteRoom, setOnlineLimit, updateRoom } from "@/app/(crm)/(app)/rooms/actions";
 import { InlineAlert } from "../load-error";
 import { fmtMoney, localName } from "../shared";
 import { RoomTypeDialog, type RoomTypeRow } from "./room-type-dialog";
@@ -38,6 +39,14 @@ const STR = {
   noRoomsDesc: { en: "Add the physical rooms so bookings can be assigned.", ar: "أضف الغرف الفعلية حتى يمكن تخصيص الحجوزات." },
   confirmDelete: { en: "Delete this room? Only possible when no booking references it.", ar: "حذف هذه الغرفة؟ ممكن فقط إذا لم يكن هناك حجز مرتبط بها." },
   sortOrder: { en: "Order", ar: "الترتيب" },
+  online: { en: "For sale online", ar: "للبيع على الموقع" },
+  onlineOf: { en: "of", ar: "من" },
+  onlineAll: { en: "all", ar: "الكل" },
+  onlineHint: {
+    en: "Most rooms the website may book per night. Empty = all free rooms. Staff bookings are not limited.",
+    ar: "أقصى ما يحجزه الموقع في الليلة. فارغ = كل الغرف المتاحة. حجوزات الموظفين غير مقيّدة.",
+  },
+  onlineOff: { en: "Not sold online", ar: "غير معروض للبيع على الموقع" },
 } satisfies Strings;
 
 export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types: RoomTypeRow[]; rooms: BkRoom[] }) {
@@ -72,7 +81,11 @@ export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types
   }
 
   const roomCount = new Map<string, number>();
-  for (const r of rooms) roomCount.set(r.room_type_id, (roomCount.get(r.room_type_id) ?? 0) + 1);
+  const activeCount = new Map<string, number>();
+  for (const r of rooms) {
+    roomCount.set(r.room_type_id, (roomCount.get(r.room_type_id) ?? 0) + 1);
+    if (r.status === "active") activeCount.set(r.room_type_id, (activeCount.get(r.room_type_id) ?? 0) + 1);
+  }
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   return (
@@ -155,6 +168,7 @@ export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types
                       {t.images.length} {STR.images[lang]}
                     </Badge>
                   </div>
+                  <OnlineLimitControl key={`${t.id}:${t.online_limit ?? ""}`} type={t} active={activeCount.get(t.id) ?? 0} onError={setError} />
                 </div>
               </Card>
             ))}
@@ -226,5 +240,69 @@ export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types
       <RoomTypeDialog type={editType} onClose={() => setEditType(null)} />
       <RoomDialog room={editRoom} types={types} onClose={() => setEditRoom(null)} />
     </div>
+  );
+}
+
+/** Quick "rooms for sale online" number on a room type card. */
+function OnlineLimitControl({ type, active, onError }: { type: RoomTypeRow; active: number; onError: (message: string | null) => void }) {
+  const { lang } = useLang();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const saved = type.online_limit === null ? "" : String(type.online_limit);
+  const [value, setValue] = useState(saved);
+  const dirty = value.trim() !== saved;
+  const parsed = value.trim() === "" ? null : Math.trunc(Number(value));
+  const invalid = parsed !== null && (!Number.isFinite(parsed) || parsed < 0 || parsed > 1000);
+  const inputId = `online-limit-${type.id}`;
+
+  function save() {
+    if (invalid) return;
+    onError(null);
+    start(async () => {
+      const r = await setOnlineLimit({ id: type.id, online_limit: parsed });
+      if (!r.ok) onError(r.error);
+      else router.refresh();
+    });
+  }
+
+  return (
+    <form
+      className="mt-3 border-t border-maroon-100 pt-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save();
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={inputId} className="flex items-center gap-1.5 text-xs font-semibold text-maroon-800">
+          <Globe className="h-3.5 w-3.5 text-maroon-400" />
+          {STR.online[lang]}
+        </label>
+        <Input
+          id={inputId}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={1000}
+          step={1}
+          className="h-8 w-20 px-2 text-sm"
+          placeholder={STR.onlineAll[lang]}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-invalid={invalid}
+        />
+        <span className="text-xs text-maroon-400">
+          {STR.onlineOf[lang]} {active}
+        </span>
+        {dirty ? (
+          <Button type="submit" size="sm" loading={pending} disabled={invalid}>
+            {COMMON.save[lang]}
+          </Button>
+        ) : null}
+      </div>
+      <p className={cn("mt-1 text-xs", saved === "0" ? "font-semibold text-crimson-700" : "text-maroon-400")}>
+        {saved === "0" ? STR.onlineOff[lang] : STR.onlineHint[lang]}
+      </p>
+    </form>
   );
 }

@@ -47,6 +47,11 @@ const STR = {
   baseRate: { en: "Base rate (OMR / night)", ar: "السعر الأساسي (ر.ع / ليلة)" },
   sortOrder: { en: "Sort order", ar: "الترتيب" },
   active: { en: "Active on the website", ar: "معروض على الموقع" },
+  onlineLimit: { en: "Rooms for sale online", ar: "الغرف المعروضة للبيع على الموقع" },
+  onlineLimitHint: {
+    en: "The most rooms of this type the website may book on any one night. Leave empty to sell every free room online. Staff bookings are not limited.",
+    ar: "أقصى عدد من غرف هذا النوع يمكن حجزه عبر الموقع في الليلة الواحدة. اتركوه فارغاً لبيع كل الغرف المتاحة. حجوزات الموظفين غير مقيّدة.",
+  },
   amenities: { en: "Amenities", ar: "المرافق" },
   images: { en: "Photos", ar: "الصور" },
   upload: { en: "Upload photo", ar: "رفع صورة" },
@@ -103,6 +108,7 @@ export function RoomTypeDialog({ type, onClose }: { type: RoomTypeRow | null; on
         base_rate_omr: f.base_rate_omr,
         sort_order: f.sort_order,
         is_active: f.is_active,
+        online_limit: f.online_limit,
       });
       if (!r.ok) {
         setError(r.error);
@@ -234,6 +240,22 @@ export function RoomTypeDialog({ type, onClose }: { type: RoomTypeRow | null; on
             <Label htmlFor="rt-sort">{STR.sortOrder[lang]}</Label>
             <Input id="rt-sort" type="number" min={0} value={f.sort_order} onChange={(e) => set("sort_order", num(e.target.value))} />
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="rt-online">{STR.onlineLimit[lang]}</Label>
+          <Input
+            id="rt-online"
+            type="number"
+            min={0}
+            max={1000}
+            step={1}
+            className="max-w-[10rem]"
+            placeholder="—"
+            value={f.online_limit ?? ""}
+            onChange={(e) => set("online_limit", e.target.value.trim() === "" ? null : Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+          />
+          <p className="mt-1 text-xs text-maroon-400">{STR.onlineLimitHint[lang]}</p>
         </div>
 
         <div className="flex items-center gap-3">

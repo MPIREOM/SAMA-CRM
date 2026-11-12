@@ -49,10 +49,10 @@ test.describe("staff back-office", () => {
     await expect(page.getByText("not_configured")).toHaveCount(0);
     await expect(page.locator("nav").getByRole("link", { name: "Settings" })).toBeVisible();
 
-    // Calendar: 60 room rows + the booking created above (unassigned → type lane).
+    // Calendar: 50 room rows + the booking created above (unassigned → type lane).
     await page.goto(`/calendar?from=${muscatDate(4)}`);
     const roomLabels = page.locator("div.sticky span.truncate").filter({ hasText: /^(\d{3}|C\d{2})$/ });
-    await expect(roomLabels).toHaveCount(60);
+    await expect(roomLabels).toHaveCount(50);
     await expect(page.locator(`[title^="${booking.ref}"]`).first()).toBeVisible();
 
     // Blocks: the Categories panel shows availability per room category for the chosen

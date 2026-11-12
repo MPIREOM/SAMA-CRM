@@ -61,7 +61,7 @@ export default async function BookRoomPage({ params, searchParams }: Props) {
     logger.warn("guest.book", "add-ons unavailable", { error: err instanceof Error ? err.message : String(err) });
   }
 
-  const soldOut = quote.available_count <= 0;
+  const soldOut = quote.web_available_count <= 0;
   const minStayFail = quote.nights < quote.min_stay;
   const capacityFail = !quote.fits_capacity;
 

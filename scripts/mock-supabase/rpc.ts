@@ -40,6 +40,7 @@ const GRANTS: Record<string, Role[]> = {
   bk_min_stay: ["anon", "authenticated", "service_role"],
   bk_muscat_today: ["anon", "authenticated", "service_role"],
   bk_available_count: ["authenticated", "service_role"],
+  bk_web_available_count: ["authenticated", "service_role"],
   bk_create_booking: ["authenticated", "service_role"],
   bk_cancel_booking: ["authenticated", "service_role"],
   bk_send_at: ["authenticated", "service_role"],
@@ -157,6 +158,22 @@ export function bkAvailableCount(db: Db, roomTypeId: string, checkIn: string, ch
   return Math.max(min, 0);
 }
 
+/** bk_web_available_count() (migration 0015): the physical count capped by online_limit − website bookings on the busiest night. */
+export function bkWebAvailableCount(db: Db, roomTypeId: string, checkIn: string, checkOut: string): number {
+  const phys = bkAvailableCount(db, roomTypeId, checkIn, checkOut, null);
+  const limit = roomType(db, roomTypeId)?.online_limit;
+  if (limit === null || limit === undefined || phys <= 0) return phys;
+  const bookings = db
+    .rows("bk_bookings")
+    .filter((k) => k.room_type_id === roomTypeId && k.source === "website" && k.status !== "cancelled" && k.status !== "no_show");
+  let peak = 0;
+  for (const night of nightsOf(checkIn, checkOut)) {
+    const n = bookings.filter((k) => String(k.check_in) <= night && String(k.check_out) > night).length;
+    if (n > peak) peak = n;
+  }
+  return Math.max(Math.min(phys, Number(limit) - peak), 0);
+}
+
 function bkPublicSettings(db: Db): Row {
   const keys = ["times", "cancellation", "contact", "booking", "taxes", "reviews", "hotel"];
   const out: Row = {};
@@ -185,7 +202,7 @@ function bkAvailability(db: Db, a: Args): Row[] {
       return {
         room_type_id: id,
         slug: rt.slug,
-        available_count: bkAvailableCount(db, id, checkIn, checkOut, null),
+        available_count: bkWebAvailableCount(db, id, checkIn, checkOut),
         nightly,
         room_subtotal: roundOmr(nightly.reduce((s, n) => s + (n.rate ?? 0), 0)),
         min_stay: ms,
@@ -309,6 +326,7 @@ function bkQuote(db: Db, a: Args): Row {
     total: q.total,
     taxes: t,
     available_count: bkAvailableCount(db, id, checkIn, checkOut, null),
+    web_available_count: bkWebAvailableCount(db, id, checkIn, checkOut),
     min_stay: bkMinStay(db, id, checkIn),
     fits_capacity: (adults ?? 2) <= Number(rt.max_adults) && (children ?? 0) <= Number(rt.max_children),
   };
@@ -426,7 +444,7 @@ function bkCreateBooking(db: Db, a: Args): Row {
 
   // pg_advisory_xact_lock(hashtext(room_type_id)): this function is synchronous
   // end-to-end, so concurrent calls are serialised by the event loop.
-  const avail = bkAvailableCount(db, rtId, checkIn, checkOut, null);
+  const avail = source === "website" ? bkWebAvailableCount(db, rtId, checkIn, checkOut) : bkAvailableCount(db, rtId, checkIn, checkOut, null);
   if (avail <= 0) throw raise("sold_out");
   if (source === "website" && nightsBetween(checkIn, checkOut) < bkMinStay(db, rtId, checkIn)) throw invalid("min_stay");
   if (roomId !== null) {
@@ -570,6 +588,13 @@ export function callRpc(db: Db, ctx: RpcContext, fn: string, args: Args): unknow
       const o = toDate(args.p_check_out, "p_check_out");
       if (!id || !i || !o) return null;
       return bkAvailableCount(db, id, i, o, toUuid(args.p_exclude_booking));
+    }
+    case "bk_web_available_count": {
+      const id = toUuid(args.p_room_type_id);
+      const i = toDate(args.p_check_in, "p_check_in");
+      const o = toDate(args.p_check_out, "p_check_out");
+      if (!id || !i || !o) return null;
+      return bkWebAvailableCount(db, id, i, o);
     }
     case "bk_send_at": {
       const i = toDate(args.p_check_in, "p_check_in");

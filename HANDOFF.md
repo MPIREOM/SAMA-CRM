@@ -28,7 +28,7 @@ _Built 7–8 September 2026 on top of the existing SAMA CRM. Read this first, th
 
 | Item | Status | What to do |
 |---|---|---|
-| **Room counts per type** | Placeholder split 14 / 14 / 14 / 8 / 5 / 5 (only "60 total" and "14 chalets" are confirmed) | `/rooms` → Rooms tab: rename/re-type rooms to match the real inventory |
+| **Room counts per type** | Family Deluxe 4, Sama Suite City View 2, Sama Suite Mountain View 2 are confirmed (12 Nov). Chalet / Deluxe 14 / 14 / 14 are still placeholders | `/rooms` → Rooms tab: add, remove or re-type rooms. `/rooms` → room type card → *For sale online*: the most rooms the website may book per night (empty = all) |
 | **Rates** | Placeholders OMR 50 / 55 / 65 / 70 / 85 / 95, weekend (Thu+Fri) +20 % | `/rates` → set real base rates and seasons |
 | **Room photos** | Real photos but thin: Sama Suites reuse Deluxe shots, Deluxe Mountain View reuses the twin-bed shot | `/rooms` → Room types → upload real photos (stored in Supabase Storage `bk-room-images`) |
 | **Website photos** | Every other photo on the guest site (hero, welcome, experiences, facilities, The Peak, contact, policies, sharing image, logo) is a *slot* with a sensible default | `/website` → Photos: Upload, pick from the library, or reset to default per slot |
