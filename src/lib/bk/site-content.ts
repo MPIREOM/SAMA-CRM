@@ -35,7 +35,7 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
   { key: "home_experience_peak", page: "home", label: { en: "Experience — The Peak", ar: "التجارب — ذا بيك" }, default: "/images/hotel/peak-4.jpg", ratio: "4:3" },
   { key: "home_experience_pool", page: "home", label: { en: "Experience — Pool", ar: "التجارب — المسبح" }, default: "/images/hotel/pool-terrace.jpg", ratio: "4:3" },
   { key: "home_experience_terraces", page: "home", label: { en: "Experience — Terraces & season", ar: "التجارب — المدرجات والموسم" }, default: "/images/hotel/terraces.jpg", ratio: "4:3" },
-  { key: "home_facility_pool", page: "home", label: { en: "Facilities — Pool & jacuzzi", ar: "المرافق — المسبح والجاكوزي" }, default: "/images/hotel/pool-wide.jpg", ratio: "4:3" },
+  { key: "home_facility_pool", page: "home", label: { en: "Facilities — Swimming pool", ar: "المرافق — المسبح" }, default: "/images/hotel/pool-wide.jpg", ratio: "4:3" },
   { key: "home_facility_restaurant", page: "home", label: { en: "Facilities — Restaurant", ar: "المرافق — المطعم" }, default: "/images/hotel/restaurant-new.jpg", ratio: "4:3" },
   { key: "home_facility_kids", page: "home", label: { en: "Facilities — Children's park", ar: "المرافق — حديقة الأطفال" }, default: "/images/hotel/kids-park-new.jpg", ratio: "4:3" },
   { key: "home_facility_gym", page: "home", label: { en: "Facilities — Fitness centre", ar: "المرافق — صالة اللياقة" }, default: "/images/hotel/gym.jpg", ratio: "4:3" },

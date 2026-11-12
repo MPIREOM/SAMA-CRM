@@ -53,7 +53,7 @@
     "facilitiesEyebrow": "Around the hotel",
     "facilitiesTitle": "Everything within a short walk",
     "facilities": {
-      "pool": "Outdoor pool & jacuzzi",
+      "pool": "Outdoor swimming pool",
       "restaurant": "Sama Restaurant, 06:00–22:00",
       "kids": "Children's park",
       "gym": "Fitness centre",
@@ -88,7 +88,7 @@
       },
       "pool": {
         "title": "A pool on the cliff edge",
-        "body": "An outdoor pool and jacuzzi right on the edge, with a shallow pool for children beside it and loungers that face the drop.",
+        "body": "An outdoor swimming pool right on the edge, with a shallow pool for children beside it and loungers that face the drop.",
         "cta": "See the rooms"
       },
       "terraces": {
@@ -565,7 +565,6 @@
     "pool_view": "Pool view",
     "city_view": "City view",
     "family": "Family friendly",
-    "jacuzzi": "Private jacuzzi",
     "sitting_area": "Sitting area",
     "two_bathrooms": "Two bathrooms",
     "private_garden": "Private garden",

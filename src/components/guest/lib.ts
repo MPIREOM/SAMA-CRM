@@ -23,7 +23,6 @@ export const AMENITY_KEYS = [
   "pool_view",
   "city_view",
   "family",
-  "jacuzzi",
   "sitting_area",
   "two_bathrooms",
   "private_garden",
