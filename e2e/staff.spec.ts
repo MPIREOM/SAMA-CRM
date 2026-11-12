@@ -424,6 +424,26 @@ test.describe("staff back-office", () => {
     await guest.close();
   });
 
+  test("front desk: /rooms cards set the price per night and the rooms for sale online", async ({ page }) => {
+    const type = ROOM_TYPES["sama-suite-city-view"];
+    await loginAs(page, "desk", "/rooms");
+    const price = page.locator(`#base-rate-${type}`);
+    const online = page.locator(`#online-limit-${type}`);
+    try {
+      await expect(price).toHaveValue("85");
+      await price.fill("92.5");
+      await price.press("Enter");
+      await expect.poll(async () => Number((await db.rows<{ base_rate_omr: number }>("bk_room_types", `select=base_rate_omr&id=eq.${type}`))[0].base_rate_omr)).toBe(92.5);
+
+      await expect(online).toHaveValue("");
+      await online.fill("1");
+      await online.press("Enter");
+      await expect.poll(async () => (await db.rows<{ online_limit: number | null }>("bk_room_types", `select=online_limit&id=eq.${type}`))[0].online_limit).toBe(1);
+    } finally {
+      await db.patch("bk_room_types", `id=eq.${type}`, { base_rate_omr: 85, online_limit: null });
+    }
+  });
+
   test("reservation_desk: rooms, rates, add-ons and daily lists open; settings, analytics and reports do not", async ({ page }) => {
     await loginAs(page, "desk");
     await expect(page).toHaveURL(/\/dashboard/);

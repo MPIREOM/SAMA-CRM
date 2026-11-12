@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BedDouble, DoorOpen, Globe, Pencil, Plus, Trash2 } from "lucide-react";
+import { BedDouble, DoorOpen, Globe, Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { useLang } from "@/components/providers/lang-provider";
 import { COMMON, type Strings } from "@/lib/i18n";
 import type { BkRoom, BkRoomType } from "@/lib/database.types";
@@ -16,6 +17,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { deleteRoom, setOnlineLimit, updateRoom } from "@/app/(crm)/(app)/rooms/actions";
+import { setBaseRate } from "@/app/(crm)/(app)/rates/actions";
 import { InlineAlert } from "../load-error";
 import { fmtMoney, localName } from "../shared";
 import { RoomTypeDialog, type RoomTypeRow } from "./room-type-dialog";
@@ -39,6 +41,12 @@ const STR = {
   noRoomsDesc: { en: "Add the physical rooms so bookings can be assigned.", ar: "أضف الغرف الفعلية حتى يمكن تخصيص الحجوزات." },
   confirmDelete: { en: "Delete this room? Only possible when no booking references it.", ar: "حذف هذه الغرفة؟ ممكن فقط إذا لم يكن هناك حجز مرتبط بها." },
   sortOrder: { en: "Order", ar: "الترتيب" },
+  price: { en: "Price per night (OMR)", ar: "السعر لكل ليلة (ر.ع)" },
+  priceHint: {
+    en: "The standard price before taxes. Weekend and seasonal plans on the Rates page still apply on top.",
+    ar: "السعر الأساسي قبل الضرائب. خطط نهاية الأسبوع والمواسم في صفحة الأسعار تُطبَّق فوقه.",
+  },
+  ratesLink: { en: "Open Rates", ar: "فتح الأسعار" },
   online: { en: "For sale online", ar: "للبيع على الموقع" },
   onlineOf: { en: "of", ar: "من" },
   onlineAll: { en: "all", ar: "الكل" },
@@ -168,6 +176,7 @@ export function RoomsView({ tab, types, rooms }: { tab: "types" | "rooms"; types
                       {t.images.length} {STR.images[lang]}
                     </Badge>
                   </div>
+                  <PriceControl key={`price:${t.id}:${t.base_rate_omr}`} type={t} onError={setError} />
                   <OnlineLimitControl key={`${t.id}:${t.online_limit ?? ""}`} type={t} active={activeCount.get(t.id) ?? 0} onError={setError} />
                 </div>
               </Card>
@@ -302,6 +311,69 @@ function OnlineLimitControl({ type, active, onError }: { type: RoomTypeRow; acti
       </div>
       <p className={cn("mt-1 text-xs", saved === "0" ? "font-semibold text-crimson-700" : "text-maroon-400")}>
         {saved === "0" ? STR.onlineOff[lang] : STR.onlineHint[lang]}
+      </p>
+    </form>
+  );
+}
+
+/** Quick base price on a room type card (same action as the Rates page). */
+function PriceControl({ type, onError }: { type: RoomTypeRow; onError: (message: string | null) => void }) {
+  const { lang } = useLang();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const saved = String(type.base_rate_omr);
+  const [value, setValue] = useState(saved);
+  const parsed = value.trim() === "" ? NaN : Number(value);
+  const invalid = !Number.isFinite(parsed) || parsed < 0 || parsed > 100000;
+  const dirty = invalid ? value.trim() !== saved : parsed !== type.base_rate_omr;
+  const inputId = `base-rate-${type.id}`;
+
+  function save() {
+    if (invalid) return;
+    onError(null);
+    start(async () => {
+      const r = await setBaseRate({ room_type_id: type.id, base_rate_omr: Math.round(parsed * 1000) / 1000 });
+      if (!r.ok) onError(r.error);
+      else router.refresh();
+    });
+  }
+
+  return (
+    <form
+      className="mt-3 border-t border-maroon-100 pt-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save();
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={inputId} className="flex items-center gap-1.5 text-xs font-semibold text-maroon-800">
+          <Tag className="h-3.5 w-3.5 text-maroon-400" />
+          {STR.price[lang]}
+        </label>
+        <Input
+          id={inputId}
+          type="number"
+          inputMode="decimal"
+          min={0}
+          max={100000}
+          step="0.001"
+          className="h-8 w-24 px-2 text-sm"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-invalid={invalid}
+        />
+        {dirty ? (
+          <Button type="submit" size="sm" loading={pending} disabled={invalid}>
+            {COMMON.save[lang]}
+          </Button>
+        ) : null}
+      </div>
+      <p className="mt-1 text-xs text-maroon-400">
+        {STR.priceHint[lang]}{" "}
+        <Link href="/rates" className="font-semibold text-maroon-700 underline underline-offset-2">
+          {STR.ratesLink[lang]}
+        </Link>
       </p>
     </form>
   );
